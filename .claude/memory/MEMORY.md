@@ -1,0 +1,5 @@
+- [User Profile](user-profile.md) — Angular/Python dev building JobHunter, holistic thinker, thorough doc updater, growth mindset
+- [JobHunter Project](project-jobhunter.md) — MVP Phase 1: backend done (FastAPI verified), frontend scaffold + components in progress via subagent
+- [Parallel Agents](feedback-parallel-agents.md) — Dispatch subagents in parallel for independent tasks, not sequential
+- [Portuguese Always](feedback-portuguese.md) — All responses in Brazilian Portuguese, technical terms in English
+- [Cost-Conscious](user-cost-conscious.md) — Prefers free-forever options (Oracle Always Free), rejects trials/small free tiers

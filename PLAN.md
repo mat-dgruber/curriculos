@@ -146,7 +146,7 @@
 - [ ] **Step 74:** Testar fluxo de empresa fixa: cadastrar empresa → aguardar job mensal → confirmar envio no histórico
 - [ ] **Step 75:** Executar varredura real nas 3 plataformas configuradas — confirmar vagas chegando no painel
 - [ ] **Step 76:** Verificar logs de automação — confirmar que nenhum erro silencioso está ocorrendo
-- [ ] **Step 77:** Deploy do backend em produção (Railway/Render) — confirmar processo persistente rodando
+- [ ] **Step 77:** Deploy do backend em produção (Oracle Cloud Always Free — VM ARM via Docker) — confirmar processo persistente rodando
 - [ ] **Step 78:** Atualizar `environment.prod.ts` com URL de produção do backend
 - [ ] **Step 79:** Deploy final do frontend no Firebase Hosting
 - [ ] **Step 80:** Confirmar site em produção acessível e funcionando end-to-end

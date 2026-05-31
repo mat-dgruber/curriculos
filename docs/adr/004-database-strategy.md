@@ -13,21 +13,27 @@ As decisões de banco de dados precisam cobrir: escolha do banco para dev vs pro
 
 ## Decisão
 
-### 1. SQLite para desenvolvimento e uso pessoal
+### 1. SQLite para desenvolvimento e produção
 
-SQLite será o banco de dados padrão para ambiente de desenvolvimento e uso pessoal. Zero configuração, banco em arquivo único (`./jobhunter.db`), sem necessidade de servidor externo. Suficiente para operação single-user com volume moderado de dados.
+SQLite será o banco de dados padrão tanto para desenvolvimento quanto para produção. Zero configuração, banco em arquivo único (`./jobhunter.db`), sem necessidade de servidor externo. Suficiente para operação single-user com volume moderado de dados.
 
-```env
-DATABASE_URL=sqlite:///./jobhunter.db
-```
-
-### 2. PostgreSQL para produção e multi-user
-
-Quando o sistema escalar para múltiplos usuários, migração para PostgreSQL via Railway PostgreSQL addon ou provedor equivalente. O SQLAlchemy abstrai a diferença de dialeto — código de models e serviços não muda.
+**Desenvolvimento:** Arquivo `./jobhunter.db` na pasta do backend
+**Produção:** Arquivo `./data/jobhunter.db` no filesystem da Oracle Cloud VM ARM (200GB SSD disponível)
 
 ```env
-DATABASE_URL=postgresql://user:pass@host:5432/jobhunter
+# Desenvolvimento
+DATABASE_URL=sqlite+aiosqlite:///./jobhunter.db
+
+# Produção (Oracle Cloud VM ARM)
+DATABASE_URL=sqlite+aiosqlite:///./data/jobhunter.db
 ```
+
+**Por que SQLite em produção é viável para este projeto:**
+- Single-user: não há concorrência de writes (limitação principal do SQLite)
+- Volume estimado: ~21MB/mês (vagas + candidaturas + screenshots). Em 3 anos: ~750MB — bem dentro dos 200GB disponíveis
+- Zero latência: banco local no mesmo servidor, sem overhead de rede
+- Zero custo: não precisa de banco externo gerenciado
+- Simplicidade: sem servidor de banco para manter, sem connection pool, sem configuração de rede
 
 ### 3. SQLAlchemy 2.x como ORM
 
@@ -113,7 +119,17 @@ A migração SQLite → PostgreSQL não exige mudanças de código em models ou 
 1. SQLAlchemy abstrai o dialeto do banco
 2. Alembic gerencia diferenças de schema entre dialetos
 3. Apenas a `DATABASE_URL` no `.env` muda
-4. Testes rodam em SQLite, produção em PostgreSQL
+4. SQLite é usado tanto em dev quanto em produção (Oracle Cloud VM ARM)
+
+**Opções de escala (em ordem):**
+1. **SQLite** (hoje — sempre free, 200GB na VM Oracle Cloud)
+2. **Supabase Free** (500MB PostgreSQL managed — se precisar de multi-user ou features PostgreSQL)
+3. **Supabase Pro** (US$25/mês, 8GB — se precisar de mais storage PostgreSQL)
+
+```env
+# Se migrar para Supabase:
+DATABASE_URL=postgresql+asyncpg://user:pass@db.xxx.supabase.co:5432/postgres
+```
 
 ---
 
@@ -133,11 +149,11 @@ A migração SQLite → PostgreSQL não exige mudanças de código em models ou 
 - **SQLite limitações:** Não suporta múltiplos writers simultâneos (ok para single-user, problemático para multi-user)
 - **Performance de índice:** SQLite tem performance inferior a PostgreSQL em queries complexas com muitos índices
 - **Seed data maintenance:** Dados fake precisam ser atualizados quando o schema muda
-- **Dois ambientes:** Diferenças sutis entre SQLite e PostgreSQL podem causar bugs difíceis de detectar em dev
+- **Ambiente único:** SQLite em dev e produção elimina divergências entre ambientes
 
 ### Riscos
 
 - **Corrupção de SQLite:** Arquivo `.db` pode corromper em caso de crash — backups periódicos são recomendados
 - **Migração de dados:** Quando escalar para PostgreSQL, dados existentes precisam ser migrados (script de dump/restore)
 - **Storage path:** Paths relativos (`./storage/`) funcionam local mas precisam de ajuste em containers Docker
-- **Screenshots em produção:** Em VPS com filesystem efêmero (ex: Railway), screenshots precisam de storage persistente (S3 ou volume)
+- **Screenshots em produção:** Na Oracle Cloud VM ARM, o filesystem é persistente (volume SSD de 200GB) — screenshots e PDFs ficam seguros no disco local

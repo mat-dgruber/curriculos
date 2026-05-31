@@ -18,14 +18,16 @@
 | uv | latest | Gerenciador de pacotes rápido — substitui pip/poetry |
 | Playwright | latest | Automação de browser headless para envio de formulários |
 | APScheduler | latest | Agendamento de jobs (varredura + envios recorrentes) |
-| SQLite → PostgreSQL | - | SQLite no dev/pessoal, PostgreSQL ao escalar para multi-user |
+| SQLite | - | SQLite no dev E produção (VM Oracle Cloud). PostgreSQL via Supabase Free apenas se precisar escalar para multi-user no futuro |
 | SQLAlchemy | 2.x | ORM com suporte async |
 
 ### Infraestrutura
 | Tecnologia | Motivo |
 |---|---|
-| Firebase Hosting | Frontend estático (padrão do dev) |
-| VPS (Railway / Render / self-hosted) | Backend + Playwright precisam de processo persistente |
+| Firebase Hosting | Frontend Angular estático — CDN global, HTTPS grátis, deploy com 1 comando |
+| Oracle Cloud Always Free (VM ARM) | Backend FastAPI + Playwright + APScheduler — VM ARM Always Free (até 4 OCPU, 24GB RAM, 200GB SSD), não expira nunca |
+| SQLite (produção) | Banco de dados local na VM — zero latência, zero custo, suficiente para single-user |
+| Supabase Free (opcional) | PostgreSQL managed 500MB — usar apenas se precisar de PostgreSQL no futuro |
 | SMTP (Gmail ou Resend) | Notificações por e-mail |
 
 ---
@@ -211,7 +213,7 @@ Frontend: input file (PDF)
 ### Backend (`.env`)
 ```env
 # Banco de dados
-DATABASE_URL=sqlite:///./jobhunter.db       # SQLite no dev, PostgreSQL na produção
+DATABASE_URL=sqlite+aiosqlite:///./data/jobhunter.db  # SQLite no dev E produção (VM Oracle Cloud)
 
 # E-mail
 SMTP_HOST=smtp.gmail.com
@@ -257,11 +259,14 @@ export const environment = {
 - **CI:** GitHub Actions na branch `main`
 
 ### Backend
-- **Plataforma:** Railway ou Render (VPS com processo persistente)
+- **Plataforma:** Oracle Cloud Always Free — VM ARM (Ampere A1)
 - **Por que não serverless:** Playwright e APScheduler precisam de processo de longa duração
+- **Por que Oracle Cloud Free:** 2 VMs ARM Always Free (até 4 OCPU, 24GB RAM, 200GB SSD) — não expira nunca, diferente de trials temporários
 - **Dockerfile:** Python 3.14 + Playwright browsers instalados
 - **Start command:** `uvicorn app.main:app --host 0.0.0.0 --port 8000`
-- **Banco de dados:** SQLite no MVP pessoal → PostgreSQL ao escalar (Railway PostgreSQL addon)
+- **Banco de dados:** SQLite local na VM (`./data/jobhunter.db`) — zero latência, zero custo, suficiente para single-user
+- **Storage:** `./storage/cv/` e `./storage/screenshots/` como volumes Docker persistentes
+- **Supabase Free (opcional):** PostgreSQL managed 500MB — usar apenas se precisar escalar para multi-user no futuro
 
 ### CI/CD
 ```
@@ -270,5 +275,5 @@ Push na branch main
   → roda testes (pytest)
   → build do frontend (ng build)
   → deploy no Firebase (frontend)
-  → deploy no Railway (backend via Dockerfile)
+  → deploy na VM Oracle Cloud (backend via Dockerfile)
 ```

@@ -34,15 +34,16 @@ Essas operações devem rodar sem intervenção manual, com confiabilidade sufic
 - **crontab do sistema:** Gerenciamento externo ao app, difícil de controlar via API, sem pause/resume nativo.
 - **asyncio.sleep loop:** Frágil, sem persistência de estado, sem mecanismo de recovery.
 
-### 2. Jobs no Mesmo Processo
+### 2. Jobs no Mesmo Processo (Docker Container)
 
-**Decisão:** Backend FastAPI e scheduler APScheduler rodando **no mesmo processo/container**.
+**Decisão:** Backend FastAPI e scheduler APScheduler rodando **no mesmo processo/container Docker** na Oracle Cloud Always Free (VM ARM).
 
 **Justificativa:**
-- Deployment simplificado: um único `uvicorn` ou `Dockerfile` gerencia tudo.
+- Deployment simplificado: um único `docker run` gerencia FastAPI + APScheduler + Playwright.
 - Sem latência de rede entre scheduler e lógica de negócio.
-- Compartilham a mesma sessão de banco de dados (async SQLAlchemy).
-- Para MVP pessoal, a separação em processos distintos não traz vantagem.
+- Compartilham a mesma sessão de banco de dados (async SQLAlchemy com SQLite local).
+- Oracle Cloud Always Free fornece VM ARM (até 4 vCPU, 24GB RAM) sem custo e sem expiração.
+- Docker garante ambiente reproduzível e isolado.
 
 ### 3. Frequência de Varredura
 
@@ -51,7 +52,7 @@ Essas operações devem rodar sem intervenção manual, com confiabilidade sufic
 **Justificativa:**
 - 6 horas é um equilíbrio entre **frescor das vagas** (vagas surgem e somem em horas) e **carga no servidor** (scraping consome CPU/memória).
 - Configurável para permitir ajuste: 3h para busca intensa, 12-24h para manutenção leve.
-- Em produção (VPS), 6h é seguro contra rate limits da maioria das plataformas.
+- Em produção (Oracle Cloud VM ARM), 6h é seguro contra rate limits da maioria das plataformas.
 
 ### 4. Envio Recorrente Mensal
 
@@ -96,7 +97,7 @@ Essas operações devem rodar sem intervenção manual, com confiabilidade sufic
 **Justificativa:**
 - Logs são a **trilha de auditoria** do sistema — permitem diagnosticar falhas (Captcha, timeout, seletores quebrados).
 - Em caso de problema legal (LGPD, ToS de plataformas), logs documentam exatamente o que foi feito e quando.
-- Para MVP pessoal, logs em arquivo (`./storage/logs/`). Em produção, considerar logging estruturado (JSON) para análise.
+- Para MVP pessoal, logs em arquivo (`./storage/logs/` dentro do container Docker). Em produção, considerar logging estruturado (JSON) para análise.
 
 ### 9. Threshold de Auto-Apply
 
@@ -123,7 +124,7 @@ Essas operações devem rodar sem intervenção manual, com confiabilidade sufic
 
 ### Positivas
 
-- **Zero configuração externa:** Não precisa de Redis, RabbitMQ ou filas — roda em qualquer VPS com Python.
+- **Zero configuração externa:** Não precisa de Redis, RabbitMQ ou filas — roda em container Docker na Oracle Cloud Always Free (VM ARM).
 - **Controle granular:** Pause por empresa, pausa global, threshold configurável.
 - **Auditoria completa:** Cada ação automatizada é registrada com timestamp e evidência (screenshot).
 - **Recuperação graceful:** Em caso de falha (Captcha, timeout), o job continua para a próxima empresa/vaga — nunca trava o ciclo inteiro.

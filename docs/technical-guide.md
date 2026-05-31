@@ -213,7 +213,7 @@ uv run uvicorn app.main:app     # Executa o servidor
 - **Async nativo**: `AsyncSession` com `await`
 - **Pydantic integration**: conversão automática via `from_attributes=True`
 - **Alembic**: migrations versionadas, rollback suportado
-- **Multi-banco**: mesmo código funciona com SQLite (dev) e PostgreSQL (produção)
+- **Multi-banco**: mesmo código funciona com SQLite (dev/produção) e PostgreSQL (futuro, via Supabase)
 
 #### Playwright
 

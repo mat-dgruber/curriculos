@@ -102,7 +102,7 @@ Procurar emprego hoje é um processo manual, repetitivo e desgastante:
 
 **Técnicos:**
 - Sites alvo podem implementar Captcha ou mudar sua estrutura HTML sem aviso — o scraper precisará de manutenção periódica
-- Playwright roda localmente (ou em servidor VPS) — não é serverless
+- Playwright roda em container Docker na Oracle Cloud Always Free (VM ARM) — processo persistente 24/7
 - O currículo em PDF deve ser fornecido pelo usuário; a plataforma não gera documentos
 - Inicialmente sem autenticação robusta (uso pessoal) — preparada para adicionar auth multi-user no futuro
 

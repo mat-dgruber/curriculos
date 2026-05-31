@@ -407,13 +407,99 @@ ng build --configuration production
 firebase deploy --only hosting
 ```
 
-### Backend (Railway / Render)
+### Backend (Oracle Cloud Free — VM ARM)
+
+A infraestrutura de produção roda em uma VM ARM Always Free da Oracle Cloud com SQLite local.
+
+**Passo 1: Criar conta na Oracle Cloud**
+1. Acessar https://cloud.oracle.com e criar conta (precisa cartão de crédito, mas não cobra)
+2. O plano Always Free inclui 2 VMs ARM (Ampere A1) para sempre
+
+**Passo 2: Criar a VM**
+1. No console Oracle Cloud, ir em **Compute → Instances → Create Instance**
+2. Configurar:
+   - **Image:** Ubuntu 22.04 (aarch64)
+   - **Shape:** VM.Standard.A1.Flex (Ampere A1 ARM)
+   - **OCPU:** 2 (dentro do limite Always Free de até 4 OCPU)
+   - **RAM:** 8GB (dentro do limite de até 24GB)
+   - **Boot volume:** 50GB (dentro do limite de 200GB)
+3. Adicionar chave SSH pública
+4. Criar a instância
+
+**Passo 3: Configurar a VM**
+```bash
+# Conectar via SSH
+ssh ubuntu@<IP_PUBLICO_DA_VM>
+
+# Instalar Docker
+curl -fsSL https://get.docker.com | sh
+sudo usermod -aG docker ubuntu
+# Fazer logout e login novamente
+
+# Instalar git
+sudo apt install -y git
+```
+
+**Passo 4: Deploy do backend**
+```bash
+# Clonar o repositório
+git clone https://github.com/seu-usuario/jobhunter.git
+cd jobhunter/backend
+
+# Criar .env com variáveis de produção
+cp .env.example .env
+nano .env  # Configurar valores de produção (ver seção abaixo)
+
+# Criar diretórios de storage
+mkdir -p ./data ./storage/cv ./storage/screenshots
+
+# Build da imagem Docker
+docker build -t jobhunter-backend .
+
+# Rodar o container
+docker run -d \
+  --name jobhunter \
+  -p 8000:8000 \
+  -v ./storage:/app/storage \
+  -v ./data:/app/data \
+  --env-file .env \
+  --restart unless-stopped \
+  jobhunter-backend
+
+# Rodar migrations do banco
+docker exec jobhunter alembic upgrade head
+
+# Verificar se está rodando
+curl http://localhost:8000/docs
+```
+
+**Passo 5: Configurar firewall**
+1. No console Oracle Cloud, ir em **Networking → Virtual Cloud Networks**
+2. Selecionar a VNC da instância
+3. Ir em **Security Lists → Default Security List**
+4. Adicionar Ingress Rule:
+   - **Source CIDR:** 0.0.0.0/0
+   - **Destination Port:** 8000
+   - **Protocol:** TCP
+
+**Passo 6: Acessar**
+- Backend: `http://<IP_PUBLICO_DA_VM>:8000`
+- Swagger: `http://<IP_PUBLICO_DA_VM>:8000/docs`
+
+### Database (SQLite na VM)
+
+O banco de dados é um arquivo SQLite local dentro da VM — sem servidor externo, sem limites artificiais.
 
 ```bash
-# O deploy acontece automaticamente ao dar push na branch main
-git push origin main
+# O arquivo fica em ./data/jobhunter.db dentro do container
+# A pasta ./data é montada como volume persistente
 
-# Railway detecta o Dockerfile e faz o build automaticamente
+# Backup manual (copiar o arquivo)
+cp ./data/jobhunter.db ./backups/jobhunter_$(date +%Y%m%d).db
+
+# Backup automatizado (adicionar ao crontab)
+crontab -e
+# Adicionar: 0 3 * * * cp /home/ubuntu/jobhunter/backend/data/jobhunter.db /home/ubuntu/jobhunter/backend/backups/jobhunter_$(date +\%Y\%m\%d).db
 ```
 
 ### Atualizar Variáveis de Produção
@@ -422,11 +508,17 @@ git push origin main
 // frontend/src/environments/environment.prod.ts
 export const environment = {
   production: true,
-  apiUrl: 'https://seu-backend.up.railway.app'
+  apiUrl: 'http://<IP_PUBLICO_DA_VM>:8000'
 };
 ```
 
-No Railway/Render, configurar as variáveis de ambiente do `.env` com valores de produção.
+No `.env` da VM, configurar:
+```bash
+DATABASE_URL=sqlite+aiosqlite:///./data/jobhunter.db
+ENVIRONMENT=production
+FRONTEND_URL=https://<PROJETO>.web.app
+SECRET_KEY=<gerar-uma-chave-aleatoria-grande>
+```
 
 ---
 
@@ -461,3 +553,6 @@ No Railway/Render, configurar as variáveis de ambiente do `.env` com valores de
 | Pydantic v2 | https://docs.pydantic.dev |
 | Alembic | https://alembic.sqlalchemy.org |
 | uv | https://docs.astral.sh/uv/ |
+| Oracle Cloud Free | https://cloud.oracle.com/free |
+| Docker | https://docs.docker.com |
+| Firebase Hosting | https://firebase.google.com/docs/hosting |

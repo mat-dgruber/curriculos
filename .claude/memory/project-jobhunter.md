@@ -1,6 +1,6 @@
 ---
 name: JobHunter Project Context
-description: Personal job automation tool — Angular 21+ frontend, FastAPI backend, Playwright scraping. Infra: Oracle Cloud Free + Firebase Hosting + SQLite. All 13 docs complete. MVP Phase 1 scaffold nearly done.
+description: Personal job automation tool — Angular 21+ frontend, FastAPI backend, Playwright scraping. Infra: Oracle Cloud Free + Firebase Hosting + SQLite. All 13 docs complete. MVP Phase 1 scaffold DONE.
 type: project
 ---
 
@@ -13,22 +13,36 @@ JobHunter is a **personal-use** automated job application system being built by 
 - Maintains "fixed companies" list with monthly recurring CV submissions
 - Sends email notifications for matches and submissions
 
-**Current phase (2026-05-31):** MVP Phase 1 scaffold — **IN PROGRESS**:
-- **Backend (Steps 7-10): COMPLETED.** FastAPI server verified working on port 8000. 5 route files (jobs, applications, companies, profile, scheduler) with placeholder endpoints. SQLAlchemy async + SQLite configured. CORS for localhost:4200. pydantic-settings reading .env. Dependencies: fastapi, uvicorn, sqlalchemy, aiosqlite, pydantic-settings, alembic, python-multipart.
-- **Frontend (Steps 1-6): MOSTLY DONE.** Angular 21+ scaffolded, Tailwind 3.4.17 configured with dark theme tokens, PrimeNG 21 installed (needed `--legacy-peer-deps`), environments created, 8 lazy-loaded routes configured, HttpClient + animations providers added. **Subagent currently creating all components** (sidebar, topbar, dashboard, jobs, applications, companies, profile, settings, shared components, pipes, models, services).
+**Current phase (2026-05-31):** MVP Phase 1 scaffold — **COMPLETED**.
 
-**Implementation lesson:** PrimeNG 21 requires `--legacy-peer-deps` with Angular 21 due to peer dep mismatch. `@angular/animations` must be installed separately.
+**Frontend (Angular 21+):** 27 TypeScript files. Build passes clean (279KB initial bundle).
+- 13 components: sidebar, topbar, dashboard, jobs-list, job-detail, applications, companies, profile, settings, score-badge, status-chip, stat-card, empty-state
+- 5 services: api, jobs, applications, companies, profile (HttpClient-based)
+- 4 models: job, application, company, profile (TypeScript interfaces)
+- 1 pipe: relative-time
+- 7 lazy-loaded routes with loadComponent()
+- Tailwind 3.4.17 configured with dark theme tokens (#0a0f1e bg, #2563eb primary)
+- PrimeNG 21+ installed (needed `--legacy-peer-deps` + separate `@angular/animations`)
+- app.config.ts: provideHttpClient(withFetch()), provideAnimationsAsync(), provideRouter()
 
-**Next after Phase 1 completes:** Phase 2 (Models & Database, Steps 12-17), Phase 3 (API Endpoints, Steps 18-25).
+**Backend (FastAPI):** 17 Python files. Server verified working on port 8000.
+- 5 route files with placeholder endpoints: jobs, applications, companies, profile, scheduler
+- core/config.py: pydantic-settings reading .env (DATABASE_URL=sqlite+aiosqlite)
+- core/database.py: SQLAlchemy async engine + init_db() on startup
+- main.py: CORS for localhost:4200, /health endpoint, all routers mounted at /api/v1
+- .env configured for local development
+- Dependencies via uv: fastapi, uvicorn, sqlalchemy, aiosqlite, pydantic-settings, alembic, python-multipart
 
-Environment verified: Node 24.13.1, npm 11.8.0, Angular CLI installed, Python 3.14.3 (installed via uv), uv 0.10.6, Git 2.50.1.
+**Next:** Phase 2 (Models & Database, Steps 12-17) — create real SQLAlchemy models, Alembic migrations, seed data. Then Phase 3 (API Endpoints, Steps 18-25).
+
+**Infrastructure:** Oracle Cloud Free VM ARM (Docker) + Firebase Hosting + SQLite. $0/month. Scaling plan: Phase 1→Supabase Free, Phase 2→Celery+Redis, Phase 3→Kubernetes.
+
+Environment verified: Node 24.13.1, npm 11.8.0, Angular CLI installed, Python 3.14.3 (via uv), uv 0.10.6, Git 2.50.1.
 
 **Doc inventory (13 files — all complete):**
 - `docs/specs/` — frontend-components, api-endpoints, data-models, scraping-automation, infrastructure
 - `docs/adr/` — 001-stack-choices, 002-scraping-strategy, 003-scheduling-jobs, 004-database-strategy, 005-scaling-strategy
 - `docs/` — user-guide, technical-guide, developer-guide
-
-**Key project docs:** PRD.md, ARCHITECTURE.md, AI_RULES.md, PLAN.md (80 steps across 13 phases)
 
 **Why:** The user wants to stop manually checking job platforms and filling repetitive forms. Recurring monthly submissions to "fixed companies" is key — companies prioritize recent CVs.
 

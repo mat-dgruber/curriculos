@@ -82,6 +82,13 @@ pnpm-debug.log*
 /blob-report/
 /playwright/.cache/
 
+# ----- Uploads / Storage -----
+storage/
+
+# ----- Pytest -----
+.pytest_cache/
+htmlcov/
+
 # ----- Docker -----
 docker-compose.override.yml
 

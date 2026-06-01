@@ -1,0 +1,100 @@
+# ===========================
+# JobHunter - Gitignore Raiz
+# ===========================
+
+# ----- Python / Backend -----
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.egg-info/
+*.egg
+dist/
+build/
+*.whl
+
+# Virtual environments
+.venv/
+venv/
+env/
+
+# Environment variables
+.env
+.env.local
+.env.production
+.env.*.local
+
+# Database
+*.db
+*.db-journal
+*.db-shm
+*.db-wal
+test_jobhunter.db
+
+# SQLite backups
+*.backup
+backups/
+
+# ----- Frontend / Node -----
+node_modules/
+.angular/
+dist/
+tmp/
+out-tsc/
+coverage/
+.nyc_output/
+
+# ----- IDE / Editor -----
+.idea/
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+!.vscode/mcp.json
+*.sublime-workspace
+*.sublime-project
+.project
+.classpath
+.c9/
+*.launch
+.settings/
+
+# ----- OS -----
+.DS_Store
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+*.swp
+*.swo
+*~
+
+# ----- Logs -----
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# ----- Playwright / Browser -----
+/test-results/
+/playwright-report/
+/blob-report/
+/playwright/.cache/
+
+# ----- Docker -----
+docker-compose.override.yml
+
+# ----- Misc -----
+.sass-cache/
+connect.lock
+libpeerconnection.log
+testem.log
+typings/
+__screenshots__/
+.trunk/
+
+# ----- CI/CD secrets -----
+*.pem
+*.key
+*.cert

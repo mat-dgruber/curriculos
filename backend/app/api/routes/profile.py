@@ -1,4 +1,7 @@
 import json
+import os
+from datetime import datetime
+
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -11,6 +14,9 @@ from app.models.profile import (
 )
 
 router = APIRouter()
+
+MAX_CV_SIZE = 10 * 1024 * 1024  # 10 MB
+CV_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "..", "storage", "cv")
 
 
 def _profile_to_read(profile: CandidateProfile) -> CandidateProfileRead:
@@ -66,8 +72,46 @@ async def update_profile(
 
 @router.post("/profile/cv")
 async def upload_cv(file: UploadFile = File(...), db: AsyncSession = Depends(get_db)):
+    # Validate MIME type
+    if file.content_type != "application/pdf":
+        raise HTTPException(
+            status_code=415,
+            detail="Apenas arquivos PDF são aceitos",
+        )
+
+    # Read file content to validate size
+    content = await file.read()
+    size_bytes = len(content)
+
+    # Validate max size
+    if size_bytes > MAX_CV_SIZE:
+        raise HTTPException(
+            status_code=413,
+            detail=f"Arquivo excede o limite de 10 MB ({size_bytes} bytes recebidos)",
+        )
+
+    # Get the profile
+    result = await db.execute(select(CandidateProfile).limit(1))
+    profile = result.scalar_one_or_none()
+    if not profile:
+        raise HTTPException(status_code=404, detail="Perfil não encontrado")
+
+    # Create storage directory
+    os.makedirs(CV_DIR, exist_ok=True)
+
+    # Save file to disk
+    filepath = os.path.join(CV_DIR, f"{profile.id}.pdf")
+    with open(filepath, "wb") as f:
+        f.write(content)
+
+    # Update profile in database
+    profile.cv_filename = file.filename
+    profile.cv_uploaded_at = datetime.utcnow()
+    await db.commit()
+    await db.refresh(profile)
+
     return {
         "message": "Currículo atualizado com sucesso",
         "filename": file.filename,
-        "size_bytes": 0,
+        "size_bytes": size_bytes,
     }

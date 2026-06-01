@@ -88,7 +88,21 @@ async def test_update_profile(client, db):
 
 
 @pytest.mark.asyncio
-async def test_upload_cv(client):
+async def test_upload_cv(client, db):
+    from app.models.profile import CandidateProfile
+
+    profile = CandidateProfile(
+        id="test-profile-cv",
+        name="CV User",
+        email="cv@test.com",
+        keywords=json.dumps([]),
+        target_roles=json.dumps([]),
+        preferred_locations=json.dumps([]),
+        scan_interval_hours=6,
+    )
+    db.add(profile)
+    await db.commit()
+
     import io
 
     file_content = b"%PDF-1.4 fake pdf content"
@@ -99,4 +113,65 @@ async def test_upload_cv(client):
     assert resp.status_code == 200
     data = resp.json()
     assert data["filename"] == "curriculo.pdf"
+    assert data["size_bytes"] == len(file_content)
     assert "sucesso" in data["message"].lower()
+
+    # Verify database was updated
+    await db.refresh(profile)
+    assert profile.cv_filename == "curriculo.pdf"
+    assert profile.cv_uploaded_at is not None
+
+
+@pytest.mark.asyncio
+async def test_upload_cv_rejects_non_pdf(client, db):
+    from app.models.profile import CandidateProfile
+
+    profile = CandidateProfile(
+        id="test-profile-cv2",
+        name="CV User 2",
+        email="cv2@test.com",
+        keywords=json.dumps([]),
+        target_roles=json.dumps([]),
+        preferred_locations=json.dumps([]),
+        scan_interval_hours=6,
+    )
+    db.add(profile)
+    await db.commit()
+
+    import io
+
+    file_content = b"this is not a pdf"
+    resp = await client.post(
+        "/api/v1/profile/cv",
+        files={"file": ("curriculo.docx", io.BytesIO(file_content), "application/vnd.openxmlformats-officedocument.wordprocessingml.document")},
+    )
+    assert resp.status_code == 415
+    assert "pdf" in resp.json()["detail"].lower()
+
+
+@pytest.mark.asyncio
+async def test_upload_cv_rejects_oversized_file(client, db):
+    from app.models.profile import CandidateProfile
+
+    profile = CandidateProfile(
+        id="test-profile-cv3",
+        name="CV User 3",
+        email="cv3@test.com",
+        keywords=json.dumps([]),
+        target_roles=json.dumps([]),
+        preferred_locations=json.dumps([]),
+        scan_interval_hours=6,
+    )
+    db.add(profile)
+    await db.commit()
+
+    import io
+
+    # Create a file slightly over 10 MB
+    oversized_content = b"%PDF-1.4 " + b"x" * (10 * 1024 * 1024 + 1)
+    resp = await client.post(
+        "/api/v1/profile/cv",
+        files={"file": ("curriculo.pdf", io.BytesIO(oversized_content), "application/pdf")},
+    )
+    assert resp.status_code == 413
+    assert "10 mb" in resp.json()["detail"].lower()

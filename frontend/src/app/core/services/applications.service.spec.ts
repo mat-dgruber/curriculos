@@ -41,7 +41,7 @@ describe('ApplicationsService', () => {
   });
 
   it('should create application', () => {
-    service.createApplication('job-123').subscribe();
+    service.createApplication({ jobId: 'job-123' }).subscribe();
     const req = httpMock.expectOne(r => r.url.includes('/api/v1/applications'));
     expect(req.request.method).toBe('POST');
     expect(req.request.body).toEqual({ jobId: 'job-123' });
@@ -49,7 +49,7 @@ describe('ApplicationsService', () => {
   });
 
   it('should update application status', () => {
-    service.updateStatus('app-1', 'Enviado').subscribe();
+    service.updateStatus('app-1', { status: 'Enviado' }).subscribe();
     const req = httpMock.expectOne(r => r.url.includes('/api/v1/applications/app-1/status'));
     expect(req.request.method).toBe('PUT');
     expect(req.request.body).toEqual({ status: 'Enviado' });

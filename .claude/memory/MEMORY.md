@@ -1,10 +1,15 @@
 - [User Profile](user-profile.md) — Angular/Python dev building JobHunter, holistic thinker, quick approver, cost-conscious
-- [JobHunter Project](project-jobhunter.md) — MVP DONE, Fase 1-3 DONE, 101 tests, 5 scrapers, next: Fase 4 B2B
+- [JobHunter Project](project-jobhunter.md) — Fase 1-3+5 DONE, 101 tests, 5 scrapers, Jobs page overhaul (scoring sort, scan polling, debounce, full-width detail, global btn CSS, ToastService, requirements badges)
 - [Parallel Agents](feedback-parallel-agents.md) — Parallel subagents OK, cap 5-6, worktree CWD must be explicit, workers need scope guards, large refactors use hybrid (agents create, human integrates)
 - [Portuguese Always](feedback-portuguese.md) — All responses in Brazilian Portuguese, technical terms in English
 - [Cost-Conscious](user-cost-conscious.md) — Prefers free-forever options (Oracle Always Free), rejects trials/small free tiers
-- [Angular Signals](feedback-angular-signals.md) — Use .set()/.update() for Angular 21 signals, NEVER direct calls
-- [UI Design Preferences](feedback-ui-design.md) — Glassmorphism, pill shapes, retractable sidebar, bento grid, skeletons, custom dropdowns
-- [Home Server PostgreSQL Plan](plan-home-server-postgresql.md) — Plano 9 fases: PC velho → Ubuntu → PostgreSQL → JobHunter. Guia em docs/home-server-guide.md
-- [Roadmap Phase Workflow](feedback-roadmap-phases.md) — Works phase by phase through roadmap, says "vamos para a fase X"
+- [Angular Signals](feedback-angular-signals.md) — Use .set()/.update() for Angular 21 signals + withComponentInputBinding() for route params
+- [UI Design Preferences](feedback-ui-design.md) — Glassmorphism, pill shapes, bento grid, skeletons, custom dropdowns, full-width details, list/grid toggle, localStorage persistence, componentize inputs+buttons, light mode slate palette
+- [Z-Index Stacking](feedback-zindex-stacking.md) — backdrop-blur creates stacking contexts, dropdowns need parent z-index higher than siblings
+- [CSS Specificity Pitfalls](feedback-css-specificity.md) — CSS shorthand overrides Tailwind utils; ViewEncapsulation traps; use global styles for shared classes like .btn-primary
+- [Home Server PostgreSQL Plan](plan-home-server-postgresql.md) — Plano 9 fases: PC velho → Ubuntu → PostgreSQL → JobHunter
+- [Roadmap Phase Workflow](feedback-roadmap-phases.md) — Works phase by phase, but can skip phases (skipped Fase 4 to do Fase 5)
 - [itshover.com Icons](reference-itshover-icons.md) — Animated SVG icon source, React→Angular conversion pattern
+- [Subagent Timeouts](feedback-subagent-timeouts.md) — Large tasks (docs, multi-file frontend) frequently terminate subagents — write directly or split smaller
+- [Mobile Nav & Settings](feedback-mobile-nav-settings.md) — Vagas at index 3 in bottom nav (center, highlighted). Settings merged into Profile page, /settings route removed.
+- [PrimeNG Patterns](feedback-primeng.md) — FileUploadModule tag is p-fileupload, providePrimeNG in config, uploadHandler for custom uploads, mode="basic" shows "No file chosen", use mode="advanced" for full control

@@ -3,10 +3,10 @@ export interface Job {
   title: string;
   company: string;
   location: string;
-  platform: 'linkedin' | 'gupy' | 'vagas' | string;
+  platform: string;
   url: string;
-  description: string;
-  requirements: string;
+  description: string | null;
+  requirements: string | null;
   salaryRange: string | null;
   score: number;
   status: 'Nova' | 'Visualizada' | 'Candidatou';

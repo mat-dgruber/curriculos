@@ -19,9 +19,8 @@ export interface SelectOption {
     <div class="relative">
       <!-- Trigger -->
       <button
-        class="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 w-full text-left"
-        [class]="isOpen() ? 'bg-dark-bg border-primary/40 text-white' : 'bg-dark-surface border-dark-border text-text-main hover:border-primary/20 hover:bg-dark-bg'"
-        style="border: 1px solid;"
+        class="select-trigger flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 w-full text-left"
+        [class.select-trigger-open]="isOpen()"
       >
         @if (selectedLabel()) {
           <span class="truncate flex-1">{{ selectedLabel() }}</span>
@@ -33,19 +32,11 @@ export interface SelectOption {
 
       <!-- Dropdown -->
       @if (isOpen()) {
-        <div
-          class="absolute top-full left-0 right-0 mt-2 py-1.5 max-h-60 overflow-auto z-50"
-          style="background: rgba(17, 24, 39, 0.95);
-                 backdrop-filter: blur(20px) saturate(1.8);
-                 -webkit-backdrop-filter: blur(20px) saturate(1.8);
-                 border: 1px solid rgba(255,255,255,0.08);
-                 border-radius: 14px;
-                 box-shadow: 0 8px 32px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.04);"
-        >
+        <div class="select-dropdown absolute top-full left-0 right-0 mt-2 py-1.5 max-h-60 overflow-auto z-50">
           @for (option of options(); track option.value) {
             <button
-              class="flex items-center gap-3 w-full px-4 py-2.5 text-sm text-left transition-all duration-150"
-              [class]="option.value === selectedValue() ? 'bg-primary/15 text-primary' : 'text-text-main hover:bg-white/5'"
+              class="flex items-center gap-3 w-full px-4 py-2.5 text-sm text-left transition-all duration-150 select-option"
+              [class.select-option-active]="option.value === selectedValue()"
               (click)="selectOption(option, $event)"
             >
               @if (option.icon) {
@@ -60,7 +51,38 @@ export interface SelectOption {
         </div>
       }
     </div>
-  `
+  `,
+  styles: [`
+    .select-trigger {
+      background: var(--input-bg);
+      border: 1px solid var(--input-border);
+      color: var(--text-primary);
+    }
+    .select-trigger:hover {
+      border-color: rgba(37,99,235,0.3);
+    }
+    .select-trigger-open {
+      border-color: rgba(37,99,235,0.5);
+    }
+
+    .select-dropdown {
+      background: var(--bg-elevated);
+      border: 1px solid var(--bg-border);
+      border-radius: 14px;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.15);
+    }
+
+    .select-option {
+      color: var(--text-primary);
+    }
+    .select-option:hover {
+      background: var(--bg-hover);
+    }
+    .select-option-active {
+      background: rgba(37,99,235,0.1);
+      color: #2563eb;
+    }
+  `]
 })
 export class SelectComponent {
   private elementRef = inject(ElementRef);

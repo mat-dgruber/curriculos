@@ -13,6 +13,8 @@ from app.models.profile import CandidateProfile
 from app.services.scraper.gupy_scraper import GupyScraper
 from app.services.scraper.linkedin_scraper import LinkedInScraper
 from app.services.scraper.vagas_scraper import VagasScraper
+from app.services.scraper.jooble_scraper import JoobleScraper
+from app.services.scraper.adzuna_scraper import AdzunaScraper
 from app.services.matcher import match_jobs
 
 logger = logging.getLogger(__name__)
@@ -46,20 +48,18 @@ async def run_scan() -> dict:
             GupyScraper(headless=settings.playwright_headless, slow_mo=settings.playwright_slow_mo),
             LinkedInScraper(headless=settings.playwright_headless, slow_mo=settings.playwright_slow_mo),
             VagasScraper(headless=settings.playwright_headless, slow_mo=settings.playwright_slow_mo),
+            JoobleScraper(api_key=settings.jooble_api_key),
+            AdzunaScraper(app_id=settings.adzuna_app_id, app_key=settings.adzuna_app_key),
         ]
 
         all_scraped = []
-        for scraper_class in [GupyScraper, LinkedInScraper, VagasScraper]:
+        for scraper in scrapers:
             try:
-                scraper = scraper_class(
-                    headless=settings.playwright_headless,
-                    slow_mo=settings.playwright_slow_mo,
-                )
                 async with scraper:
                     scraped = await scraper.scrape(search_params)
                     all_scraped.extend(scraped)
             except Exception as e:
-                logger.error(f"Scraper {scraper_class.__name__} failed: {e}")
+                logger.error(f"Scraper {scraper.__class__.__name__} failed: {e}")
 
         if not all_scraped:
             return {"new_jobs": 0, "total_scraped": 0, "message": "No jobs found"}
@@ -103,6 +103,8 @@ async def run_scan() -> dict:
                 "gupy": len([j for j in all_scraped if j.platform == "gupy"]),
                 "linkedin": len([j for j in all_scraped if j.platform == "linkedin"]),
                 "vagas": len([j for j in all_scraped if j.platform == "vagas"]),
+                "jooble": len([j for j in all_scraped if j.platform == "jooble"]),
+                "adzuna": len([j for j in all_scraped if j.platform == "adzuna"]),
             },
         }
         logger.info(f"Scan complete: {result}")

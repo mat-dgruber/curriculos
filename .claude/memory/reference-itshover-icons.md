@@ -21,7 +21,7 @@ Each JSON contains: React component with SVG paths, Framer Motion animation logi
 
 **Not found on itshover.com (404):** inbox-icon, chevron-left-icon, spinner/loader-icon
 
-**Project icon mapping (24 components created):**
+**Project icon mapping (25 components — FULL migration):**
 
 | Component | Source | itshover name | Animation |
 |-----------|--------|---------------|-----------|
@@ -49,7 +49,8 @@ Each JSON contains: React component with SVG paths, Framer Motion animation logi
 | inbox-icon | custom CSS | — | translateY(-2px) |
 | x-icon | custom CSS | — | lines rotate open |
 | plug-connected-icon | itshover | plug-connected | halves separate |
+| spinner-icon | custom CSS | — | animate-spin (CSS keyframes) |
 
-**Why:** User explicitly chose itshover.com icons and wanted all static SVGs replaced with animated versions. The site has 263 icons total.
+**Why:** User explicitly chose itshover.com icons and wanted ALL static SVGs replaced with animated versions — including spinners and input field search icons. The site has 263 icons total.
 
-**How to apply:** When creating new icon components, always check itshover.com first. If not found, create CSS custom animation (pulse, rotate, bounce, etc.). All components live in `shared/components/[name]-icon/`.
+**How to apply:** When creating new icon components, always check itshover.com first. If not found, create CSS custom animation (pulse, rotate, bounce, etc.). All components live in `shared/components/[name]-icon/`. Zero inline SVGs should remain in consumer components.

@@ -19,9 +19,9 @@ import { FixedCompany, FixedCompanyCreate } from '../../core/models/company.mode
     RelativeTimePipe,
   ],
   template: `
-    <div class="p-6">
-      <div class="flex items-center justify-between mb-6">
-        <h1 class="text-2xl font-bold text-white">Empresas Fixas</h1>
+    <div class="p-4 md:p-6">
+      <div class="flex items-center justify-between mb-4 md:mb-6">
+        <h1 class="text-xl md:text-2xl font-bold text-white">Empresas Fixas</h1>
         <button (click)="showForm.set(!showForm())" class="btn-primary">
           @if (showForm()) {
             Fechar

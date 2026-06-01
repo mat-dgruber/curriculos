@@ -162,3 +162,74 @@ async def test_update_application_not_found(client):
         json={"status": "Enviado"},
     )
     assert resp.status_code == 404
+
+
+@pytest.mark.asyncio
+async def test_archive_application(client, db):
+    from app.models.job import Job
+    from app.models.application import Application
+    from datetime import datetime
+
+    job = Job(
+        id="archive-job-1",
+        title="Dev",
+        company="Corp",
+        location="SP",
+        platform="gupy",
+        url="https://gupy.io/archive1",
+        score=50,
+        found_at=datetime.utcnow(),
+    )
+    db.add(job)
+
+    app = Application(
+        id="archive-app-1",
+        job_id="archive-job-1",
+        company_name="Corp",
+        status="Pendente",
+    )
+    db.add(app)
+    await db.commit()
+
+    resp = await client.delete("/api/v1/applications/archive-app-1")
+    assert resp.status_code == 200
+    data = resp.json()
+    assert data["status"] == "Arquivado"
+    assert data["id"] == "archive-app-1"
+
+
+@pytest.mark.asyncio
+async def test_archive_application_already_archived(client, db):
+    from app.models.job import Job
+    from app.models.application import Application
+    from datetime import datetime
+
+    job = Job(
+        id="archive-job-2",
+        title="Dev",
+        company="Corp",
+        location="SP",
+        platform="gupy",
+        url="https://gupy.io/archive2",
+        score=50,
+        found_at=datetime.utcnow(),
+    )
+    db.add(job)
+
+    app = Application(
+        id="archive-app-2",
+        job_id="archive-job-2",
+        company_name="Corp",
+        status="Arquivado",
+    )
+    db.add(app)
+    await db.commit()
+
+    resp = await client.delete("/api/v1/applications/archive-app-2")
+    assert resp.status_code == 409
+
+
+@pytest.mark.asyncio
+async def test_archive_application_not_found(client):
+    resp = await client.delete("/api/v1/applications/nonexistent")
+    assert resp.status_code == 404

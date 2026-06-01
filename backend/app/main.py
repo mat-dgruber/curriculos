@@ -26,6 +26,9 @@ app.include_router(scheduler.router, prefix="/api/v1", tags=["Scheduler"])
 
 @app.on_event("startup")
 async def startup():
+    # DEPRECATED: create_all was replaced by Alembic migrations.
+    # To apply migrations: cd backend && alembic upgrade head
+    # To create new migration after model changes: cd backend && alembic revision --autogenerate -m "description"
     await init_db()
     start_scheduler()
 

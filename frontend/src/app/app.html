@@ -1,9 +1,19 @@
-<app-toast />
-<app-sidebar />
+<app-toast-container />
 
-<div class="ml-20 flex flex-col min-h-screen transition-all duration-300">
-  <app-topbar [schedulerStatus]="schedulerStatus()" [notificationCount]="0" (scanNow)="onScanNow()" />
-  <main class="flex-1 pb-6">
+<!-- Sidebar: desktop only -->
+<div class="hidden md:block">
+  <app-sidebar />
+</div>
+
+<div class="flex flex-col min-h-screen transition-all duration-300 md:ml-24">
+  <app-topbar
+    [schedulerStatus]="schedulerStatus()"
+    (scanNow)="onScanNow()"
+  />
+  <main class="flex-1 pb-24 md:pb-6">
     <router-outlet />
   </main>
 </div>
+
+<!-- Bottom nav: mobile only -->
+<app-mobile-bottom-nav />

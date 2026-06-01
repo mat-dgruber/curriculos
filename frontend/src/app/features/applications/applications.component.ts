@@ -19,10 +19,10 @@ import { Application } from '../../core/models/application.model';
     RelativeTimePipe,
   ],
   template: `
-    <div class="p-6">
-      <h1 class="text-2xl font-bold text-white mb-6">Candidaturas</h1>
+    <div class="p-4 md:p-6">
+      <h1 class="text-xl md:text-2xl font-bold text-white mb-4 md:mb-6">Candidaturas</h1>
 
-      <div class="mb-6">
+      <div class="mb-4 md:mb-6">
         <select
           class="input-field"
           [ngModel]="statusFilter()"
@@ -40,20 +40,18 @@ import { Application } from '../../core/models/application.model';
         <div class="space-y-3">
           @for (i of [1, 2, 3, 4, 5]; track i) {
             <div
-              class="bg-dark-surface border border-dark-border rounded-xl p-4 flex items-center gap-4"
+              class="bg-dark-surface border border-dark-border rounded-xl p-3 md:p-4 flex items-center gap-3 md:gap-4"
             >
               <div class="flex-1 space-y-2">
                 <div class="h-4 bg-dark-border/60 rounded-md w-1/3 animate-pulse"></div>
                 <div class="h-3 bg-dark-border/40 rounded-md w-1/5 animate-pulse"></div>
               </div>
-              <div class="h-3 w-20 bg-dark-border/30 rounded-md animate-pulse"></div>
               <div class="h-6 w-20 bg-dark-border/40 rounded-full animate-pulse"></div>
-              <div class="h-6 w-16 bg-dark-border/40 rounded-lg animate-pulse"></div>
             </div>
           }
         </div>
       } @else if (error()) {
-        <div class="bg-dark-surface border border-error/20 rounded-xl p-8 text-center">
+        <div class="bg-dark-surface border border-error/20 rounded-xl p-6 md:p-8 text-center">
           <div class="text-error/60 flex justify-center mb-3">
             <app-triangle-alert-icon [size]="40" [strokeWidth]="1.5" />
           </div>
@@ -68,7 +66,8 @@ import { Application } from '../../core/models/application.model';
           icon="inbox"
         />
       } @else {
-        <div class="bg-dark-surface border border-dark-border rounded-xl overflow-hidden">
+        <!-- Desktop: Table -->
+        <div class="bg-dark-surface border border-dark-border rounded-xl overflow-hidden hidden md:block">
           <table class="w-full text-left text-sm text-text-main">
             <thead class="bg-dark-bg text-text-muted uppercase text-xs">
               <tr>
@@ -109,7 +108,36 @@ import { Application } from '../../core/models/application.model';
           </table>
         </div>
 
-        <p class="text-sm text-text-muted mt-4">Total: {{ total() }} candidaturas</p>
+        <!-- Mobile: Cards -->
+        <div class="space-y-3 md:hidden">
+          @for (app of applications(); track app.id) {
+            <div class="bg-dark-surface border border-dark-border rounded-xl p-4">
+              <div class="flex items-start justify-between mb-2">
+                <div class="flex-1 min-w-0 mr-3">
+                  <p class="font-medium text-white text-sm truncate">{{ app.jobId }}</p>
+                  <p class="text-xs text-text-muted mt-0.5">{{ app.companyName }}</p>
+                </div>
+                <app-status-chip [status]="app.status" />
+              </div>
+              <div class="flex items-center justify-between mt-3 pt-2 border-t border-dark-border/50">
+                <span class="text-xs text-text-muted">
+                  @if (app.sentAt) {
+                    {{ app.sentAt | relativeTime }}
+                  } @else {
+                    <span class="text-warning">Pendente</span>
+                  }
+                </span>
+                @if (app.isRecurring) {
+                  <span class="text-[10px] px-2 py-0.5 rounded bg-primary/20 text-primary">Recorrente</span>
+                } @else {
+                  <span class="text-[10px] px-2 py-0.5 rounded bg-dark-bg text-text-muted">Único</span>
+                }
+              </div>
+            </div>
+          }
+        </div>
+
+        <p class="text-xs md:text-sm text-text-muted mt-4">Total: {{ total() }} candidaturas</p>
       }
     </div>
   `,

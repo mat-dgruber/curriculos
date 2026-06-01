@@ -13,26 +13,43 @@ describe('DashboardComponent', () => {
   let fixture: ComponentFixture<DashboardComponent>;
 
   const mockJobsService = {
-    getJobs: () => of({
-      items: [
-        { id: '1', title: 'Dev Angular', company: 'Tech', location: 'SP', score: 85, foundAt: new Date().toISOString(), platform: 'linkedin', status: 'Nova' }
-      ],
-      total: 5, page: 1, perPage: 5, pages: 1
-    })
+    getJobs: () =>
+      of({
+        items: [
+          {
+            id: '1',
+            title: 'Dev Angular',
+            company: 'Tech',
+            location: 'SP',
+            score: 85,
+            foundAt: new Date().toISOString(),
+            platform: 'linkedin',
+            status: 'Nova',
+          },
+        ],
+        total: 5,
+        page: 1,
+        perPage: 5,
+        pages: 1,
+      }),
   };
 
   const mockApplicationsService = {
-    getApplications: () => of({
-      items: [
-        { id: '1', status: 'Enviado' },
-        { id: '2', status: 'Falhou' }
-      ],
-      total: 2, page: 1, perPage: 20, pages: 1
-    })
+    getApplications: () =>
+      of({
+        items: [
+          { id: '1', status: 'Enviado' },
+          { id: '2', status: 'Falhou' },
+        ],
+        total: 2,
+        page: 1,
+        perPage: 20,
+        pages: 1,
+      }),
   };
 
   const mockSchedulerService = {
-    getStatus: () => of({ isRunning: true, jobs: [], pausedUntil: null })
+    getStatus: () => of({ isRunning: true, jobs: [], pausedUntil: null }),
   };
 
   beforeEach(async () => {
@@ -45,7 +62,7 @@ describe('DashboardComponent', () => {
         { provide: JobsService, useValue: mockJobsService },
         { provide: ApplicationsService, useValue: mockApplicationsService },
         { provide: SchedulerService, useValue: mockSchedulerService },
-      ]
+      ],
     }).compileComponents();
 
     fixture = TestBed.createComponent(DashboardComponent);

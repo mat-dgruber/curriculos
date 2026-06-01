@@ -2,11 +2,11 @@ import { Component, inject, OnInit, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ProfileService } from '../../core/services/profile.service';
 import { ToastService } from '../../core/services/toast.service';
+import { ThemeService } from '../../core/services/theme.service';
 import { TagIconComponent } from '../../shared/components/tag-icon/tag-icon.component';
 import { BriefcaseIconComponent } from '../../shared/components/briefcase-icon/briefcase-icon.component';
 import { MapPinIconComponent } from '../../shared/components/map-pin-icon/map-pin-icon.component';
 import { CogIconComponent } from '../../shared/components/cog-icon/cog-icon.component';
-
 import { TriangleAlertIconComponent } from '../../shared/components/triangle-alert-icon/triangle-alert-icon.component';
 import { CheckIconComponent } from '../../shared/components/check-icon/check-icon.component';
 
@@ -15,8 +15,8 @@ import { CheckIconComponent } from '../../shared/components/check-icon/check-ico
   standalone: true,
   imports: [FormsModule, TagIconComponent, BriefcaseIconComponent, MapPinIconComponent, CogIconComponent, TriangleAlertIconComponent, CheckIconComponent],
   template: `
-    <div class="p-8">
-      <h1 class="text-2xl font-bold text-white mb-8">Configurações</h1>
+    <div class="p-4 md:p-8">
+      <h1 class="text-xl md:text-2xl font-bold text-white mb-6 md:mb-8">Configurações</h1>
 
       @if (loading()) {
         <!-- Skeleton -->
@@ -42,6 +42,39 @@ import { CheckIconComponent } from '../../shared/components/check-icon/check-ico
       } @else {
         <!-- Bento Grid -->
         <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+
+          <!-- Theme Card -->
+          <div class="bg-dark-surface border border-dark-border rounded-2xl p-6">
+            <h3 class="text-white font-semibold mb-4 flex items-center gap-2">
+              @if (themeService.isDark()) {
+                <svg class="w-5 h-5 text-warning" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"/>
+                </svg>
+              } @else {
+                <svg class="w-5 h-5 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"/>
+                </svg>
+              }
+              Aparência
+            </h3>
+            <div class="space-y-3">
+              <div class="p-3 rounded-xl" style="background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.05);">
+                <label class="flex items-center gap-3 cursor-pointer">
+                  <div class="relative">
+                    <input type="checkbox" class="sr-only peer"
+                           [checked]="themeService.isDark()"
+                           (change)="themeService.toggle()" />
+                    <div class="w-10 h-5 bg-dark-border rounded-full peer peer-checked:bg-primary transition-colors"></div>
+                    <div class="absolute left-0.5 top-0.5 w-4 h-4 bg-white rounded-full peer-checked:translate-x-5 transition-transform"></div>
+                  </div>
+                  <div>
+                    <span class="text-text-main text-sm font-medium">Modo escuro</span>
+                    <p class="text-text-muted text-xs">{{ themeService.isDark() ? 'Tema escuro ativado' : 'Tema claro ativado' }}</p>
+                  </div>
+                </label>
+              </div>
+            </div>
+          </div>
 
           <!-- Keywords Card -->
           <div class="bg-dark-surface border border-dark-border rounded-2xl p-6">
@@ -170,6 +203,7 @@ import { CheckIconComponent } from '../../shared/components/check-icon/check-ico
 export class SettingsComponent implements OnInit {
   private readonly profileService = inject(ProfileService);
   private readonly toast = inject(ToastService);
+  readonly themeService = inject(ThemeService);
 
   loading = signal(true);
   saving = signal(false);

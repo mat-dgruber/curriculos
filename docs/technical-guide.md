@@ -1115,7 +1115,7 @@ O JobHunter lida com dados sensíveis (nome, e-mail, telefone, CPF, histórico p
 
 | Dado                       | Onde fica                                | Quem tem acesso  |
 | -------------------------- | ---------------------------------------- | ---------------- |
-| Dados do perfil            | Banco próprio (SQLite/PostgreSQL)        | Apenas o usuário |
+| Dados do perfil            | Banco próprio (SQLite na VM Oracle Cloud)  | Apenas o usuário |
 | Currículo PDF              | Storage local (`./storage/cv/`)          | Apenas o backend |
 | Screenshots                | Storage local (`./storage/screenshots/`) | Apenas o backend |
 | Credenciais de plataformas | **NÃO são armazenadas**                  | Ninguém          |
@@ -1151,7 +1151,7 @@ O JobHunter lida com dados sensíveis (nome, e-mail, telefone, CPF, histórico p
 │                                                              │
 │  5. BANCO DE DADOS                                           │
 │     ├── SQLite no dev (arquivo local, sem rede)              │
-│     ├── PostgreSQL na produção (criptografia em trânsito)    │
+│     ├── SQLite na produção (VM Oracle Cloud, arquivo local)  │
 │     └── CHECK constraints nos status válidos                 │
 │                                                              │
 └─────────────────────────────────────────────────────────────┘

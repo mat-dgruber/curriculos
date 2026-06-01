@@ -1,15 +1,18 @@
-import { Component, inject, OnInit, signal } from '@angular/core';
+import { Component, inject, OnInit, signal, computed } from '@angular/core';
 import { StatCardComponent } from '../../shared/components/stat-card/stat-card.component';
 import { ScoreBadgeComponent } from '../../shared/components/score-badge/score-badge.component';
 import { TriangleAlertIconComponent } from '../../shared/components/triangle-alert-icon/triangle-alert-icon.component';
 import { RelativeTimePipe } from '../../shared/pipes/relative-time.pipe';
+import { ChartBarComponent } from '../../shared/components/chart-bar/chart-bar.component';
 import { JobsService } from '../../core/services/jobs.service';
 import { ApplicationsService } from '../../core/services/applications.service';
 import { SchedulerService } from '../../core/services/scheduler.service';
 import { ToastService } from '../../core/services/toast.service';
 import { Job } from '../../core/models/job.model';
+import { Application } from '../../core/models/application.model';
 import { SchedulerStatus } from '../../core/models/profile.model';
 import { RouterLink } from '@angular/router';
+import { provideCharts, withDefaultRegisterables } from 'ng2-charts';
 
 @Component({
   selector: 'app-dashboard',
@@ -19,11 +22,13 @@ import { RouterLink } from '@angular/router';
     ScoreBadgeComponent,
     TriangleAlertIconComponent,
     RelativeTimePipe,
+    ChartBarComponent,
     RouterLink,
   ],
+  providers: [provideCharts(withDefaultRegisterables())],
   template: `
-    <div class="p-8">
-      <h1 class="text-2xl font-bold text-white mb-8">Dashboard</h1>
+    <div class="p-4 md:p-8">
+      <h1 class="text-xl md:text-2xl font-bold text-white mb-6 md:mb-8">Dashboard</h1>
 
       @if (loading()) {
         <!-- Stats Skeleton -->
@@ -71,6 +76,43 @@ import { RouterLink } from '@angular/router';
           <app-stat-card label="Taxa de Resposta" [value]="stats().responseRate" suffix="%" />
         </div>
 
+        <!-- Charts Row -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-8">
+          <app-chart-bar
+            title="Vagas por Plataforma"
+            [data]="platformChartData()"
+            [labels]="platformLabels()"
+          />
+          <app-chart-bar
+            title="Candidaturas por Semana"
+            [data]="weeklyChartData()"
+            [labels]="weeklyLabels()"
+          />
+        </div>
+
+        <!-- Resumo -->
+        <div class="bg-dark-surface border border-dark-border rounded-2xl p-5 mb-8">
+          <h2 class="text-lg font-semibold text-white mb-4">Resumo</h2>
+          <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div class="text-center p-3 rounded-xl bg-white/[0.03] border border-dark-border">
+              <p class="text-2xl font-bold text-primary">{{ totalApplications() }}</p>
+              <p class="text-xs text-text-muted mt-1">Total de candidaturas</p>
+            </div>
+            <div class="text-center p-3 rounded-xl bg-white/[0.03] border border-dark-border">
+              <p class="text-2xl font-bold text-success">{{ sentApplications() }}</p>
+              <p class="text-xs text-text-muted mt-1">Enviadas com sucesso</p>
+            </div>
+            <div class="text-center p-3 rounded-xl bg-white/[0.03] border border-dark-border">
+              <p class="text-2xl font-bold text-error">{{ failedApplications() }}</p>
+              <p class="text-xs text-text-muted mt-1">Falharam</p>
+            </div>
+            <div class="text-center p-3 rounded-xl bg-white/[0.03] border border-dark-border">
+              <p class="text-2xl font-bold text-warning">{{ pendingApplications() }}</p>
+              <p class="text-xs text-text-muted mt-1">Pendentes</p>
+            </div>
+          </div>
+        </div>
+
         <!-- Scheduler Status -->
         <div
           class="bg-dark-surface border border-dark-border rounded-xl p-5 mb-8 flex items-center justify-between"
@@ -100,10 +142,10 @@ import { RouterLink } from '@angular/router';
         </div>
 
         <!-- Recent Jobs -->
-        <div class="bg-dark-surface border border-dark-border rounded-xl p-5">
+        <div class="bg-dark-surface border border-dark-border rounded-xl p-4 md:p-5">
           <div class="flex items-center justify-between mb-4">
-            <h2 class="text-lg font-semibold text-white">Vagas Recentes</h2>
-            <a routerLink="/jobs" class="text-sm text-primary hover:text-accent transition-colors"
+            <h2 class="text-base md:text-lg font-semibold text-white">Vagas Recentes</h2>
+            <a routerLink="/jobs" class="text-xs md:text-sm text-primary hover:text-accent transition-colors"
               >Ver todas →</a
             >
           </div>
@@ -111,13 +153,13 @@ import { RouterLink } from '@angular/router';
             <div
               class="flex items-center justify-between py-3 border-b border-dark-border last:border-0 hover:bg-white/[0.02] rounded-lg px-2 transition-colors"
             >
-              <div>
-                <p class="text-white font-medium">{{ job.title }}</p>
-                <p class="text-sm text-text-muted">{{ job.company }} · {{ job.location }}</p>
+              <div class="min-w-0 flex-1 mr-3">
+                <p class="text-white font-medium text-sm md:text-base truncate">{{ job.title }}</p>
+                <p class="text-xs md:text-sm text-text-muted truncate">{{ job.company }} · {{ job.location }}</p>
               </div>
-              <div class="flex items-center gap-3">
+              <div class="flex items-center gap-2 md:gap-3 shrink-0">
                 <app-score-badge [score]="job.score" />
-                <span class="text-xs text-text-muted w-16 text-right">{{
+                <span class="text-[10px] md:text-xs text-text-muted hidden sm:block">{{
                   job.foundAt | relativeTime
                 }}</span>
               </div>
@@ -138,9 +180,52 @@ export class DashboardComponent implements OnInit {
 
   stats = signal({ totalJobs: 0, sentApplications: 0, responseRate: 0 });
   recentJobs = signal<Job[]>([]);
+  allJobs = signal<Job[]>([]);
+  allApplications = signal<Application[]>([]);
   schedulerStatus = signal<SchedulerStatus | null>(null);
   loading = signal(true);
   error = signal<string | null>(null);
+
+  // -- Chart data: Vagas por Plataforma --
+  platformLabels = computed(() => ['Gupy', 'LinkedIn', 'Vagas', 'Jooble', 'Adzuna']);
+  platformChartData = computed(() => {
+    const jobs = this.allJobs();
+    return [
+      jobs.filter((j) => j.platform?.toLowerCase() === 'gupy').length,
+      jobs.filter((j) => j.platform?.toLowerCase() === 'linkedin').length,
+      jobs.filter((j) => j.platform?.toLowerCase() === 'vagas').length,
+      jobs.filter((j) => j.platform?.toLowerCase() === 'jooble').length,
+      jobs.filter((j) => j.platform?.toLowerCase() === 'adzuna').length,
+    ];
+  });
+
+  // -- Chart data: Candidaturas por Semana (last 7 days) --
+  weeklyLabels = computed(() => {
+    const labels: string[] = [];
+    for (let i = 6; i >= 0; i--) {
+      const d = new Date();
+      d.setDate(d.getDate() - i);
+      labels.push(d.toLocaleDateString('pt-BR', { weekday: 'short' }));
+    }
+    return labels;
+  });
+  weeklyChartData = computed(() => {
+    const apps = this.allApplications();
+    const counts: number[] = [];
+    for (let i = 6; i >= 0; i--) {
+      const d = new Date();
+      d.setDate(d.getDate() - i);
+      const dayStr = d.toISOString().slice(0, 10);
+      counts.push(apps.filter((a) => a.sentAt?.startsWith(dayStr)).length);
+    }
+    return counts;
+  });
+
+  // -- Resumo stats --
+  totalApplications = computed(() => this.allApplications().length);
+  sentApplications = computed(() => this.allApplications().filter((a) => a.status === 'Enviado').length);
+  failedApplications = computed(() => this.allApplications().filter((a) => a.status === 'Falhou').length);
+  pendingApplications = computed(() => this.allApplications().filter((a) => a.status === 'Pendente').length);
 
   ngOnInit(): void {
     this.loadDashboard();
@@ -150,18 +235,22 @@ export class DashboardComponent implements OnInit {
     this.loading.set(true);
     this.error.set(null);
 
-    this.jobsService.getJobs({ perPage: 5 }).subscribe({
+    this.jobsService.getJobs({ perPage: 200 }).subscribe({
       next: (res) => {
         this.stats.update((s) => ({ ...s, totalJobs: res.total }));
-        this.recentJobs.set(res.items);
+        this.allJobs.set(res.items);
+        this.recentJobs.set(res.items.slice(0, 5));
       },
       error: () => this.toast.error('Erro ao carregar vagas.'),
     });
 
-    this.applicationsService.getApplications().subscribe({
+    this.applicationsService.getApplications({ per_page: 500 }).subscribe({
       next: (res) => {
+        this.allApplications.set(res.items);
         const sent = res.items.filter((a) => a.status === 'Enviado').length;
-        this.stats.update((s) => ({ ...s, sentApplications: sent }));
+        const total = res.total;
+        const rate = total > 0 ? Math.round((sent / total) * 100) : 0;
+        this.stats.update((s) => ({ ...s, sentApplications: sent, responseRate: rate }));
       },
       error: () => {},
     });

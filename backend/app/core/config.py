@@ -18,6 +18,11 @@ class Settings(BaseSettings):
     smtp_password: str = ""
     notification_email: str = ""
 
+    # Scraper API keys (opcionais)
+    jooble_api_key: str = ""
+    adzuna_app_id: str = ""
+    adzuna_app_key: str = ""
+
     model_config = {"env_file": ".env"}
 
 

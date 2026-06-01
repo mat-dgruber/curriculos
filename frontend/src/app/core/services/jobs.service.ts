@@ -26,7 +26,15 @@ export class JobsService {
     return this.api.get<Job>(`/api/v1/jobs/${id}`);
   }
 
-  scanJobs(): Observable<{ message: string; jobId: string; status: string }> {
+  updateJob(id: string, data: Partial<Job>): Observable<Job> {
+    return this.api.patch<Job>(`/api/v1/jobs/${id}`, data);
+  }
+
+  scanJobs(): Observable<{ message: string; status: string }> {
     return this.api.post('/api/v1/jobs/scan', {});
+  }
+
+  getScanStatus(): Observable<{ status: string; started_at: string | null; finished_at: string | null; result: any; error: string | null }> {
+    return this.api.get('/api/v1/jobs/scan/status');
   }
 }

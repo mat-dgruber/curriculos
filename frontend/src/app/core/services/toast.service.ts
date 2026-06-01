@@ -20,20 +20,20 @@ export class ToastService {
     setTimeout(() => this.dismiss(id), duration);
   }
 
-  success(message: string): void {
-    this.show(message, 'success');
+  success(message: string, duration = 4000): void {
+    this.show(message, 'success', duration);
   }
 
-  error(message: string): void {
-    this.show(message, 'error', 6000);
+  error(message: string, duration = 6000): void {
+    this.show(message, 'error', duration);
   }
 
-  warning(message: string): void {
-    this.show(message, 'warning', 5000);
+  warning(message: string, duration = 5000): void {
+    this.show(message, 'warning', duration);
   }
 
-  info(message: string): void {
-    this.show(message, 'info');
+  info(message: string, duration = 4000): void {
+    this.show(message, 'info', duration);
   }
 
   dismiss(id: number): void {

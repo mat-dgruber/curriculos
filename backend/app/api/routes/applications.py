@@ -121,3 +121,24 @@ async def update_application_status(
     await db.commit()
     await db.refresh(application)
     return ApplicationRead.model_validate(application)
+
+
+@router.delete("/applications/{application_id}", response_model=ApplicationRead)
+async def archive_application(
+    application_id: str,
+    db: AsyncSession = Depends(get_db),
+):
+    result = await db.execute(
+        select(Application).where(Application.id == application_id)
+    )
+    application = result.scalar_one_or_none()
+    if not application:
+        raise HTTPException(status_code=404, detail="Candidatura não encontrada")
+
+    if application.status == "Arquivado":
+        raise HTTPException(status_code=409, detail="Candidatura já arquivada")
+
+    application.status = "Arquivado"
+    await db.commit()
+    await db.refresh(application)
+    return ApplicationRead.model_validate(application)

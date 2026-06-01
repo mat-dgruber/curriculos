@@ -67,4 +67,8 @@ export class JobsService {
   autoDeleteRun(): Observable<{ deleted: number }> {
     return this.api.post('/api/v1/jobs/auto-delete/run', {});
   }
+
+  rejectByFilter(params: { maxScore?: number; olderThanDays?: number; nonFavoritesOnly?: boolean; reason?: string; notes?: string }): Observable<{ deleted: number }> {
+    return this.api.post('/api/v1/jobs/reject-by-filter', params);
+  }
 }

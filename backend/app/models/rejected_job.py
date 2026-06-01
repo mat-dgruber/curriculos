@@ -1,6 +1,7 @@
 from datetime import datetime
 from uuid import uuid4
 
+from pydantic import Field
 from sqlalchemy import String, Integer, Text, DateTime, Index
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -76,5 +77,13 @@ class RejectRequest(CamelModel):
 
 class RejectBatchRequest(CamelModel):
     job_ids: list[str]
+    reason: str = "incompativel"
+    notes: str | None = None
+
+
+class RejectByFilterRequest(CamelModel):
+    max_score: int | None = Field(None, ge=0, le=100)
+    older_than_days: int | None = Field(None, ge=1)
+    non_favorites_only: bool = False
     reason: str = "incompativel"
     notes: str | None = None

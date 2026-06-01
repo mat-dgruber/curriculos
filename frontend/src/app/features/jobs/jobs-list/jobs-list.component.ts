@@ -314,32 +314,20 @@ import { Job, JobFilters } from '../../../core/models/job.model';
               <!-- Select by score -->
               <div class="flex items-center gap-2">
                 <span class="text-xs text-text-muted whitespace-nowrap">Score abaixo de</span>
-                <select class="bg-dark-surface border border-dark-border rounded-lg px-2 py-1 text-xs text-white w-16" [ngModel]="deleteScoreThreshold()" (ngModelChange)="deleteScoreThreshold.set($event)">
-                  <option [value]="10">10</option>
-                  <option [value]="20">20</option>
-                  <option [value]="30">30</option>
-                  <option [value]="40">40</option>
-                  <option [value]="50">50</option>
-                </select>
-                <button (click)="selectByScoreBelow()" class="text-xs bg-red-500/10 text-red-400 hover:bg-red-500/20 px-2 py-1 rounded-lg transition-colors">Selecionar</button>
+                <app-select [options]="scoreThresholdOptions" [selectedValue]="deleteScoreThreshold()" (valueChange)="deleteScoreThreshold.set($event)" placeholder="Score" />
+                <button (click)="deleteByFilter('score')" class="text-xs bg-red-500/20 text-red-400 hover:bg-red-500/30 px-2 py-1 rounded-lg transition-colors font-medium">Excluir todas</button>
               </div>
 
               <!-- Select by age -->
               <div class="flex items-center gap-2">
                 <span class="text-xs text-text-muted whitespace-nowrap">Mais antiga que</span>
-                <select class="bg-dark-surface border border-dark-border rounded-lg px-2 py-1 text-xs text-white w-16" [ngModel]="deleteAgeDays()" (ngModelChange)="deleteAgeDays.set($event)">
-                  <option [value]="7">7 dias</option>
-                  <option [value]="14">14 dias</option>
-                  <option [value]="30">30 dias</option>
-                  <option [value]="60">60 dias</option>
-                  <option [value]="90">90 dias</option>
-                </select>
-                <button (click)="selectByAge()" class="text-xs bg-red-500/10 text-red-400 hover:bg-red-500/20 px-2 py-1 rounded-lg transition-colors">Selecionar</button>
+                <app-select [options]="ageDaysOptions" [selectedValue]="deleteAgeDays()" (valueChange)="deleteAgeDays.set($event)" placeholder="Dias" />
+                <button (click)="deleteByFilter('age')" class="text-xs bg-red-500/20 text-red-400 hover:bg-red-500/30 px-2 py-1 rounded-lg transition-colors font-medium">Excluir todas</button>
               </div>
 
               <!-- Select non-favorites -->
               <div class="flex items-center gap-2">
-                <button (click)="selectNonFavorites()" class="text-xs bg-red-500/10 text-red-400 hover:bg-red-500/20 px-2 py-1 rounded-lg transition-colors">Selecionar não favoritas</button>
+                <button (click)="deleteByFilter('nonFavorites')" class="text-xs bg-red-500/20 text-red-400 hover:bg-red-500/30 px-2 py-1 rounded-lg transition-colors font-medium">Excluir não favoritas</button>
               </div>
             </div>
           </div>
@@ -744,8 +732,8 @@ export class JobsListComponent implements OnInit, OnDestroy {
 
   // Quick-select filters for batch delete
   showDeleteFilters = signal(false);
-  deleteScoreThreshold = signal(20);
-  deleteAgeDays = signal(30);
+  deleteScoreThreshold = signal<string>('20');
+  deleteAgeDays = signal<string>('30');
 
   private readonly _viewModeEffect = effect(() => {
     localStorage.setItem('jobsViewMode', this.viewMode());
@@ -791,6 +779,22 @@ export class JobsListComponent implements OnInit, OnDestroy {
     { value: 'found_at', label: 'Data de encontro' },
     { value: 'score', label: 'Score' },
     { value: 'created_at', label: 'Data de criacao' },
+  ];
+
+  scoreThresholdOptions: SelectOption[] = [
+    { value: '10', label: '< 10' },
+    { value: '20', label: '< 20' },
+    { value: '30', label: '< 30' },
+    { value: '40', label: '< 40' },
+    { value: '50', label: '< 50' },
+  ];
+
+  ageDaysOptions: SelectOption[] = [
+    { value: '7', label: '7 dias' },
+    { value: '14', label: '14 dias' },
+    { value: '30', label: '30 dias' },
+    { value: '60', label: '60 dias' },
+    { value: '90', label: '90 dias' },
   ];
 
   ngOnInit(): void {
@@ -1022,25 +1026,45 @@ export class JobsListComponent implements OnInit, OnDestroy {
     this.showRejectModal.set(false);
   }
 
+  // Filter-based bulk delete — deletes ALL matching jobs across all pages
+  deleteByFilter(type: 'score' | 'age' | 'nonFavorites'): void {
+    const reason = 'incompativel';
+    let params: { maxScore?: number; olderThanDays?: number; nonFavoritesOnly?: boolean; reason: string } = { reason };
+
+    if (type === 'score') {
+      params.maxScore = +this.deleteScoreThreshold();
+    } else if (type === 'age') {
+      params.olderThanDays = +this.deleteAgeDays();
+    } else if (type === 'nonFavorites') {
+      params.nonFavoritesOnly = true;
+    }
+
+    this.jobsService.rejectByFilter(params).subscribe({
+      next: (res) => {
+        this.toastService.success(`${res.deleted} vagas excluídas`);
+        this.selectedIds.set(new Set());
+        this.loadJobs();
+      },
+      error: () => this.toastService.error('Erro ao excluir'),
+    });
+  }
+
   selectByScoreBelow(): void {
-    const threshold = this.deleteScoreThreshold();
+    const threshold = +this.deleteScoreThreshold();
     const ids = this.jobs().filter(j => j.score < threshold).map(j => j.id);
     this.selectedIds.set(new Set(ids));
-    this.toastService.success(`${ids.length} vaga(s) com score < ${threshold} selecionada(s)`);
   }
 
   selectByAge(): void {
-    const days = this.deleteAgeDays();
+    const days = +this.deleteAgeDays();
     const cutoff = new Date();
     cutoff.setDate(cutoff.getDate() - days);
     const ids = this.jobs().filter(j => new Date(j.foundAt) < cutoff).map(j => j.id);
     this.selectedIds.set(new Set(ids));
-    this.toastService.success(`${ids.length} vaga(s) com mais de ${days} dias selecionada(s)`);
   }
 
   selectNonFavorites(): void {
     const ids = this.jobs().filter(j => !j.isFavorite).map(j => j.id);
     this.selectedIds.set(new Set(ids));
-    this.toastService.success(`${ids.length} vaga(s) não favoritada(s) selecionada(s)`);
   }
 }

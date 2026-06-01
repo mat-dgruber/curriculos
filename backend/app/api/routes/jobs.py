@@ -9,6 +9,7 @@ from app.models.rejected_job import (
     RejectedJob,
     RejectRequest,
     RejectBatchRequest,
+    RejectByFilterRequest,
     RejectedJobRead,
 )
 
@@ -125,6 +126,51 @@ async def reject_batch(
     db: AsyncSession = Depends(get_db),
 ):
     result = await db.execute(select(Job).where(Job.id.in_(payload.job_ids)))
+    jobs = result.scalars().all()
+
+    for job in jobs:
+        rejected = RejectedJob(
+            original_job_id=job.id,
+            url=job.url,
+            title=job.title,
+            company=job.company,
+            location=job.location,
+            platform=job.platform,
+            score=job.score,
+            reason=payload.reason,
+            notes=payload.notes,
+        )
+        db.add(rejected)
+        await db.delete(job)
+
+    await db.commit()
+    return {"message": f"{len(jobs)} vagas excluídas", "deleted": len(jobs)}
+
+
+@router.post("/jobs/reject-by-filter")
+async def reject_by_filter(
+    payload: RejectByFilterRequest,
+    db: AsyncSession = Depends(get_db),
+):
+    from datetime import datetime, timedelta
+
+    query = select(Job)
+    conditions = []
+
+    if payload.max_score is not None:
+        conditions.append(Job.score < payload.max_score)
+
+    if payload.older_than_days is not None:
+        cutoff = datetime.utcnow() - timedelta(days=payload.older_than_days)
+        conditions.append(Job.found_at < cutoff)
+
+    if payload.non_favorites_only:
+        conditions.append(Job.is_favorite == False)
+
+    if conditions:
+        query = query.where(or_(*conditions))
+
+    result = await db.execute(query)
     jobs = result.scalars().all()
 
     for job in jobs:

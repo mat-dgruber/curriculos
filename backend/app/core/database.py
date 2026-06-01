@@ -25,7 +25,9 @@ async def get_db():
 
 async def init_db():
     """
-    DEPRECATED: Use Alembic migrations instead of create_all.
-    Run: cd backend && alembic upgrade head
+    Cria as tabelas no banco de dados se elas não existirem de forma automatizada no startup.
     """
-    pass
+    from app.models.application_click import ApplicationClick
+    from app.models.rejected_job import RejectedJob  # noqa: F401
+    async with engine.begin() as conn:
+        await conn.run_sync(Base.metadata.create_all)

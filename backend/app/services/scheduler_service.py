@@ -15,6 +15,7 @@ scheduler = AsyncIOScheduler()
 job_statuses = {
     "scan_jobs": {"last_run": None, "last_status": None, "is_running": False},
     "recurring_send": {"last_run": None, "last_status": None, "is_running": False},
+    "auto_delete": {"last_run": None, "last_status": None, "is_running": False},
 }
 
 is_paused = False
@@ -63,7 +64,38 @@ async def _recurring_send_wrapper():
         job_statuses["recurring_send"]["is_running"] = False
 
 
-def start_scheduler():
+async def _auto_delete_wrapper():
+    """Wrapper for auto-delete job that tracks status."""
+    if is_paused and paused_until and datetime.utcnow() < paused_until:
+        logger.info("Scheduler is paused. Skipping auto-delete.")
+        return
+
+    job_statuses["auto_delete"]["is_running"] = True
+    job_statuses["auto_delete"]["last_run"] = datetime.utcnow()
+
+    try:
+        from app.services.auto_delete_service import run_auto_delete
+        from app.core.database import async_session
+        from sqlalchemy import select
+        from app.models.profile import CandidateProfile
+
+        async with async_session() as db:
+            result = await db.execute(select(CandidateProfile).limit(1))
+            profile = result.scalar_one_or_none()
+            days = profile.auto_delete_days if profile else 30
+
+        async with async_session() as db:
+            result = await run_auto_delete(db, days)
+            job_statuses["auto_delete"]["last_status"] = "success"
+            logger.info(f"Auto-delete completed: {result}")
+    except Exception as e:
+        job_statuses["auto_delete"]["last_status"] = "error"
+        logger.error(f"Auto-delete failed: {e}")
+    finally:
+        job_statuses["auto_delete"]["is_running"] = False
+
+
+async def start_scheduler():
     """Initialize and start the APScheduler."""
     global is_paused, paused_until
 
@@ -72,10 +104,25 @@ def start_scheduler():
         is_paused = False
         paused_until = None
 
+    # Load interval from database if profile exists
+    hours = settings.scan_interval_hours
+    try:
+        from sqlalchemy import select
+        from app.models.profile import CandidateProfile
+        from app.core.database import async_session
+        async with async_session() as db:
+            result = await db.execute(select(CandidateProfile).limit(1))
+            profile = result.scalar_one_or_none()
+            if profile and profile.scan_interval_hours:
+                hours = profile.scan_interval_hours
+                logger.info(f"Loaded scan interval from DB profile: {hours} hours")
+    except Exception as e:
+        logger.error(f"Failed to load scan interval from DB, using fallback: {e}")
+
     # Scan job - every N hours
     scheduler.add_job(
         _scan_job_wrapper,
-        trigger=IntervalTrigger(hours=settings.scan_interval_hours),
+        trigger=IntervalTrigger(hours=hours),
         id="scan_jobs",
         name="Varredura de vagas",
         replace_existing=True,
@@ -90,8 +137,32 @@ def start_scheduler():
         replace_existing=True,
     )
 
+    # Auto-delete - daily at 3am
+    scheduler.add_job(
+        _auto_delete_wrapper,
+        trigger=CronTrigger(hour=3, minute=0),
+        id="auto_delete",
+        name="Exclusão automática de vagas antigas",
+        replace_existing=True,
+    )
+
     scheduler.start()
-    logger.info(f"Scheduler started. Scan every {settings.scan_interval_hours}h, recurring send day {settings.recurring_send_day}")
+    logger.info(f"Scheduler started. Scan every {hours}h, recurring send day {settings.recurring_send_day}")
+
+
+def reschedule_scan_job(hours: int):
+    """Dynamically reschedule the scan job to use a new interval."""
+    try:
+        job = scheduler.get_job("scan_jobs")
+        if job:
+            job.reschedule(trigger=IntervalTrigger(hours=hours))
+            logger.info(f"Scan job successfully rescheduled to run every {hours} hours")
+            return True
+        else:
+            logger.warning("Scan job not found. Cannot reschedule.")
+    except Exception as e:
+        logger.error(f"Failed to reschedule scan job: {e}")
+    return False
 
 
 def stop_scheduler():
@@ -157,6 +228,9 @@ async def trigger_job(job_id: str) -> bool:
     elif job_id == "recurring_send":
         import asyncio
         asyncio.create_task(_recurring_send_wrapper())
+    elif job_id == "auto_delete":
+        import asyncio
+        asyncio.create_task(_auto_delete_wrapper())
     else:
         return False
 

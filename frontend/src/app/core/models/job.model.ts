@@ -10,6 +10,7 @@ export interface Job {
   salaryRange: string | null;
   score: number;
   status: 'Nova' | 'Visualizada' | 'Candidatou';
+  isFavorite: boolean;
   foundAt: string;
   createdAt: string;
   updatedAt: string;
@@ -28,8 +29,36 @@ export interface JobFilters {
   minScore?: number;
   platform?: string;
   status?: string;
+  isFavorite?: boolean;
   page?: number;
   perPage?: number;
   sortBy?: string;
   sortOrder?: 'asc' | 'desc';
+}
+
+export interface RejectedJob {
+  id: string;
+  originalJobId: string | null;
+  url: string;
+  title: string;
+  company: string;
+  location: string;
+  platform: string;
+  score: number;
+  reason: string;
+  notes: string | null;
+  rejectedAt: string;
+}
+
+export interface RejectedJobListResponse {
+  items: RejectedJob[];
+  total: number;
+  page: number;
+  perPage: number;
+  pages: number;
+}
+
+export interface RejectRequest {
+  reason: string;
+  notes?: string;
 }

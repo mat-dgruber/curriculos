@@ -1,9 +1,10 @@
 import logging
-import json
 
 from app.services.scraper.base_scraper import ScrapedJob
 
 logger = logging.getLogger(__name__)
+
+REMOTE_KEYWORDS = ["remoto", "remote", "home office", "teletrabalho", "distancial"]
 
 
 def calculate_score(
@@ -17,9 +18,10 @@ def calculate_score(
 
     Score breakdown:
     - Role match in title: 40 points
-    - Keywords in description: up to 30 points (6 per keyword, max 5)
-    - Location match: 20 points
-    - Trusted platform bonus: 10 points
+    - Keywords in description: up to 35 points (7 per keyword, max 5)
+    - Location match: 15 points (includes "Remoto" auto-match)
+    - Trusted platform bonus: 5 points
+    - Penalty: -20 if ZERO keywords match
     """
     score = 0
     title_lower = job.title.lower()
@@ -32,26 +34,42 @@ def calculate_score(
             score += 40
             break
 
-    # Keywords in description (up to 30 points)
+    # Keywords in description (up to 35 points)
     kw_count = 0
+    kw_matched = False
     for kw in keywords:
         if kw.lower() in desc_lower or kw.lower() in title_lower:
-            score += 6
+            score += 7
             kw_count += 1
+            kw_matched = True
             if kw_count >= 5:
                 break
 
-    # Location match (20 points)
+    # Penalty if no keyword matched at all
+    if keywords and not kw_matched:
+        score -= 20
+
+    # Location match (15 points) — includes auto "Remoto" match
+    user_locations_lower = [loc.lower() for loc in preferred_locations]
+    is_user_looking_remote = any(rk in " ".join(user_locations_lower) for rk in REMOTE_KEYWORDS)
+
+    location_matched = False
     for loc in preferred_locations:
         if loc.lower() in location_lower or location_lower in loc.lower():
-            score += 20
+            score += 15
+            location_matched = True
             break
 
-    # Trusted platform bonus (10 points)
-    if job.platform in ("linkedin", "gupy"):
-        score += 10
+    # Auto "Remoto" bonus: if user wants remote and job is remote
+    if not location_matched and is_user_looking_remote:
+        if any(rk in location_lower for rk in REMOTE_KEYWORDS):
+            score += 15
 
-    return min(score, 100)
+    # Trusted platform bonus (5 points)
+    if job.platform in ("linkedin", "gupy", "infojobs", "catho"):
+        score += 5
+
+    return max(min(score, 100), 0)
 
 
 def match_jobs(
@@ -66,8 +84,7 @@ def match_jobs(
     """
     scored = []
     for job in scraped_jobs:
-        score = calculate_score(job, target_roles, keywords, preferred_locations)
-        scored.append((job, score))
-
+        s = calculate_score(job, target_roles, keywords, preferred_locations)
+        scored.append((job, s))
     scored.sort(key=lambda x: x[1], reverse=True)
     return scored

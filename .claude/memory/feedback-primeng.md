@@ -26,4 +26,14 @@ Use PrimeNG components where available instead of building custom UI from scratc
 
 **FileUpload events gotcha:** `(onSelect)` fires when files are selected (gives `{ files: File[] }`). `(uploadHandler)` fires when upload is triggered in custom mode (gives `{ files: File[] }`). For custom upload with immediate processing on selection, use `(onSelect)`. For manual upload flow, use `(uploadHandler)`.
 
-**Why:** Confusion between events caused upload handler not firing. The `(onSelect)` is the right event for immediate file processing in custom mode.
+**Clearing uploader files (2026-06-01):** In `mode="advanced"` with custom hidden buttons, files remain in the uploader's internal list even after successful upload, creating a visual glitch. To resolve this, reference the uploader in the TypeScript component:
+`@ViewChild('fileUpload') fileUpload!: FileUpload;`
+and call `this.fileUpload.clear();` on successful upload completion.
+
+**Making drag-and-drop zone clickable (2026-06-01):** If the header of `<p-fileupload mode="advanced">` is hidden (e.g. `display: none` in CSS), the default button to select files is not accessible, and clicking the drop area does nothing. To make the entire zone clickable, pass a template reference variable to the component (e.g., `#cvUploadZone`) and add a click handler on the container div inside `<ng-template #empty>` that calls the public `.choose()` method of the component:
+`<div class="cursor-pointer" (click)="cvUploadZone.choose()">`
+
+**Why:**
+- Confusion between events caused upload handler not firing. The `(onSelect)` is the right event for immediate file processing in custom mode.
+- When hiding the header, there is no clickable button left. Programmatically calling `.choose()` restore usability and makes the entire drag-and-drop zone clickable.
+

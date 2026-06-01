@@ -1,32 +1,27 @@
 import json
 import logging
-import asyncio
 from datetime import datetime
 
 from sqlalchemy import select
-from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import async_session
-from app.core.config import settings
 from app.models.job import Job
 from app.models.profile import CandidateProfile
-from app.services.scraper.gupy_scraper import GupyScraper
-from app.services.scraper.linkedin_scraper import LinkedInScraper
-from app.services.scraper.vagas_scraper import VagasScraper
-from app.services.scraper.jooble_scraper import JoobleScraper
-from app.services.scraper.adzuna_scraper import AdzunaScraper
+from app.models.rejected_job import RejectedJob
+from app.services.scraper.orchestrator import ScraperOrchestrator
 from app.services.matcher import match_jobs
 
 logger = logging.getLogger(__name__)
 
+MIN_SCORE = 20
+
 
 async def run_scan() -> dict:
     """
-    Execute full scan: run all scrapers, match against profile, save new jobs to DB.
+    Execute full scan: run all scrapers concurrently, match against profile, save new jobs to DB.
     Returns summary of results.
     """
     async with async_session() as db:
-        # Get candidate profile
         result = await db.execute(select(CandidateProfile).limit(1))
         profile = result.scalar_one_or_none()
 
@@ -40,41 +35,39 @@ async def run_scan() -> dict:
 
         search_params = {
             "keywords": keywords,
-            "location": preferred_locations[0] if preferred_locations else "",
+            "title": target_roles,
+            "location": preferred_locations,
         }
 
-        # Run scrapers concurrently
-        scrapers = [
-            GupyScraper(headless=settings.playwright_headless, slow_mo=settings.playwright_slow_mo),
-            LinkedInScraper(headless=settings.playwright_headless, slow_mo=settings.playwright_slow_mo),
-            VagasScraper(headless=settings.playwright_headless, slow_mo=settings.playwright_slow_mo),
-            JoobleScraper(api_key=settings.jooble_api_key),
-            AdzunaScraper(app_id=settings.adzuna_app_id, app_key=settings.adzuna_app_key),
-        ]
+        orchestrator = ScraperOrchestrator()
+        scan_result = await orchestrator.run_all(search_params)
 
-        all_scraped = []
-        for scraper in scrapers:
-            try:
-                async with scraper:
-                    scraped = await scraper.scrape(search_params)
-                    all_scraped.extend(scraped)
-            except Exception as e:
-                logger.error(f"Scraper {scraper.__class__.__name__} failed: {e}")
+        all_scraped = scan_result.all_jobs
 
         if not all_scraped:
-            return {"new_jobs": 0, "total_scraped": 0, "message": "No jobs found"}
+            return {
+                "new_jobs": 0,
+                "total_scraped": 0,
+                "platforms": scan_result.summary["platforms"],
+            }
 
-        # Match and score
         scored = match_jobs(all_scraped, target_roles, keywords, preferred_locations)
 
-        # Get existing URLs to avoid duplicates
+        # Filter by minimum score
+        scored = [(j, s) for j, s in scored if s >= MIN_SCORE]
+
+        # Get existing URLs (from jobs table AND rejected_jobs table)
         existing_urls_result = await db.execute(select(Job.url))
         existing_urls = {row[0] for row in existing_urls_result.all()}
 
-        # Save new jobs
+        rejected_urls_result = await db.execute(select(RejectedJob.url))
+        rejected_urls = {row[0] for row in rejected_urls_result.all()}
+
+        excluded_urls = existing_urls | rejected_urls
+
         new_count = 0
         for scraped_job, score in scored:
-            if scraped_job.url in existing_urls:
+            if scraped_job.url in excluded_urls:
                 continue
 
             job = Job(
@@ -91,21 +84,16 @@ async def run_scan() -> dict:
                 found_at=datetime.utcnow(),
             )
             db.add(job)
+            excluded_urls.add(scraped_job.url)
             new_count += 1
 
         await db.commit()
 
-        result = {
+        scan_summary = {
             "new_jobs": new_count,
-            "total_scraped": len(all_scraped),
+            "total_scraped": scan_result.total_scraped,
             "unique_scored": len(scored),
-            "platforms": {
-                "gupy": len([j for j in all_scraped if j.platform == "gupy"]),
-                "linkedin": len([j for j in all_scraped if j.platform == "linkedin"]),
-                "vagas": len([j for j in all_scraped if j.platform == "vagas"]),
-                "jooble": len([j for j in all_scraped if j.platform == "jooble"]),
-                "adzuna": len([j for j in all_scraped if j.platform == "adzuna"]),
-            },
+            "platforms": scan_result.summary["platforms"],
         }
-        logger.info(f"Scan complete: {result}")
-        return result
+        logger.info(f"Scan complete: {scan_summary}")
+        return scan_summary

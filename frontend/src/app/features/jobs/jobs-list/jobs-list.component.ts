@@ -55,15 +55,15 @@ import { Job, JobFilters } from '../../../core/models/job.model';
   template: `
     <div class="p-4 md:p-6">
       <!-- Header -->
-      <div class="flex flex-wrap items-center justify-between gap-3 mb-4 md:mb-6">
-        <div>
-          <h1 class="text-xl md:text-2xl font-bold text-white">Vagas</h1>
+      <div class="flex flex-wrap items-center justify-between gap-3 mb-6 md:mb-8">
+        <div class="animate-fade-in-up">
+          <h1 class="text-3xl md:text-4xl font-serif font-bold text-white">Vagas</h1>
           <p class="text-xs md:text-sm text-text-muted mt-1">{{ total() }} vagas encontradas</p>
         </div>
         <div class="flex items-center gap-2">
           <!-- View Toggle -->
           <div
-            class="flex items-center bg-dark-surface/80 backdrop-blur-sm border border-white/10 rounded-full p-1"
+            class="flex items-center glass-v2 rounded-full p-1"
           >
             <button
               class="p-1.5 md:p-2 rounded-full transition-colors"
@@ -136,16 +136,30 @@ import { Job, JobFilters } from '../../../core/models/job.model';
               <span class="hidden sm:inline">Buscar vagas agora</span>
             }
           </button>
+
+          <button
+            class="btn-secondary flex items-center gap-2 text-xs"
+            (click)="triggerEnrich()"
+            [disabled]="enriching()"
+            title="Preencher descrições das vagas que estao vazias"
+          >
+            @if (enriching()) {
+              <app-spinner-icon [size]="14" />
+              <span class="hidden sm:inline">Enriquecendo...</span>
+            } @else {
+              <span class="hidden sm:inline">Preencher descricoes</span>
+            }
+          </button>
         </div>
       </div>
 
       <!-- Filters -->
       <div
-        class="relative z-20 bg-dark-surface/50 backdrop-blur-sm border border-white/5 rounded-2xl p-3 md:p-4 mb-4 md:mb-6"
+        class="relative z-20 glass-v2 rounded-2xl p-3 md:p-4 mb-4 md:mb-6"
       >
-        <div class="flex flex-wrap gap-3">
+        <div class="flex flex-wrap lg:flex-nowrap items-center gap-2">
           <!-- Search -->
-          <div class="flex-1 min-w-0 sm:min-w-[240px] max-w-sm">
+          <div class="flex-1 min-w-[200px] lg:max-w-[240px] xl:max-w-xs relative">
             <app-input
               placeholder="Buscar por titulo ou empresa..."
               [icon]="searchSvg"
@@ -159,7 +173,7 @@ import { Job, JobFilters } from '../../../core/models/job.model';
           </div>
 
           <!-- Platform -->
-          <div class="w-full sm:w-48">
+          <div class="w-full sm:w-36 lg:w-36 xl:w-40 shrink-0">
             <app-select
               [options]="platformOptions"
               [selectedValue]="platformFilter()"
@@ -169,7 +183,7 @@ import { Job, JobFilters } from '../../../core/models/job.model';
           </div>
 
           <!-- Status -->
-          <div class="w-full sm:w-44">
+          <div class="w-full sm:w-32 lg:w-32 xl:w-36 shrink-0">
             <app-select
               [options]="statusOptions"
               [selectedValue]="statusFilter()"
@@ -179,7 +193,7 @@ import { Job, JobFilters } from '../../../core/models/job.model';
           </div>
 
           <!-- Score -->
-          <div class="w-full sm:w-44">
+          <div class="w-full sm:w-32 lg:w-32 xl:w-36 shrink-0">
             <app-select
               [options]="scoreOptions"
               [selectedValue]="minScore().toString()"
@@ -188,10 +202,38 @@ import { Job, JobFilters } from '../../../core/models/job.model';
             />
           </div>
 
+          <!-- Favorites Toggle -->
+          <div class="w-full sm:w-28 lg:w-28 xl:w-32 shrink-0">
+            <button
+              type="button"
+              class="btn-secondary text-sm px-2 h-10 flex items-center gap-1.5 transition-all w-full justify-center"
+              [class.bg-primary/10]="onlyFavorites()"
+              [class.text-primary]="onlyFavorites()"
+              [class.border-primary/30]="onlyFavorites()"
+              (click)="onlyFavorites.set(!onlyFavorites()); currentPage.set(1); loadJobs()"
+              title="Filtrar por favoritas"
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="16"
+                height="16"
+                viewBox="0 0 24 24"
+                [attr.fill]="onlyFavorites() ? 'currentColor' : 'none'"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                [class.text-red-500]="onlyFavorites()"
+              >
+                <path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/>
+              </svg>
+              <span>Favoritas</span>
+            </button>
+          </div>
+
           <!-- Sort -->
-          <div class="flex items-center gap-2 w-full sm:w-auto sm:ml-auto">
-            <span class="text-xs text-text-muted whitespace-nowrap">Ordenar:</span>
-            <div class="w-full sm:w-44 flex-1 sm:flex-initial">
+          <div class="flex items-center gap-1.5 w-full sm:w-auto lg:ml-auto shrink-0">
+            <div class="w-full sm:w-32 lg:w-32 xl:w-36 flex-1 sm:flex-initial">
               <app-select
                 [options]="sortOptions"
                 [selectedValue]="sortBy()"
@@ -200,16 +242,15 @@ import { Job, JobFilters } from '../../../core/models/job.model';
               />
             </div>
             <button
-              class="btn-secondary text-sm px-3 h-10 flex items-center gap-1.5"
+              type="button"
+              class="btn-secondary text-sm w-10 h-10 flex items-center justify-center shrink-0"
               (click)="sortOrder.set(sortOrder() === 'desc' ? 'asc' : 'desc'); loadJobs()"
               [title]="sortOrder() === 'desc' ? 'Maior primeiro' : 'Menor primeiro'"
             >
               @if (sortOrder() === 'desc') {
-                <app-chevron-down-icon [size]="14" [strokeWidth]="2" />
-                <span class="text-xs">Desc</span>
+                <app-chevron-down-icon [size]="16" [strokeWidth]="2" />
               } @else {
-                <app-chevron-up-icon [size]="14" [strokeWidth]="2" />
-                <span class="text-xs">Asc</span>
+                <app-chevron-up-icon [size]="16" [strokeWidth]="2" />
               }
             </button>
           </div>
@@ -217,11 +258,12 @@ import { Job, JobFilters } from '../../../core/models/job.model';
           <!-- Clear Filters -->
           @if (hasActiveFilters()) {
             <button
-              class="btn-secondary text-sm px-3 h-10 flex items-center gap-1"
+              class="btn-secondary text-sm px-3 h-10 flex items-center gap-1 shrink-0"
               (click)="clearFilters()"
             >
               <app-x-icon [size]="14" [strokeWidth]="2" />
-              Limpar filtros
+              <span class="hidden xl:inline">Limpar filtros</span>
+              <span class="xl:hidden">Limpar</span>
             </button>
           }
         </div>
@@ -234,6 +276,26 @@ import { Job, JobFilters } from '../../../core/models/job.model';
         >
           <app-triangle-alert-icon [size]="16" [strokeWidth]="2" />
           <span class="text-sm text-red-400">{{ error() }}</span>
+        </div>
+      }
+
+      <!-- Batch selection bar -->
+      @if (selectedIds().size > 0) {
+        <div class="mb-4 glass-v2 rounded-2xl p-3 flex items-center justify-between gap-3">
+          <span class="text-sm text-white">{{ selectedIds().size }} selecionada(s)</span>
+          <div class="flex items-center gap-2">
+            <button (click)="deselectAll()" class="btn-secondary text-xs px-3 py-1.5">Limpar</button>
+            <button (click)="openRejectModal(getSelectedIds())" class="bg-red-500/20 text-red-400 hover:bg-red-500/30 text-xs px-3 py-1.5 rounded-xl transition-colors">Excluir selecionadas</button>
+          </div>
+        </div>
+      }
+
+      <!-- Select all / clear in filters -->
+      @if (!loading() && jobs().length > 0) {
+        <div class="flex items-center gap-2 mb-2">
+          <button (click)="selectAll()" class="text-xs text-text-muted hover:text-white transition-colors">Selecionar todas</button>
+          <span class="text-text-muted/30">|</span>
+          <button (click)="deselectAll()" class="text-xs text-text-muted hover:text-white transition-colors">Limpar seleção</button>
         </div>
       }
 
@@ -294,10 +356,10 @@ import { Job, JobFilters } from '../../../core/models/job.model';
         </div>
       } @else if (jobs().length === 0) {
         <app-empty-state
-          message="Nenhuma vaga encontrada"
-          description="Tente ajustar os filtros ou aguarde uma nova varredura do robo."
-          icon="search"
-          [actionLabel]="total() === 0 ? 'Buscar vagas agora' : ''"
+          [message]="onlyFavorites() ? 'Nenhuma vaga favoritada' : 'Nenhuma vaga encontrada'"
+          [description]="onlyFavorites() ? 'Você ainda não adicionou nenhuma vaga aos favoritos. Clique no ícone de coração nos cards para destacar suas vagas preferidas!' : 'Tente ajustar os filtros ou aguarde uma nova varredura do robo.'"
+          [icon]="onlyFavorites() ? 'inbox' : 'search'"
+          [actionLabel]="onlyFavorites() ? '' : (total() === 0 ? 'Buscar vagas agora' : '')"
           (action)="triggerScan()"
         />
       } @else {
@@ -306,7 +368,11 @@ import { Job, JobFilters } from '../../../core/models/job.model';
           <div class="space-y-4">
             @for (job of jobs(); track job.id) {
               <a
-                class="block relative z-10 bg-dark-surface/80 backdrop-blur-xl border border-white/5 rounded-2xl p-3 md:p-5 hover:border-primary/30 hover:bg-dark-surface transition-all duration-200 cursor-pointer group no-underline"
+                class="block relative z-10 organic-card p-3 md:p-5 hover:border-primary/30 cursor-pointer group no-underline transition-all"
+                [class.border-red-500/20]="job.isFavorite"
+                [class.bg-red-500/5]="job.isFavorite"
+                [class.border-primary/30]="isSelected(job.id)"
+                [class.bg-primary/5]="isSelected(job.id)"
                 [routerLink]="['/jobs', job.id]"
               >
                 <div class="flex items-start gap-4">
@@ -325,7 +391,41 @@ import { Job, JobFilters } from '../../../core/models/job.model';
                   ></div>
 
                   <!-- Card content -->
-                  <div class="flex-1 min-w-0">
+                  <div class="flex-1 min-w-0 pr-8 relative">
+                    <!-- Checkbox + Favorite + Delete buttons -->
+                    <div class="absolute top-0 right-0 flex items-center gap-1 z-20">
+                      <button
+                        type="button"
+                        (click)="toggleSelect(job.id, $event)"
+                        class="p-1.5 rounded-full hover:bg-white/5 text-text-muted hover:text-white transition-all"
+                        [class.text-primary]="isSelected(job.id)"
+                        [title]="isSelected(job.id) ? 'Desmarcar' : 'Selecionar para exclusão'"
+                      >
+                        @if (isSelected(job.id)) {
+                          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="18" x="3" y="3" rx="2"/><path d="m9 12 2 2 4-4"/></svg>
+                        } @else {
+                          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="18" x="3" y="3" rx="2"/></svg>
+                        }
+                      </button>
+                      <button
+                        type="button"
+                        (click)="toggleFavorite(job, $event)"
+                        class="p-1.5 rounded-full hover:bg-white/5 text-text-muted hover:text-red-500 transition-all"
+                        [class.text-red-500]="job.isFavorite"
+                        [title]="job.isFavorite ? 'Remover dos favoritos' : 'Favoritar vaga'"
+                      >
+                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" [attr.fill]="job.isFavorite ? 'currentColor' : 'none'" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/></svg>
+                      </button>
+                      <button
+                        type="button"
+                        (click)="openRejectModal([job.id]); $event.stopPropagation(); $event.preventDefault()"
+                        class="p-1.5 rounded-full hover:bg-white/5 text-text-muted hover:text-red-400 transition-all"
+                        title="Excluir vaga"
+                      >
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg>
+                      </button>
+                    </div>
+
                     <!-- Title -->
                     <p
                       class="text-base font-semibold text-white truncate group-hover:text-primary transition-colors"
@@ -380,10 +480,35 @@ import { Job, JobFilters } from '../../../core/models/job.model';
             @for (job of jobs(); track job.id) {
               <a
                 [routerLink]="['/jobs', job.id]"
-                class="relative z-10 bg-dark-surface/80 backdrop-blur-xl border border-white/5 rounded-2xl p-5 hover:border-primary/30 hover:bg-dark-surface transition-all duration-200 cursor-pointer group flex flex-col"
+                class="relative z-10 organic-card p-5 hover:border-primary/30 cursor-pointer group flex flex-col transition-all"
+                [class.border-red-500/20]="job.isFavorite"
+                [class.bg-red-500/5]="job.isFavorite"
               >
+                <!-- Favorite Button -->
+                <button
+                  type="button"
+                  (click)="toggleFavorite(job, $event)"
+                  class="absolute top-4 right-4 p-1.5 rounded-full hover:bg-white/5 text-text-muted hover:text-red-500 transition-all z-20"
+                  [title]="job.isFavorite ? 'Remover dos favoritos' : 'Favoritar vaga'"
+                >
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    width="18"
+                    height="18"
+                    viewBox="0 0 24 24"
+                    [attr.fill]="job.isFavorite ? 'currentColor' : 'none'"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    [class.text-red-500]="job.isFavorite"
+                  >
+                    <path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/>
+                  </svg>
+                </button>
+
                 <!-- Score accent bar top -->
-                <div class="flex items-center gap-2 mb-3">
+                <div class="flex items-center gap-2 mb-3 pr-8">
                   <div
                     class="h-1 flex-1 rounded-full"
                     [class]="
@@ -475,6 +600,43 @@ import { Job, JobFilters } from '../../../core/models/job.model';
         }
       }
     </div>
+
+    <!-- Reject Modal -->
+    @if (showRejectModal()) {
+      <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
+        <div class="glass-v2 rounded-2xl p-6 w-full max-w-md mx-4 space-y-4">
+          <h3 class="text-lg font-semibold text-white">Excluir {{ rejectTargetIds().length }} vaga(s)</h3>
+
+          <div>
+            <label class="text-sm text-text-muted mb-1 block">Motivo</label>
+            <select
+              class="w-full bg-dark-surface border border-dark-border rounded-xl px-4 py-2.5 text-white"
+              [ngModel]="rejectReason()"
+              (ngModelChange)="rejectReason.set($event)"
+            >
+              @for (opt of rejectReasonOptions; track opt.value) {
+                <option [value]="opt.value">{{ opt.label }}</option>
+              }
+            </select>
+          </div>
+
+          <div>
+            <label class="text-sm text-text-muted mb-1 block">Notas (opcional)</label>
+            <textarea
+              class="w-full bg-dark-surface border border-dark-border rounded-xl px-4 py-2.5 text-white h-20 resize-none"
+              [ngModel]="rejectNotes()"
+              (ngModelChange)="rejectNotes.set($event)"
+              placeholder="Motivo adicional..."
+            ></textarea>
+          </div>
+
+          <div class="flex justify-end gap-2">
+            <button (click)="showRejectModal.set(false)" class="px-4 py-2 rounded-xl text-text-muted hover:text-white transition-colors">Cancelar</button>
+            <button (click)="confirmReject()" class="px-4 py-2 rounded-xl bg-red-500/20 text-red-400 hover:bg-red-500/30 transition-colors">Excluir</button>
+          </div>
+        </div>
+      </div>
+    }
   `,
 })
 export class JobsListComponent implements OnInit, OnDestroy {
@@ -488,6 +650,7 @@ export class JobsListComponent implements OnInit, OnDestroy {
   loading = signal(false);
   searching = signal(false);
   scanning = signal(false);
+  enriching = signal(false);
   error = signal('');
   success = signal('');
   total = signal(0);
@@ -495,6 +658,7 @@ export class JobsListComponent implements OnInit, OnDestroy {
   totalPages = signal(0);
 
   searchTerm = signal('');
+  onlyFavorites = signal(false);
   platformFilter = signal('all');
   statusFilter = signal('all');
   minScore = signal(0);
@@ -503,6 +667,22 @@ export class JobsListComponent implements OnInit, OnDestroy {
   viewMode = signal<'list' | 'grid'>(
     (localStorage.getItem('jobsViewMode') as 'list' | 'grid') || 'list',
   );
+
+  // Selection for batch delete
+  selectedIds = signal<Set<string>>(new Set());
+  lastClickedIndex = signal<number>(-1);
+  showRejectModal = signal(false);
+  rejectTargetIds = signal<string[]>([]);
+  rejectReason = signal('incompativel');
+  rejectNotes = signal('');
+  rejectReasonOptions = [
+    { value: 'incompativel', label: 'Incompatível com perfil' },
+    { value: 'empresa_ruim', label: 'Empresa não interessa' },
+    { value: 'sem_remote', label: 'Sem trabalho remoto' },
+    { value: 'salario_baixo', label: 'Salário abaixo do esperado' },
+    { value: 'local_incompativel', label: 'Localização incompatível' },
+    { value: 'outro', label: 'Outro' },
+  ];
 
   private readonly _viewModeEffect = effect(() => {
     localStorage.setItem('jobsViewMode', this.viewMode());
@@ -513,7 +693,8 @@ export class JobsListComponent implements OnInit, OnDestroy {
       this.searchTerm() !== '' ||
       this.platformFilter() !== 'all' ||
       this.statusFilter() !== 'all' ||
-      this.minScore() > 0,
+      this.minScore() > 0 ||
+      this.onlyFavorites() === true,
   );
 
   platformOptions: SelectOption[] = [
@@ -521,6 +702,11 @@ export class JobsListComponent implements OnInit, OnDestroy {
     { value: 'linkedin', label: 'LinkedIn', icon: '💼' },
     { value: 'gupy', label: 'Gupy', icon: '🎯' },
     { value: 'vagas', label: 'Vagas.com', icon: '📋' },
+    { value: 'jooble', label: 'Jooble', icon: '🔍' },
+    { value: 'adzuna', label: 'Adzuna', icon: '📊' },
+    { value: 'remotive', label: 'Remotive', icon: '🌍' },
+    { value: 'infojobs', label: 'InfoJobs', icon: '🏢' },
+    { value: 'catho', label: 'Catho', icon: '📑' },
   ];
 
   statusOptions: SelectOption[] = [
@@ -577,6 +763,7 @@ export class JobsListComponent implements OnInit, OnDestroy {
       platform: this.platformFilter() !== 'all' ? this.platformFilter() : undefined,
       status: this.statusFilter() !== 'all' ? this.statusFilter() : undefined,
       minScore: this.minScore() > 0 ? this.minScore() : undefined,
+      isFavorite: this.onlyFavorites() ? true : undefined,
       sortBy: this.sortBy(),
       sortOrder: this.sortOrder(),
       page: this.currentPage(),
@@ -602,6 +789,7 @@ export class JobsListComponent implements OnInit, OnDestroy {
     this.platformFilter.set('all');
     this.statusFilter.set('all');
     this.minScore.set(0);
+    this.onlyFavorites.set(false);
     this.currentPage.set(1);
     this.loadJobs();
   }
@@ -621,6 +809,32 @@ export class JobsListComponent implements OnInit, OnDestroy {
         } else {
           this.toastService.error('Erro ao iniciar varredura. Tente novamente.');
         }
+      },
+    });
+  }
+
+  triggerEnrich(): void {
+    if (this.enriching()) return;
+    this.enriching.set(true);
+    this.jobsService.enrichDescriptions().subscribe({
+      next: () => {
+        this.toastService.success('Enriquecimento iniciado. As descricoes serao preenchidas em background.');
+        // Polla a cada 5s por 60s para detectar quando terminar
+        let attempts = 0;
+        const enrichStop$ = new Subject<void>();
+        const sub = interval(5000).pipe(takeUntil(enrichStop$)).subscribe(() => {
+          attempts++;
+          this.loadJobs();
+          if (attempts >= 12) {
+            enrichStop$.next();
+            sub.unsubscribe();
+            this.enriching.set(false);
+          }
+        });
+      },
+      error: () => {
+        this.enriching.set(false);
+        this.toastService.error('Erro ao iniciar enriquecimento.');
       },
     });
   }
@@ -660,5 +874,88 @@ export class JobsListComponent implements OnInit, OnDestroy {
   onScoreChange(value: string): void {
     this.minScore.set(parseInt(value, 10));
     this.loadJobs();
+  }
+
+  toggleFavorite(job: Job, event: Event): void {
+    event.stopPropagation();
+    event.preventDefault();
+    const newStatus = !job.isFavorite;
+    this.jobsService.updateJob(job.id, { isFavorite: newStatus }).subscribe({
+      next: (updated) => {
+        this.jobs.update((list) =>
+          list.map((j) => (j.id === job.id ? { ...j, isFavorite: updated.isFavorite } : j))
+        );
+        this.toastService.success(
+          newStatus ? 'Vaga adicionada aos favoritos!' : 'Vaga removida dos favoritos.'
+        );
+      },
+      error: () => {
+        this.toastService.error('Erro ao atualizar favorito.');
+      },
+    });
+  }
+
+  toggleSelect(jobId: string, event: MouseEvent): void {
+    event.stopPropagation();
+    event.preventDefault();
+    const current = new Set(this.selectedIds());
+    if (current.has(jobId)) {
+      current.delete(jobId);
+    } else {
+      current.add(jobId);
+    }
+    this.selectedIds.set(current);
+  }
+
+  selectAll(): void {
+    const allIds = new Set(this.jobs().map(j => j.id));
+    this.selectedIds.set(allIds);
+  }
+
+  deselectAll(): void {
+    this.selectedIds.set(new Set());
+  }
+
+  getSelectedIds(): string[] {
+    return Array.from(this.selectedIds());
+  }
+
+  isSelected(jobId: string): boolean {
+    return this.selectedIds().has(jobId);
+  }
+
+  openRejectModal(jobIds: string[]): void {
+    this.rejectTargetIds.set(jobIds);
+    this.rejectReason.set('incompativel');
+    this.rejectNotes.set('');
+    this.showRejectModal.set(true);
+  }
+
+  confirmReject(): void {
+    const ids = this.rejectTargetIds();
+    const reason = this.rejectReason();
+    const notes = this.rejectNotes() || undefined;
+
+    if (ids.length === 1) {
+      this.jobsService.deleteJob(ids[0], reason, notes).subscribe({
+        next: () => {
+          this.toastService.success('Vaga excluída');
+          this.selectedIds.update(s => { s.delete(ids[0]); return new Set(s); });
+          this.loadJobs();
+        },
+        error: () => this.toastService.error('Erro ao excluir'),
+      });
+    } else {
+      this.jobsService.rejectBatch(ids, reason, notes).subscribe({
+        next: (res) => {
+          this.toastService.success(`${res.deleted} vagas excluídas`);
+          this.selectedIds.set(new Set());
+          this.loadJobs();
+        },
+        error: () => this.toastService.error('Erro ao excluir'),
+      });
+    }
+
+    this.showRejectModal.set(false);
   }
 }

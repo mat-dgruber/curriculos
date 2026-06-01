@@ -31,7 +31,10 @@ export class ApiService {
     return this.http.put<T>(`${this.baseUrl}${path}`, body);
   }
 
-  delete<T>(path: string) {
+  delete<T>(path: string, body?: unknown) {
+    if (body) {
+      return this.http.request<T>('delete', `${this.baseUrl}${path}`, { body });
+    }
     return this.http.delete<T>(`${this.baseUrl}${path}`);
   }
 

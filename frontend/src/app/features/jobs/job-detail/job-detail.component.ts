@@ -1,6 +1,7 @@
 import { Component, computed, inject, input, signal, effect } from '@angular/core';
 import { DatePipe } from '@angular/common';
-import { RouterLink } from '@angular/router';
+import { Router, RouterLink } from '@angular/router';
+import { FormsModule } from '@angular/forms';
 import { JobsService } from '../../../core/services/jobs.service';
 import { ApplicationsService } from '../../../core/services/applications.service';
 import { ToastService } from '../../../core/services/toast.service';
@@ -23,6 +24,7 @@ import { PlatformClassPipe } from '../../../shared/pipes/platform-class.pipe';
   imports: [
     DatePipe,
     RouterLink,
+    FormsModule,
     PlatformClassPipe,
     ScoreBadgeComponent,
     StatusChipComponent,
@@ -38,7 +40,7 @@ import { PlatformClassPipe } from '../../../shared/pipes/platform-class.pipe';
   template: `
     <div class="p-6">
       <!-- Back Button (pill style) -->
-      <a routerLink="/jobs" class="inline-flex items-center gap-1.5 text-sm text-text-muted hover:text-white transition-colors mb-6 bg-dark-surface/80 backdrop-blur-sm border border-white/10 rounded-full px-4 py-2">
+      <a routerLink="/jobs" class="inline-flex items-center gap-1.5 text-sm text-text-muted hover:text-white transition-colors mb-6 glass-v2 rounded-full px-4 py-2">
         <app-chevron-left-icon [size]="16" [strokeWidth]="2" />
         Voltar para vagas
       </a>
@@ -53,7 +55,7 @@ import { PlatformClassPipe } from '../../../shared/pipes/platform-class.pipe';
           </div>
 
           <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <div class="bg-dark-surface/80 backdrop-blur-xl border border-white/5 rounded-2xl p-5 space-y-4 min-h-[200px]">
+            <div class="organic-card p-5 space-y-4 min-h-[200px]">
               <div class="h-3 w-24 bg-dark-border/40 rounded-lg animate-pulse"></div>
               <div class="space-y-3">
                 <div class="flex items-center gap-2">
@@ -70,7 +72,7 @@ import { PlatformClassPipe } from '../../../shared/pipes/platform-class.pipe';
                 </div>
               </div>
             </div>
-            <div class="bg-dark-surface/80 backdrop-blur-xl border border-white/5 rounded-2xl p-5 space-y-3 min-h-[200px]">
+            <div class="organic-card p-5 space-y-3 min-h-[200px]">
               <div class="h-3 w-20 bg-dark-border/40 rounded-lg animate-pulse"></div>
               <div class="space-y-2">
                 <div class="h-3 bg-dark-border/30 rounded-md w-full animate-pulse"></div>
@@ -106,7 +108,7 @@ import { PlatformClassPipe } from '../../../shared/pipes/platform-class.pipe';
           <!-- Bento Grid -->
           <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <!-- Left column: Score + Status + Platform -->
-            <div class="bg-dark-surface/80 backdrop-blur-xl border border-white/5 rounded-2xl p-5 space-y-3 min-h-[200px]">
+            <div class="organic-card p-5 space-y-3 min-h-[200px]">
               <h3 class="text-xs font-semibold text-text-muted/60 uppercase tracking-wider">Informações</h3>
               <div class="space-y-2">
                 <div class="flex items-center gap-2">
@@ -131,7 +133,7 @@ import { PlatformClassPipe } from '../../../shared/pipes/platform-class.pipe';
             </div>
 
             <!-- Right column: Description -->
-            <div class="bg-dark-surface/80 backdrop-blur-xl border border-white/5 rounded-2xl p-5 min-h-[200px]">
+            <div class="organic-card p-5 min-h-[200px]">
               <h3 class="text-xs font-semibold text-text-muted/60 uppercase tracking-wider mb-3">Descrição</h3>
               <p class="text-sm text-white/80 whitespace-pre-line leading-relaxed">
                 {{ job()!.description || 'Descrição não disponível para esta vaga.' }}
@@ -141,7 +143,7 @@ import { PlatformClassPipe } from '../../../shared/pipes/platform-class.pipe';
 
           <!-- Requirements (full-width) -->
           @if (parsedRequirements().length > 0) {
-            <div class="bg-dark-surface/80 backdrop-blur-xl border border-white/5 rounded-2xl p-5">
+            <div class="organic-card p-5">
               <h3 class="text-xs font-semibold text-text-muted/60 uppercase tracking-wider mb-3">Requisitos</h3>
               <div class="flex flex-wrap gap-2">
                 @for (req of parsedRequirements(); track req) {
@@ -160,7 +162,7 @@ import { PlatformClassPipe } from '../../../shared/pipes/platform-class.pipe';
           </div>
 
           <!-- Actions -->
-          <div class="flex items-center gap-3">
+          <div class="flex items-center gap-3 flex-wrap">
             @if (job()!.status === 'Candidatou') {
               <div
                 class="flex items-center gap-2 text-sm bg-green-500/10 backdrop-blur-sm border border-green-500/20 text-green-400 rounded-full px-5 py-2.5"
@@ -184,9 +186,41 @@ import { PlatformClassPipe } from '../../../shared/pipes/platform-class.pipe';
               </button>
             }
 
+            <!-- Favorite Button -->
+            <button
+              class="btn-secondary rounded-full px-5 py-2.5"
+              [class.text-red-500]="job()!.isFavorite"
+              [class.bg-red-500/5]="job()!.isFavorite"
+              (click)="toggleFavorite()"
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="16"
+                height="16"
+                viewBox="0 0 24 24"
+                [attr.fill]="job()!.isFavorite ? 'currentColor' : 'none'"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/>
+              </svg>
+              <span>{{ job()!.isFavorite ? 'Favoritada' : 'Favoritar' }}</span>
+            </button>
+
+            <!-- Delete Button -->
+            <button
+              class="btn-secondary rounded-full px-5 py-2.5 hover:border-red-500/20 hover:text-red-400"
+              (click)="openRejectModal()"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg>
+              <span>Excluir</span>
+            </button>
+
             @if (job()!.url) {
               <a
-                class="flex items-center gap-2 text-sm bg-dark-surface/80 backdrop-blur-sm border border-white/10 rounded-full px-5 py-2.5 text-text-muted hover:text-white hover:border-white/20 transition-all"
+                class="btn-secondary rounded-full px-5 py-2.5"
                 [href]="job()!.url"
                 target="_blank"
                 rel="noopener noreferrer"
@@ -199,7 +233,7 @@ import { PlatformClassPipe } from '../../../shared/pipes/platform-class.pipe';
         </div>
       } @else {
         <!-- Empty State -->
-        <div class="bg-dark-surface/80 backdrop-blur-xl border border-white/5 rounded-2xl p-8 text-center">
+        <div class="organic-card p-8 text-center">
           <div class="flex justify-center mb-4 text-text-muted/40">
             <app-search-icon [size]="48" [strokeWidth]="2" />
           </div>
@@ -224,7 +258,7 @@ import { PlatformClassPipe } from '../../../shared/pipes/platform-class.pipe';
             Sua candidatura será registrada automaticamente no sistema.
           </p>
           <div class="flex gap-3 justify-end pt-1">
-            <button (click)="showConfirm.set(false)" class="text-sm bg-dark-surface/80 backdrop-blur-sm border border-white/10 rounded-full px-5 py-2 text-text-muted hover:text-white hover:border-white/20 transition-all">
+            <button (click)="showConfirm.set(false)" class="text-sm glass-v2 rounded-full px-5 py-2 text-text-muted hover:text-white hover:border-white/20 transition-all">
               Cancelar
             </button>
             <button (click)="confirmApply()" class="btn-primary text-sm flex items-center gap-2 rounded-full px-5 py-2">
@@ -235,12 +269,50 @@ import { PlatformClassPipe } from '../../../shared/pipes/platform-class.pipe';
         </div>
       </div>
     }
+
+    <!-- Reject Modal -->
+    @if (showRejectModal()) {
+      <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
+        <div class="glass-v2 rounded-2xl p-6 w-full max-w-md mx-4 space-y-4">
+          <h3 class="text-lg font-semibold text-white">Excluir vaga</h3>
+
+          <div>
+            <label class="text-sm text-text-muted mb-1 block">Motivo</label>
+            <select
+              class="w-full bg-dark-surface border border-dark-border rounded-xl px-4 py-2.5 text-white"
+              [ngModel]="rejectReason()"
+              (ngModelChange)="rejectReason.set($event)"
+            >
+              @for (opt of rejectReasonOptions; track opt.value) {
+                <option [value]="opt.value">{{ opt.label }}</option>
+              }
+            </select>
+          </div>
+
+          <div>
+            <label class="text-sm text-text-muted mb-1 block">Notas (opcional)</label>
+            <textarea
+              class="w-full bg-dark-surface border border-dark-border rounded-xl px-4 py-2.5 text-white h-20 resize-none"
+              [ngModel]="rejectNotes()"
+              (ngModelChange)="rejectNotes.set($event)"
+              placeholder="Motivo adicional..."
+            ></textarea>
+          </div>
+
+          <div class="flex justify-end gap-2">
+            <button (click)="showRejectModal.set(false)" class="px-4 py-2 rounded-xl text-text-muted hover:text-white transition-colors">Cancelar</button>
+            <button (click)="confirmReject()" class="px-4 py-2 rounded-xl bg-red-500/20 text-red-400 hover:bg-red-500/30 transition-colors">Excluir</button>
+          </div>
+        </div>
+      </div>
+    }
   `,
 })
 export class JobDetailComponent {
   private readonly jobsService = inject(JobsService);
   private readonly applicationsService = inject(ApplicationsService);
   private readonly toastService = inject(ToastService);
+  private readonly router = inject(Router);
 
   id = input<string>('');
 
@@ -249,6 +321,17 @@ export class JobDetailComponent {
   error = signal('');
   applying = signal(false);
   showConfirm = signal(false);
+  showRejectModal = signal(false);
+  rejectReason = signal('incompativel');
+  rejectNotes = signal('');
+  rejectReasonOptions = [
+    { value: 'incompativel', label: 'Incompatível com perfil' },
+    { value: 'empresa_ruim', label: 'Empresa não interessa' },
+    { value: 'sem_remote', label: 'Sem trabalho remoto' },
+    { value: 'salario_baixo', label: 'Salário abaixo do esperado' },
+    { value: 'local_incompativel', label: 'Localização incompatível' },
+    { value: 'outro', label: 'Outro' },
+  ];
 
   parsedRequirements = computed(() => {
     const req = this.job()?.requirements;
@@ -320,4 +403,39 @@ export class JobDetailComponent {
     });
   }
 
+  toggleFavorite(): void {
+    const currentJob = this.job();
+    if (!currentJob) return;
+    const newStatus = !currentJob.isFavorite;
+
+    this.jobsService.updateJob(currentJob.id, { isFavorite: newStatus }).subscribe({
+      next: (updated) => {
+        this.job.set(updated);
+        this.toastService.success(
+          newStatus ? 'Vaga adicionada aos favoritos!' : 'Vaga removida dos favoritos.'
+        );
+      },
+      error: () => this.toastService.error('Erro ao atualizar favorito.'),
+    });
+  }
+
+  openRejectModal(): void {
+    this.rejectReason.set('incompativel');
+    this.rejectNotes.set('');
+    this.showRejectModal.set(true);
+  }
+
+  confirmReject(): void {
+    const currentJob = this.job();
+    if (!currentJob) return;
+
+    this.jobsService.deleteJob(currentJob.id, this.rejectReason(), this.rejectNotes() || undefined).subscribe({
+      next: () => {
+        this.toastService.success('Vaga excluída');
+        this.router.navigate(['/jobs']);
+      },
+      error: () => this.toastService.error('Erro ao excluir'),
+    });
+    this.showRejectModal.set(false);
+  }
 }

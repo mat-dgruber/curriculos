@@ -30,6 +30,7 @@ class CandidateProfile(Base):
         Integer, nullable=False, default=6
     )
     auto_apply: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    auto_delete_days: Mapped[int] = mapped_column(Integer, nullable=False, default=30)
     created_at: Mapped[datetime] = mapped_column(
         DateTime, nullable=False, default=datetime.utcnow
     )
@@ -62,6 +63,7 @@ class CandidateProfileCreate(CamelModel):
     preferred_locations: list[str] = Field(default_factory=list)
     scan_interval_hours: int = Field(6, ge=1, le=24)
     auto_apply: bool = False
+    auto_delete_days: int = Field(30, ge=0, le=365)
 
 
 class CandidateProfileRead(CamelModel):
@@ -79,6 +81,7 @@ class CandidateProfileRead(CamelModel):
     preferred_locations: list[str] = Field(default_factory=list)
     scan_interval_hours: int
     auto_apply: bool
+    auto_delete_days: int
     created_at: datetime
     updated_at: datetime
 
@@ -95,3 +98,4 @@ class CandidateProfileUpdate(CamelModel):
     preferred_locations: list[str] | None = None
     scan_interval_hours: int | None = Field(None, ge=1, le=24)
     auto_apply: bool | None = None
+    auto_delete_days: int | None = Field(None, ge=0, le=365)

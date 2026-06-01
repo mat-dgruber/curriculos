@@ -24,3 +24,31 @@ Angular 21 signals use `.set(valor)` for direct assignment and `.update(fn)` for
 **Why:** User spent significant time debugging "JobDetail never loads data" — the root cause was missing `withComponentInputBinding()`. The input `jobId` never received the `:id` route param, so the effect never fired. Renaming to `id` + adding the provider fixed it.
 
 **How to apply:** When a component receives data via route params (e.g., `/jobs/:id`), ensure: (1) `withComponentInputBinding()` is in app.config.ts, (2) the input signal name matches the route param name exactly.
+
+
+**⚠️ Shared/Centralized State via Signals in Services (2026-06-01):**
+To synchronize state seamlessly across multiple decoupled components (such as Topbar, App root, and Dashboard components), define a writable Signal directly inside an Angular Service (such as `SchedulerService`), and intercept the asynchronous API responses with the RxJS `tap` operator to update that signal automatically.
+
+**Why:** Defining local state signals in individual page components leads to out-of-sync indicators. For example, pausing the robot on the Dashboard updated only the local state and left the header (Topbar) indicator stale. Moving the state signal to the service and updating it inside pipe operators ensures that any action in any component propagates changes immediately and in perfect synchronization to all parts of the application.
+
+**How to apply:**
+```typescript
+@Injectable({ providedIn: 'root' })
+export class SchedulerService {
+  status = signal<SchedulerStatus | null>(null);
+
+  getStatus(): Observable<SchedulerStatus> {
+    return this.api.get<SchedulerStatus>('/api/v1/scheduler/status').pipe(
+      tap(status => this.status.set(status))
+    );
+  }
+
+  pause(): Observable<any> {
+    return this.api.put('/api/v1/scheduler/pause', {}).pipe(
+      tap(() => this.status.update(s => s ? { ...s, isRunning: false } : null))
+    );
+  }
+}
+```
+In individual components, reference the service's signal directly:
+`schedulerStatus = this.schedulerService.status;`

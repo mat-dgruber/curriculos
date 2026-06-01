@@ -1,7 +1,7 @@
 import { Injectable, inject } from '@angular/core';
 import { Observable } from 'rxjs';
 import { ApiService } from './api.service';
-import { Job, JobListResponse, JobFilters } from '../models/job.model';
+import { Job, JobListResponse, JobFilters, RejectedJobListResponse } from '../models/job.model';
 
 @Injectable({ providedIn: 'root' })
 export class JobsService {
@@ -16,6 +16,7 @@ export class JobsService {
       if (filters.status && filters.status !== 'all') params['status'] = filters.status;
       if (filters.page) params['page'] = filters.page;
       if (filters.perPage) params['per_page'] = filters.perPage;
+      if (filters.isFavorite !== undefined) params['is_favorite'] = filters.isFavorite;
       if (filters.sortBy) params['sort_by'] = filters.sortBy;
       if (filters.sortOrder) params['sort_order'] = filters.sortOrder;
     }
@@ -36,5 +37,34 @@ export class JobsService {
 
   getScanStatus(): Observable<{ status: string; started_at: string | null; finished_at: string | null; result: any; error: string | null }> {
     return this.api.get('/api/v1/jobs/scan/status');
+  }
+
+  enrichDescriptions(): Observable<{ message: string; status: string }> {
+    return this.api.post('/api/v1/jobs/enrich', {});
+  }
+
+  deleteJob(id: string, reason?: string, notes?: string): Observable<{ message: string }> {
+    const body: Record<string, string> = {};
+    if (reason) body['reason'] = reason;
+    if (notes) body['notes'] = notes;
+    return this.api.delete<{ message: string }>(`/api/v1/jobs/${id}`, body);
+  }
+
+  rejectBatch(jobIds: string[], reason: string, notes?: string): Observable<{ message: string; deleted: number }> {
+    return this.api.post('/api/v1/jobs/reject-batch', { jobIds, reason, notes });
+  }
+
+  getRejectedJobs(page?: number): Observable<RejectedJobListResponse> {
+    const params: Record<string, number> = {};
+    if (page) params['page'] = page;
+    return this.api.get<RejectedJobListResponse>('/api/v1/jobs/rejected', params);
+  }
+
+  autoDeletePreview(): Observable<{ autoDeleteDays: number; wouldDelete: number }> {
+    return this.api.post('/api/v1/jobs/auto-delete/preview', {});
+  }
+
+  autoDeleteRun(): Observable<{ deleted: number }> {
+    return this.api.post('/api/v1/jobs/auto-delete/run', {});
   }
 }

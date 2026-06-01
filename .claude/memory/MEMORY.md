@@ -1,5 +1,5 @@
 - [User Profile](user-profile.md) — Angular/Python dev building JobHunter, holistic thinker, quick approver, cost-conscious
-- [JobHunter Project](project-jobhunter.md) — Fase 1-3+5 DONE, 101 tests, 5 scrapers, Jobs page overhaul (scoring sort, scan polling, debounce, full-width detail, global btn CSS, ToastService, requirements badges)
+- [JobHunter Project](project-jobhunter.md) — Fase 1-5 completas + Fase 3 scrapers (8 platforms), 107 testes, orchestrator com asyncio.gather
 - [Parallel Agents](feedback-parallel-agents.md) — Parallel subagents OK, cap 5-6, worktree CWD must be explicit, workers need scope guards, large refactors use hybrid (agents create, human integrates)
 - [Portuguese Always](feedback-portuguese.md) — All responses in Brazilian Portuguese, technical terms in English
 - [Cost-Conscious](user-cost-conscious.md) — Prefers free-forever options (Oracle Always Free), rejects trials/small free tiers
@@ -13,3 +13,18 @@
 - [Subagent Timeouts](feedback-subagent-timeouts.md) — Large tasks (docs, multi-file frontend) frequently terminate subagents — write directly or split smaller
 - [Mobile Nav & Settings](feedback-mobile-nav-settings.md) — Vagas at index 3 in bottom nav (center, highlighted). Settings merged into Profile page, /settings route removed.
 - [PrimeNG Patterns](feedback-primeng.md) — FileUploadModule tag is p-fileupload, providePrimeNG in config, uploadHandler for custom uploads, mode="basic" shows "No file chosen", use mode="advanced" for full control
+- [Angular Cache Stale](feedback-angular-cache.md) — New component files cause "Could not resolve" build errors; clean with rm -rf dist/ .angular/ before rebuild
+- [API Communication & Debugging](feedback-api-param-naming.md) — Frontend camelCase vs snake_case parameters mapping, and CORS masquerade issues on FastAPI 500 errors.
+- [Scheduler & Validation Rules](feedback-scheduler-rescheduling.md) — Sincronização de intervalo de varredura no banco, reagendamento dinâmico no APScheduler e validação robusta de PDFs.
+- [Dynamic Profile Tag Suggestions](feedback-profile-cv-suggestions.md) — Sugestões personalizadas locais e gratuitas baseadas no currículo (PDF) ou simuladas a partir de campos do perfil.
+- [Memory Sync](reference-memory-sync.md) — Sincronização automática da memória usando Git Hooks
+- [Theme-Adaptive Charts](feedback-theme-adaptive-charts.md) — Gráficos responsivos adaptáveis ao tema ativo (dark, light, capycro, high-contrast) usando computed signals.
+- [Service-Shared Signals](feedback-shared-service-signals.md) — Sincronização em tempo real de estados entre componentes (Topbar e Dashboard) usando sinais centralizados em serviços.
+- [LinkedIn API Limitations](reference-linkedin-api.md) — LinkedIn não tem API pública de jobs — Consumer API é só Sign In/Share, Talent Solutions exige parceria comercial
+- [Adzuna API Spec](reference-adzuna-api.md) — OpenAPI 3.1.0 com 9 endpoints: salary histogram, top companies, geodata, historical trends — útil para Fase 7 analytics
+- [Scraper Orchestrator](project-scraper-orchestrator.md) — Orquestrador HttpScraper/PlaywrightScraper com asyncio.gather, 8 platforms, rate limiting, description enrichment
+- [Remotive API](reference-remotive-api.md) — API grátis sem auth, 4 req/dia, remote jobs, termos: link-back + sem redistribuição
+- [Combine All Approaches](feedback-combine-all.md) — User prefers combining all feature options rather than picking one
+- [Favorites Are Sacred](feedback-favorites-sacred.md) — Favorited jobs must never be auto-deleted, persist forever
+- [Reject & Auto-Delete Design](project-reject-auto-delete-matcher.md) — Spec for job exclusion + auto-delete non-favorites + matcher refinement (design phase)
+

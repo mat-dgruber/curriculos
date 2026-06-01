@@ -13,6 +13,7 @@ export interface CandidateProfile {
   preferredLocations: string[];
   scanIntervalHours: number;
   autoApply: boolean;
+  autoDeleteDays: number;
   createdAt: string;
   updatedAt: string;
 }
@@ -29,6 +30,7 @@ export interface CandidateProfileUpdate {
   preferredLocations?: string[];
   scanIntervalHours?: number;
   autoApply?: boolean;
+  autoDeleteDays?: number;
 }
 
 export interface SchedulerStatus {

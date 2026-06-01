@@ -5,6 +5,7 @@ from sqlalchemy import String, Text, DateTime, Boolean, ForeignKey, Index
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core.database import Base
+from app.core.schema import CamelModel
 
 
 class Application(Base):
@@ -46,15 +47,15 @@ class Application(Base):
     )
 
 
-from pydantic import BaseModel, Field
+from pydantic import Field
 
 
-class ApplicationCreate(BaseModel):
+class ApplicationCreate(CamelModel):
     job_id: str = Field(..., max_length=36)
     notes: str | None = None
 
 
-class ApplicationRead(BaseModel):
+class ApplicationRead(CamelModel):
     id: str
     job_id: str
     company_name: str
@@ -68,17 +69,15 @@ class ApplicationRead(BaseModel):
     created_at: datetime
     updated_at: datetime
 
-    model_config = {"from_attributes": True}
 
-
-class ApplicationStatusUpdate(BaseModel):
+class ApplicationStatusUpdate(CamelModel):
     status: str = Field(
         ..., pattern=r"^(Pendente|Enviado|Falhou|Arquivado)$"
     )
     notes: str | None = None
 
 
-class ApplicationListResponse(BaseModel):
+class ApplicationListResponse(CamelModel):
     items: list[ApplicationRead]
     total: int
     page: int

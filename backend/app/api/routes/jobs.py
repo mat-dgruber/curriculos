@@ -63,7 +63,18 @@ async def get_job(job_id: str, db: AsyncSession = Depends(get_db)):
 
 
 @router.post("/jobs/scan", status_code=202)
-async def trigger_scan(db: AsyncSession = Depends(get_db)):
+async def trigger_scan():
+    import asyncio
+    from app.services.scan_service import run_scan
+
+    async def _run():
+        try:
+            await run_scan()
+        except Exception as e:
+            import logging
+            logging.getLogger(__name__).error(f"Scan failed: {e}")
+
+    asyncio.create_task(_run())
     return {
         "message": "Varredura iniciada em background",
         "status": "running",

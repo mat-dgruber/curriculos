@@ -1,8 +1,9 @@
+<app-toast />
 <app-sidebar />
 
-<div class="ml-64 flex flex-col min-h-screen">
-  <app-topbar [schedulerStatus]="schedulerStatus()" (scanNow)="onScanNow()" />
-  <main class="flex-1 bg-gray-950">
+<div class="ml-20 flex flex-col min-h-screen transition-all duration-300">
+  <app-topbar [schedulerStatus]="schedulerStatus()" [notificationCount]="0" (scanNow)="onScanNow()" />
+  <main class="flex-1 pb-6">
     <router-outlet />
   </main>
 </div>

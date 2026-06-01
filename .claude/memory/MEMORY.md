@@ -1,5 +1,10 @@
-- [User Profile](user-profile.md) — Angular/Python dev building JobHunter, holistic thinker, thorough doc updater, growth mindset
-- [JobHunter Project](project-jobhunter.md) — MVP Phase 1 scaffold DONE: 27 frontend TS files, 17 backend PY files, all endpoints verified
-- [Parallel Agents](feedback-parallel-agents.md) — Dispatch subagents in parallel for independent tasks, not sequential
+- [User Profile](user-profile.md) — Angular/Python dev building JobHunter, holistic thinker, quick approver, cost-conscious
+- [JobHunter Project](project-jobhunter.md) — MVP DONE, Fase 1-3 DONE, 101 tests, 5 scrapers, next: Fase 4 B2B
+- [Parallel Agents](feedback-parallel-agents.md) — Parallel subagents OK, cap 5-6, worktree CWD must be explicit, workers need scope guards, large refactors use hybrid (agents create, human integrates)
 - [Portuguese Always](feedback-portuguese.md) — All responses in Brazilian Portuguese, technical terms in English
 - [Cost-Conscious](user-cost-conscious.md) — Prefers free-forever options (Oracle Always Free), rejects trials/small free tiers
+- [Angular Signals](feedback-angular-signals.md) — Use .set()/.update() for Angular 21 signals, NEVER direct calls
+- [UI Design Preferences](feedback-ui-design.md) — Glassmorphism, pill shapes, retractable sidebar, bento grid, skeletons, custom dropdowns
+- [Home Server PostgreSQL Plan](plan-home-server-postgresql.md) — Plano 9 fases: PC velho → Ubuntu → PostgreSQL → JobHunter. Guia em docs/home-server-guide.md
+- [Roadmap Phase Workflow](feedback-roadmap-phases.md) — Works phase by phase through roadmap, says "vamos para a fase X"
+- [itshover.com Icons](reference-itshover-icons.md) — Animated SVG icon source, React→Angular conversion pattern

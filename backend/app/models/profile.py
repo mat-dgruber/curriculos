@@ -1,10 +1,12 @@
 from datetime import datetime
 from uuid import uuid4
+import json
 
 from sqlalchemy import String, Integer, Text, DateTime, Boolean
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.core.database import Base
+from app.core.schema import CamelModel
 
 
 class CandidateProfile(Base):
@@ -21,15 +23,9 @@ class CandidateProfile(Base):
     linkedin_url: Mapped[str | None] = mapped_column(String(512), nullable=True)
     cv_filename: Mapped[str | None] = mapped_column(String(255), nullable=True)
     cv_uploaded_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
-    keywords: Mapped[str | None] = mapped_column(
-        Text, nullable=True, comment="JSON array: ['angular', 'python', 'typescript']"
-    )
-    target_roles: Mapped[str | None] = mapped_column(
-        Text, nullable=True, comment="JSON array: ['Desenvolvedor Frontend', 'Full Stack']"
-    )
-    preferred_locations: Mapped[str | None] = mapped_column(
-        Text, nullable=True, comment="JSON array: ['São Paulo', 'Remoto']"
-    )
+    keywords: Mapped[str | None] = mapped_column(Text, nullable=True)
+    target_roles: Mapped[str | None] = mapped_column(Text, nullable=True)
+    preferred_locations: Mapped[str | None] = mapped_column(Text, nullable=True)
     scan_interval_hours: Mapped[int] = mapped_column(
         Integer, nullable=False, default=6
     )
@@ -42,28 +38,19 @@ class CandidateProfile(Base):
     )
 
     def get_keywords_list(self) -> list[str]:
-        if not self.keywords:
-            return []
-        import json
-        return json.loads(self.keywords)
+        return json.loads(self.keywords) if self.keywords else []
 
     def get_target_roles_list(self) -> list[str]:
-        if not self.target_roles:
-            return []
-        import json
-        return json.loads(self.target_roles)
+        return json.loads(self.target_roles) if self.target_roles else []
 
     def get_preferred_locations_list(self) -> list[str]:
-        if not self.preferred_locations:
-            return []
-        import json
-        return json.loads(self.preferred_locations)
+        return json.loads(self.preferred_locations) if self.preferred_locations else []
 
 
-from pydantic import BaseModel, Field
+from pydantic import Field
 
 
-class CandidateProfileCreate(BaseModel):
+class CandidateProfileCreate(CamelModel):
     name: str = Field(..., max_length=255)
     email: str = Field(..., max_length=255)
     phone: str | None = Field(None, max_length=50)
@@ -77,7 +64,7 @@ class CandidateProfileCreate(BaseModel):
     auto_apply: bool = False
 
 
-class CandidateProfileRead(BaseModel):
+class CandidateProfileRead(CamelModel):
     id: str
     name: str
     email: str
@@ -95,10 +82,8 @@ class CandidateProfileRead(BaseModel):
     created_at: datetime
     updated_at: datetime
 
-    model_config = {"from_attributes": True}
 
-
-class CandidateProfileUpdate(BaseModel):
+class CandidateProfileUpdate(CamelModel):
     name: str | None = Field(None, max_length=255)
     email: str | None = Field(None, max_length=255)
     phone: str | None = Field(None, max_length=50)

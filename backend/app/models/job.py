@@ -5,6 +5,7 @@ from sqlalchemy import String, Integer, Text, DateTime, Index
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core.database import Base
+from app.core.schema import CamelModel
 
 
 class Job(Base):
@@ -46,10 +47,10 @@ class Job(Base):
     )
 
 
-from pydantic import BaseModel, Field
+from pydantic import Field
 
 
-class JobCreate(BaseModel):
+class JobCreate(CamelModel):
     title: str = Field(..., max_length=255)
     company: str = Field(..., max_length=255)
     location: str = Field(..., max_length=255)
@@ -60,7 +61,7 @@ class JobCreate(BaseModel):
     salary_range: str | None = Field(None, max_length=100)
 
 
-class JobRead(BaseModel):
+class JobRead(CamelModel):
     id: str
     title: str
     company: str
@@ -76,10 +77,8 @@ class JobRead(BaseModel):
     created_at: datetime
     updated_at: datetime
 
-    model_config = {"from_attributes": True}
 
-
-class JobUpdate(BaseModel):
+class JobUpdate(CamelModel):
     title: str | None = Field(None, max_length=255)
     company: str | None = Field(None, max_length=255)
     location: str | None = Field(None, max_length=255)
@@ -92,7 +91,7 @@ class JobUpdate(BaseModel):
     status: str | None = Field(None, pattern=r"^(Nova|Visualizada|Candidatou)$")
 
 
-class JobListResponse(BaseModel):
+class JobListResponse(CamelModel):
     items: list[JobRead]
     total: int
     page: int

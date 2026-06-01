@@ -15,18 +15,53 @@
 
 @layer components {
   .btn-primary {
-    @apply bg-primary hover:bg-primary-hover text-white px-4 py-2 rounded-lg font-medium transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed;
+    @apply text-white px-5 py-2.5 rounded-xl font-medium transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed;
+    background: linear-gradient(135deg, #2563eb, #38bdf8);
+    box-shadow: 0 4px 12px rgba(37, 99, 235, 0.25);
+  }
+  .btn-primary:hover {
+    box-shadow: 0 6px 20px rgba(37, 99, 235, 0.4);
+    transform: translateY(-1px);
+  }
+  .btn-primary:active {
+    transform: translateY(0);
+    box-shadow: 0 2px 8px rgba(37, 99, 235, 0.2);
   }
 
   .btn-secondary {
-    @apply bg-dark-surface hover:bg-dark-border text-text-main px-4 py-2 rounded-lg font-medium border border-dark-border transition-colors duration-200;
+    @apply bg-dark-surface hover:bg-dark-border text-text-main px-4 py-2.5 rounded-xl font-medium border border-dark-border transition-all duration-200 hover:border-primary/20;
   }
 
   .card {
-    @apply bg-dark-surface border border-dark-border rounded-lg p-4;
+    @apply bg-dark-surface border border-dark-border rounded-xl p-5;
   }
 
   .input-field {
-    @apply bg-dark-surface border border-dark-border rounded-lg px-4 py-2 text-text-main placeholder-text-muted focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-colors duration-200;
+    @apply bg-dark-surface border border-dark-border rounded-xl px-4 py-2.5 text-text-main placeholder-text-muted focus:outline-none focus:border-primary/40 focus:ring-1 focus:ring-primary/20 transition-all duration-200;
   }
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(148, 163, 184, 0.2);
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(148, 163, 184, 0.4);
+}
+
+/* Selection */
+::selection {
+  background: rgba(37, 99, 235, 0.3);
+  color: white;
 }

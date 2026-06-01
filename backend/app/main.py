@@ -3,6 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.core.config import settings
 from app.core.database import init_db
+from app.services.scheduler_service import start_scheduler, stop_scheduler
 
 from app.api.routes import jobs, applications, companies, profile, scheduler
 
@@ -26,6 +27,12 @@ app.include_router(scheduler.router, prefix="/api/v1", tags=["Scheduler"])
 @app.on_event("startup")
 async def startup():
     await init_db()
+    start_scheduler()
+
+
+@app.on_event("shutdown")
+async def shutdown():
+    stop_scheduler()
 
 
 @app.get("/health")

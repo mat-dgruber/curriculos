@@ -5,6 +5,7 @@ from sqlalchemy import String, Integer, Text, DateTime, Boolean, Index
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core.database import Base
+from app.core.schema import CamelModel
 
 
 class FixedCompany(Base):
@@ -40,17 +41,17 @@ class FixedCompany(Base):
     )
 
 
-from pydantic import BaseModel, Field
+from pydantic import Field
 
 
-class FixedCompanyCreate(BaseModel):
+class FixedCompanyCreate(CamelModel):
     name: str = Field(..., max_length=255)
     application_url: str = Field(..., max_length=1024)
     interval_days: int = Field(30, ge=7, le=90)
     notes: str | None = None
 
 
-class FixedCompanyRead(BaseModel):
+class FixedCompanyRead(CamelModel):
     id: str
     name: str
     application_url: str
@@ -64,17 +65,15 @@ class FixedCompanyRead(BaseModel):
     created_at: datetime
     updated_at: datetime
 
-    model_config = {"from_attributes": True}
 
-
-class FixedCompanyUpdate(BaseModel):
+class FixedCompanyUpdate(CamelModel):
     name: str | None = Field(None, max_length=255)
     application_url: str | None = Field(None, max_length=1024)
     interval_days: int | None = Field(None, ge=7, le=90)
     notes: str | None = None
 
 
-class FixedCompanyListResponse(BaseModel):
+class FixedCompanyListResponse(CamelModel):
     items: list[FixedCompanyRead]
     total: int
     page: int

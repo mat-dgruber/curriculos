@@ -1025,9 +1025,7 @@ export class JobsListComponent implements OnInit, OnDestroy {
   selectByScoreBelow(): void {
     const threshold = this.deleteScoreThreshold();
     const ids = this.jobs().filter(j => j.score < threshold).map(j => j.id);
-    const current = new Set(this.selectedIds());
-    ids.forEach(id => current.add(id));
-    this.selectedIds.set(current);
+    this.selectedIds.set(new Set(ids));
     this.toastService.success(`${ids.length} vaga(s) com score < ${threshold} selecionada(s)`);
   }
 
@@ -1036,17 +1034,13 @@ export class JobsListComponent implements OnInit, OnDestroy {
     const cutoff = new Date();
     cutoff.setDate(cutoff.getDate() - days);
     const ids = this.jobs().filter(j => new Date(j.foundAt) < cutoff).map(j => j.id);
-    const current = new Set(this.selectedIds());
-    ids.forEach(id => current.add(id));
-    this.selectedIds.set(current);
+    this.selectedIds.set(new Set(ids));
     this.toastService.success(`${ids.length} vaga(s) com mais de ${days} dias selecionada(s)`);
   }
 
   selectNonFavorites(): void {
     const ids = this.jobs().filter(j => !j.isFavorite).map(j => j.id);
-    const current = new Set(this.selectedIds());
-    ids.forEach(id => current.add(id));
-    this.selectedIds.set(current);
+    this.selectedIds.set(new Set(ids));
     this.toastService.success(`${ids.length} vaga(s) não favoritada(s) selecionada(s)`);
   }
 }

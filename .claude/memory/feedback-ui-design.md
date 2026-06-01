@@ -34,6 +34,23 @@ User strongly prefers a modern, professional, tech-forward UI aesthetic. Specifi
 
 **How to apply:** When creating or updating UI components, always use glassmorphism styling, rounded shapes, and the theme tokens from tailwind.config.js (#0a0f1e bg, #2563eb primary, #38bdf8 accent). Never use flat/dated UI patterns.
 
+**Modals and overlays (2026-06-01):**
+- ALWAYS use theme-aware CSS classes for modal backgrounds: `bg-dark-surface` for the modal card, `bg-dark-bg` for inputs/selects, `border-dark-border` for borders
+- NEVER use `glass-v2` on modals — it renders as gray/inverted on light/Capycro themes
+- Use `bg-black/60 backdrop-blur-md` for the overlay backdrop (not `bg-black/50`)
+- Add `shadow-2xl` on the modal card for depth
+- Inputs/selects inside modals must use `bg-dark-bg` (not `bg-dark-surface`) with `focus:border-primary focus:outline-none`
+- Buttons: `hover:bg-white/5` for cancel, `bg-red-500/20 border border-red-500/20` for destructive actions
+- **Why:** User caught that the reject modal was rendering with a light gray background on the light theme because it used `glass-v2` which inverts on light themes. The fix was switching to `bg-dark-surface`/`bg-dark-bg` which are theme-overridden.
+- **How to apply:** Every new modal/dialog should follow this pattern. Check existing modals if they use `glass-v2` and fix them.
+
+**Delete/batch selection UX (2026-06-01):**
+- Selected cards need strong visual indicators: colored border, subtle colored background, shadow
+- Batch action bar should have a tinted background matching the action color (red for delete)
+- Smart filters (score threshold, age, non-favorites) REPLACE the selection — if you select non-favorites then select by score, the score filter clears the non-favorites selection
+- "Excluir" badge on selected cards provides instant visual feedback
+- **Why:** User wanted clear visual feedback that a job is selected for deletion, and wanted convenient batch selection beyond just "select all"
+
 **4-theme system status (2026-06-01):**
 - Design system spec defines 4 themes: Blue Fintech (light), Dark (tech), Capycro (organic), High Contrast (WCAG AAA)
 - **All themes are fully implemented** in ThemeService (string enum) with local storage persistence and dynamic styles overrides.

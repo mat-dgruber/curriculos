@@ -272,14 +272,14 @@ import { PlatformClassPipe } from '../../../shared/pipes/platform-class.pipe';
 
     <!-- Reject Modal -->
     @if (showRejectModal()) {
-      <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
-        <div class="glass-v2 rounded-2xl p-6 w-full max-w-md mx-4 space-y-4">
+      <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-md">
+        <div class="bg-dark-surface border border-dark-border rounded-2xl p-6 w-full max-w-md mx-4 space-y-4 shadow-2xl">
           <h3 class="text-lg font-semibold text-white">Excluir vaga</h3>
 
           <div>
             <label class="text-sm text-text-muted mb-1 block">Motivo</label>
             <select
-              class="w-full bg-dark-surface border border-dark-border rounded-xl px-4 py-2.5 text-white"
+              class="w-full bg-dark-bg border border-dark-border rounded-xl px-4 py-2.5 text-white focus:border-primary focus:outline-none"
               [ngModel]="rejectReason()"
               (ngModelChange)="rejectReason.set($event)"
             >
@@ -292,16 +292,16 @@ import { PlatformClassPipe } from '../../../shared/pipes/platform-class.pipe';
           <div>
             <label class="text-sm text-text-muted mb-1 block">Notas (opcional)</label>
             <textarea
-              class="w-full bg-dark-surface border border-dark-border rounded-xl px-4 py-2.5 text-white h-20 resize-none"
+              class="w-full bg-dark-bg border border-dark-border rounded-xl px-4 py-2.5 text-white h-20 resize-none focus:border-primary focus:outline-none"
               [ngModel]="rejectNotes()"
               (ngModelChange)="rejectNotes.set($event)"
               placeholder="Motivo adicional..."
             ></textarea>
           </div>
 
-          <div class="flex justify-end gap-2">
-            <button (click)="showRejectModal.set(false)" class="px-4 py-2 rounded-xl text-text-muted hover:text-white transition-colors">Cancelar</button>
-            <button (click)="confirmReject()" class="px-4 py-2 rounded-xl bg-red-500/20 text-red-400 hover:bg-red-500/30 transition-colors">Excluir</button>
+          <div class="flex justify-end gap-2 pt-2">
+            <button (click)="showRejectModal.set(false)" class="px-4 py-2 rounded-xl text-text-muted hover:text-white hover:bg-white/5 transition-colors">Cancelar</button>
+            <button (click)="confirmReject()" class="px-4 py-2 rounded-xl bg-red-500/20 text-red-400 hover:bg-red-500/30 border border-red-500/20 transition-colors font-medium">Excluir</button>
           </div>
         </div>
       </div>

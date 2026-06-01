@@ -281,22 +281,69 @@ import { Job, JobFilters } from '../../../core/models/job.model';
 
       <!-- Batch selection bar -->
       @if (selectedIds().size > 0) {
-        <div class="mb-4 glass-v2 rounded-2xl p-3 flex items-center justify-between gap-3">
-          <span class="text-sm text-white">{{ selectedIds().size }} selecionada(s)</span>
+        <div class="mb-4 bg-red-500/10 border border-red-500/20 rounded-2xl p-3 flex items-center justify-between gap-3">
+          <span class="text-sm text-red-400 font-medium">{{ selectedIds().size }} selecionada(s) para exclusão</span>
           <div class="flex items-center gap-2">
             <button (click)="deselectAll()" class="btn-secondary text-xs px-3 py-1.5">Limpar</button>
-            <button (click)="openRejectModal(getSelectedIds())" class="bg-red-500/20 text-red-400 hover:bg-red-500/30 text-xs px-3 py-1.5 rounded-xl transition-colors">Excluir selecionadas</button>
+            <button (click)="openRejectModal(getSelectedIds())" class="bg-red-500/20 text-red-400 hover:bg-red-500/30 text-xs px-3 py-1.5 rounded-xl transition-colors font-medium">Excluir selecionadas</button>
           </div>
         </div>
       }
 
-      <!-- Select all / clear in filters -->
+      <!-- Quick delete filters -->
       @if (!loading() && jobs().length > 0) {
-        <div class="flex items-center gap-2 mb-2">
+        <div class="flex items-center gap-2 mb-3 flex-wrap">
           <button (click)="selectAll()" class="text-xs text-text-muted hover:text-white transition-colors">Selecionar todas</button>
           <span class="text-text-muted/30">|</span>
           <button (click)="deselectAll()" class="text-xs text-text-muted hover:text-white transition-colors">Limpar seleção</button>
+          <span class="text-text-muted/30">|</span>
+          <button (click)="showDeleteFilters.update(v => !v)" class="text-xs text-red-400/70 hover:text-red-400 transition-colors flex items-center gap-1">
+            <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg>
+            Filtros de exclusão
+          </button>
         </div>
+
+        @if (showDeleteFilters()) {
+          <div class="mb-4 bg-red-500/5 border border-red-500/10 rounded-2xl p-4 space-y-3">
+            <div class="flex items-center gap-2 mb-2">
+              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-red-400"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+              <span class="text-xs text-red-400 font-medium uppercase tracking-wider">Selecionar para exclusão</span>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              <!-- Select by score -->
+              <div class="flex items-center gap-2">
+                <span class="text-xs text-text-muted whitespace-nowrap">Score abaixo de</span>
+                <select class="bg-dark-surface border border-dark-border rounded-lg px-2 py-1 text-xs text-white w-16" [ngModel]="deleteScoreThreshold()" (ngModelChange)="deleteScoreThreshold.set($event)">
+                  <option [value]="10">10</option>
+                  <option [value]="20">20</option>
+                  <option [value]="30">30</option>
+                  <option [value]="40">40</option>
+                  <option [value]="50">50</option>
+                </select>
+                <button (click)="selectByScoreBelow()" class="text-xs bg-red-500/10 text-red-400 hover:bg-red-500/20 px-2 py-1 rounded-lg transition-colors">Selecionar</button>
+              </div>
+
+              <!-- Select by age -->
+              <div class="flex items-center gap-2">
+                <span class="text-xs text-text-muted whitespace-nowrap">Mais antiga que</span>
+                <select class="bg-dark-surface border border-dark-border rounded-lg px-2 py-1 text-xs text-white w-16" [ngModel]="deleteAgeDays()" (ngModelChange)="deleteAgeDays.set($event)">
+                  <option [value]="7">7 dias</option>
+                  <option [value]="14">14 dias</option>
+                  <option [value]="30">30 dias</option>
+                  <option [value]="60">60 dias</option>
+                  <option [value]="90">90 dias</option>
+                </select>
+                <button (click)="selectByAge()" class="text-xs bg-red-500/10 text-red-400 hover:bg-red-500/20 px-2 py-1 rounded-lg transition-colors">Selecionar</button>
+              </div>
+
+              <!-- Select non-favorites -->
+              <div class="flex items-center gap-2">
+                <button (click)="selectNonFavorites()" class="text-xs bg-red-500/10 text-red-400 hover:bg-red-500/20 px-2 py-1 rounded-lg transition-colors">Selecionar não favoritas</button>
+              </div>
+            </div>
+          </div>
+        }
       }
 
       <!-- Success -->
@@ -369,10 +416,11 @@ import { Job, JobFilters } from '../../../core/models/job.model';
             @for (job of jobs(); track job.id) {
               <a
                 class="block relative z-10 organic-card p-3 md:p-5 hover:border-primary/30 cursor-pointer group no-underline transition-all"
-                [class.border-red-500/20]="job.isFavorite"
-                [class.bg-red-500/5]="job.isFavorite"
-                [class.border-primary/30]="isSelected(job.id)"
-                [class.bg-primary/5]="isSelected(job.id)"
+                [class.border-red-500/20]="job.isFavorite && !isSelected(job.id)"
+                [class.bg-red-500/5]="job.isFavorite && !isSelected(job.id)"
+                [class.border-red-500/50]="isSelected(job.id)"
+                [class.bg-red-500/8]="isSelected(job.id)"
+                [class.shadow-red-500/10]="isSelected(job.id)"
                 [routerLink]="['/jobs', job.id]"
               >
                 <div class="flex items-start gap-4">
@@ -397,8 +445,12 @@ import { Job, JobFilters } from '../../../core/models/job.model';
                       <button
                         type="button"
                         (click)="toggleSelect(job.id, $event)"
-                        class="p-1.5 rounded-full hover:bg-white/5 text-text-muted hover:text-white transition-all"
-                        [class.text-primary]="isSelected(job.id)"
+                        class="p-1.5 rounded-full transition-all"
+                        [class.text-red-400]="isSelected(job.id)"
+                        [class.bg-red-500/15]="isSelected(job.id)"
+                        [class.text-text-muted]="!isSelected(job.id)"
+                        [class.hover:text-white]="!isSelected(job.id)"
+                        [class.hover:bg-white/5]="!isSelected(job.id)"
                         [title]="isSelected(job.id) ? 'Desmarcar' : 'Selecionar para exclusão'"
                       >
                         @if (isSelected(job.id)) {
@@ -440,6 +492,12 @@ import { Job, JobFilters } from '../../../core/models/job.model';
                     </div>
                     <!-- Badges row -->
                     <div class="flex items-center gap-2 mt-3">
+                      @if (isSelected(job.id)) {
+                        <span class="inline-flex items-center gap-1 text-[10px] font-medium px-2 py-0.5 rounded-full bg-red-500/20 text-red-400 border border-red-500/30">
+                          <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/></svg>
+                          Excluir
+                        </span>
+                      }
                       <app-score-badge [score]="job.score" />
                       <app-status-chip [status]="job.status" />
                       <span
@@ -603,14 +661,14 @@ import { Job, JobFilters } from '../../../core/models/job.model';
 
     <!-- Reject Modal -->
     @if (showRejectModal()) {
-      <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
-        <div class="glass-v2 rounded-2xl p-6 w-full max-w-md mx-4 space-y-4">
+      <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-md">
+        <div class="bg-dark-surface border border-dark-border rounded-2xl p-6 w-full max-w-md mx-4 space-y-4 shadow-2xl">
           <h3 class="text-lg font-semibold text-white">Excluir {{ rejectTargetIds().length }} vaga(s)</h3>
 
           <div>
             <label class="text-sm text-text-muted mb-1 block">Motivo</label>
             <select
-              class="w-full bg-dark-surface border border-dark-border rounded-xl px-4 py-2.5 text-white"
+              class="w-full bg-dark-bg border border-dark-border rounded-xl px-4 py-2.5 text-white focus:border-primary focus:outline-none"
               [ngModel]="rejectReason()"
               (ngModelChange)="rejectReason.set($event)"
             >
@@ -623,16 +681,16 @@ import { Job, JobFilters } from '../../../core/models/job.model';
           <div>
             <label class="text-sm text-text-muted mb-1 block">Notas (opcional)</label>
             <textarea
-              class="w-full bg-dark-surface border border-dark-border rounded-xl px-4 py-2.5 text-white h-20 resize-none"
+              class="w-full bg-dark-bg border border-dark-border rounded-xl px-4 py-2.5 text-white h-20 resize-none focus:border-primary focus:outline-none"
               [ngModel]="rejectNotes()"
               (ngModelChange)="rejectNotes.set($event)"
               placeholder="Motivo adicional..."
             ></textarea>
           </div>
 
-          <div class="flex justify-end gap-2">
-            <button (click)="showRejectModal.set(false)" class="px-4 py-2 rounded-xl text-text-muted hover:text-white transition-colors">Cancelar</button>
-            <button (click)="confirmReject()" class="px-4 py-2 rounded-xl bg-red-500/20 text-red-400 hover:bg-red-500/30 transition-colors">Excluir</button>
+          <div class="flex justify-end gap-2 pt-2">
+            <button (click)="showRejectModal.set(false)" class="px-4 py-2 rounded-xl text-text-muted hover:text-white hover:bg-white/5 transition-colors">Cancelar</button>
+            <button (click)="confirmReject()" class="px-4 py-2 rounded-xl bg-red-500/20 text-red-400 hover:bg-red-500/30 border border-red-500/20 transition-colors font-medium">Excluir</button>
           </div>
         </div>
       </div>
@@ -683,6 +741,11 @@ export class JobsListComponent implements OnInit, OnDestroy {
     { value: 'local_incompativel', label: 'Localização incompatível' },
     { value: 'outro', label: 'Outro' },
   ];
+
+  // Quick-select filters for batch delete
+  showDeleteFilters = signal(false);
+  deleteScoreThreshold = signal(20);
+  deleteAgeDays = signal(30);
 
   private readonly _viewModeEffect = effect(() => {
     localStorage.setItem('jobsViewMode', this.viewMode());
@@ -957,5 +1020,33 @@ export class JobsListComponent implements OnInit, OnDestroy {
     }
 
     this.showRejectModal.set(false);
+  }
+
+  selectByScoreBelow(): void {
+    const threshold = this.deleteScoreThreshold();
+    const ids = this.jobs().filter(j => j.score < threshold).map(j => j.id);
+    const current = new Set(this.selectedIds());
+    ids.forEach(id => current.add(id));
+    this.selectedIds.set(current);
+    this.toastService.success(`${ids.length} vaga(s) com score < ${threshold} selecionada(s)`);
+  }
+
+  selectByAge(): void {
+    const days = this.deleteAgeDays();
+    const cutoff = new Date();
+    cutoff.setDate(cutoff.getDate() - days);
+    const ids = this.jobs().filter(j => new Date(j.foundAt) < cutoff).map(j => j.id);
+    const current = new Set(this.selectedIds());
+    ids.forEach(id => current.add(id));
+    this.selectedIds.set(current);
+    this.toastService.success(`${ids.length} vaga(s) com mais de ${days} dias selecionada(s)`);
+  }
+
+  selectNonFavorites(): void {
+    const ids = this.jobs().filter(j => !j.isFavorite).map(j => j.id);
+    const current = new Set(this.selectedIds());
+    ids.forEach(id => current.add(id));
+    this.selectedIds.set(current);
+    this.toastService.success(`${ids.length} vaga(s) não favoritada(s) selecionada(s)`);
   }
 }

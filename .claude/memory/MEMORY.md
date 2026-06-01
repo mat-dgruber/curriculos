@@ -1,5 +1,5 @@
 - [User Profile](user-profile.md) — Angular/Python dev building JobHunter, holistic thinker, quick approver, cost-conscious
-- [JobHunter Project](project-jobhunter.md) — Fase 1-5 completas + Fase 3 scrapers (8 platforms), 107 testes, orchestrator com asyncio.gather
+- [JobHunter Project](project-jobhunter.md) — Fase 1-5 + scrapers (8 platforms), 120 testes, orchestrator, job exclusion + auto-delete
 - [Parallel Agents](feedback-parallel-agents.md) — Parallel subagents OK, cap 5-6, worktree CWD must be explicit, workers need scope guards, large refactors use hybrid (agents create, human integrates)
 - [Portuguese Always](feedback-portuguese.md) — All responses in Brazilian Portuguese, technical terms in English
 - [Cost-Conscious](user-cost-conscious.md) — Prefers free-forever options (Oracle Always Free), rejects trials/small free tiers
@@ -26,5 +26,5 @@
 - [Remotive API](reference-remotive-api.md) — API grátis sem auth, 4 req/dia, remote jobs, termos: link-back + sem redistribuição
 - [Combine All Approaches](feedback-combine-all.md) — User prefers combining all feature options rather than picking one
 - [Favorites Are Sacred](feedback-favorites-sacred.md) — Favorited jobs must never be auto-deleted, persist forever
-- [Reject & Auto-Delete Design](project-reject-auto-delete-matcher.md) — Spec for job exclusion + auto-delete non-favorites + matcher refinement (design phase)
+- [Reject & Auto-Delete](project-reject-auto-delete-matcher.md) — Job exclusion + auto-delete non-favorites + matcher refinement (fully implemented, 120 tests)
 

@@ -104,7 +104,7 @@ JobHunter is evolving from a **personal-use** automated job application system i
 - ✅ Light mode: CSS variables + overrides in styles.css, global button classes, service worker disabled in dev
 - ✅ Component standardization: InputComponent + ButtonComponent at shared/components/. CSS base classes (.input-field, .btn-primary, .btn-secondary) in styles.css with theme-aware variables.
 
-**Tests:** Backend **120 pytest tests** passing (2 pre-existing failures in test_api_profile.py due to auto_delete_days migration not applied). Frontend test suite runs with 2 pre-existing failures (select.spec.ts click issue, app.spec.ts needs backend).
+**Tests:** Backend **120 pytest tests** passing. Frontend build succeeds with no errors.
 
 **Home server PostgreSQL (2026-06-01):**
 - Complete guide at docs/home-server-guide.md (10 phases, ~2.5h implementation)

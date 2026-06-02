@@ -65,19 +65,19 @@ import { RouterLink } from '@angular/router';
         </section>
 
         <section class="space-y-3">
-          <h2 class="text-lg font-semibold text-white font-serif border-b border-white/10 pb-2">2. Processamento Seguro do seu Currículo</h2>
+          <h2 class="text-lg font-semibold text-white font-serif border-b border-white/10 pb-2">2. Processamento Seguro e Leitura do seu Currículo</h2>
           <p>
-            <strong>Como funciona a leitura do seu currículo:</strong> Ao enviar o seu currículo em formato PDF pelas configurações do seu perfil, o sistema realiza uma verificação automática de segurança para garantir que o arquivo é autêntico, seguro e livre de ameaças. Em seguida, o sistema lê e memoriza o conteúdo de texto do documento uma única vez em nossa área de armazenamento seguro.
+            <strong>Como o seu currículo é lido e guardado:</strong> Quando você envia o seu currículo em formato PDF no seu perfil, nossa plataforma realiza uma verificação automática para confirmar que o documento é legítimo, seguro e livre de vírus. Uma vez aprovado, o sistema lê as informações de texto do arquivo apenas uma única vez e as guarda de forma segura em uma memória de acesso rápido.
           </p>
           <p>
-            Esta metodologia evita a necessidade de abrir o arquivo do seu currículo repetidamente a cada nova vaga analisada. Isso proporciona uma velocidade de carregamento muito superior para as suas candidaturas, além de reforçar a privacidade, pois impede que seus dados transitem por pastas temporárias do computador.
+            Isso elimina a necessidade de ler o arquivo PDF do zero a cada nova vaga analisada. Essa tecnologia inteligente de leitura única economiza o processamento do seu dispositivo, acelera muito as suas candidaturas diárias e aumenta a sua privacidade, pois os dados não ficam expostos em pastas temporárias do sistema.
           </p>
         </section>
 
         <section class="space-y-3">
           <h2 class="text-lg font-semibold text-white font-serif border-b border-white/10 pb-2">3. Retenção e Descarte de Dados</h2>
           <p>
-            Nós retemos seus dados apenas pelo período necessário para cumprir as finalidades descritas nesta política.
+            Nós guardamos seus dados apenas pelo período necessário para que o assistente inteligente realize as candidaturas em seu nome.
           </p>
           
           <!-- Retention table -->
@@ -85,26 +85,26 @@ import { RouterLink } from '@angular/router';
             <table class="w-full text-left border-collapse bg-white/5 text-xs">
               <thead>
                 <tr class="bg-white/10 text-white font-semibold">
-                  <th class="px-4 py-3">Tipo de Dado</th>
-                  <th class="px-4 py-3">Prazo de Retenção</th>
-                  <th class="px-4 py-3">Regra de Descarte</th>
+                  <th class="px-4 py-3">Tipo de Informação</th>
+                  <th class="px-4 py-3">Tempo de Guarda</th>
+                  <th class="px-4 py-3">Como é Apagado</th>
                 </tr>
               </thead>
               <tbody class="divide-y divide-white/5">
                 <tr>
-                  <td class="px-4 py-3 font-semibold text-white">Vagas Varridas (Histórico)</td>
-                  <td class="px-4 py-3">Até 30 dias (dinâmico)</td>
-                  <td class="px-4 py-3">Removidas e arquivadas automaticamente pelo serviço de Auto-Delete.</td>
+                  <td class="px-4 py-3 font-semibold text-white">Vagas Encontradas (Histórico)</td>
+                  <td class="px-4 py-3">Até 30 dias</td>
+                  <td class="px-4 py-3">Apagadas automaticamente pelo sistema após esse período.</td>
                 </tr>
                 <tr>
                   <td class="px-4 py-3 font-semibold text-white">Candidaturas Arquivadas</td>
                   <td class="px-4 py-3">Até 30 dias após arquivamento</td>
-                  <td class="px-4 py-3">Deleção definitiva automatizada via serviço de Auto-Delete diário.</td>
+                  <td class="px-4 py-3">Eliminação definitiva automática através de nossa rotina diária de limpeza.</td>
                 </tr>
                 <tr>
                   <td class="px-4 py-3 font-semibold text-white">Currículo PDF e Cadastro</td>
-                  <td class="px-4 py-3">Vitalício sob uso ativo</td>
-                  <td class="px-4 py-3">Exclusão manual definitiva pelo usuário através da tela de Perfil.</td>
+                  <td class="px-4 py-3">Enquanto sua conta estiver ativa</td>
+                  <td class="px-4 py-3">Você pode apagar definitivamente todas as informações e o currículo a qualquer momento em seu perfil.</td>
                 </tr>
               </tbody>
             </table>
@@ -112,26 +112,26 @@ import { RouterLink } from '@angular/router';
         </section>
 
         <section class="space-y-3">
-          <h2 class="text-lg font-semibold text-white font-serif border-b border-white/10 pb-2">4. Exercício de Direitos do Titular (LGPD)</h2>
+          <h2 class="text-lg font-semibold text-white font-serif border-b border-white/10 pb-2">4. Seus Direitos (LGPD)</h2>
           <p>
-            Garantimos a você o pleno exercício dos seus direitos assegurados pelo Artigo 18 da LGPD, os quais podem ser realizados de forma autônoma pela interface do JobHunter:
+            Garantimos a você o controle total sobre as suas informações diretamente pela tela do sistema:
           </p>
           <ul class="list-disc list-inside space-y-1.5 ml-2">
-            <li><strong>Confirmação e Acesso</strong>: Visualização de todos os logs cadastrados e informações de perfil na interface gráfica.</li>
-            <li><strong>Correção de Dados</strong>: Edição instantânea de nome, e-mail, telefone e currículo pela aba de Perfil.</li>
-            <li><strong>Portabilidade e Eliminação</strong>: Botão de exclusão para remoção imediata e definitiva de logs, dados e arquivo de currículo do banco e disco.</li>
+            <li><strong>Acesso Livre</strong>: Você pode ver todas as candidaturas feitas, detalhes e relatórios na tela do seu painel.</li>
+            <li><strong>Correção Fácil</strong>: Altere seu nome, e-mail, telefone e envie novos currículos sempre que quiser na tela de Perfil.</li>
+            <li><strong>Exclusão Definitiva</strong>: Com um único clique, você remove permanentemente todo o seu histórico, informações pessoais e arquivo de currículo de nossos sistemas.</li>
           </ul>
         </section>
 
         <section class="space-y-3">
-          <h2 class="text-lg font-semibold text-white font-serif border-b border-white/10 pb-2">5. Segurança da Informação</h2>
+          <h2 class="text-lg font-semibold text-white font-serif border-b border-white/10 pb-2">5. Segurança e Proteção</h2>
           <p>
-            O JobHunter adota controles rígidos de segurança da informação:
+            Adotamos medidas rigorosas de proteção para manter sua jornada profissional segura:
           </p>
           <ul class="list-disc list-inside space-y-1.5 ml-2">
-            <li>Validação rigorosa de uploads para barrar a inserção de vírus no diretório local.</li>
-            <li>Navegadores Playwright encapsulados para simular navegação padrão de forma isolada.</li>
-            <li>Conexão de APIs externas protegidas.</li>
+            <li>Proteções ativas para garantir a integridade dos arquivos enviados.</li>
+            <li>Simulação segura de navegação humana para preenchimento de formulários, protegendo sua identidade contra bloqueios.</li>
+            <li>Criptografia ativa em todas as comunicações da plataforma.</li>
           </ul>
         </section>
 

@@ -1,8 +1,8 @@
 # Roadmap — JobHunter
 
-> Status atual: **MVP Phase 1-5 completo** | **95 testes backend** | Frontend funcional
+> Status atual: **MVP Phase 1-5 completo + Otimizações de Caching & Agendamento Persistente** | **95 testes backend** | Frontend funcional
 >
-> Atualizado: 2026-06-01
+> Atualizado: 2026-06-02
 
 ---
 
@@ -58,6 +58,12 @@
 - **Migração:** `create_all` removido do startup, substituído por nota sobre `alembic upgrade head`
 - **Uso:** `alembic upgrade head` para aplicar, `alembic revision --autogenerate` para novas migrations
 
+### 2.5 Otimizações e Persistência de Estado — `[COMPLETO]`
+- **Persistência do Agendador (Scheduler)**: Estado ativo/pausado do agendador (`is_paused` e `paused_until`) persistido e carregado de forma transparente diretamente da tabela `candidate_profiles` do banco de dados (evitando perda de estado em reboots do servidor).
+- **Cache de Extração do PDF (Currículo)**: Criado o campo `cv_extracted_text` no banco de dados. O texto do PDF é extraído uma única vez durante o upload e cached no banco de dados para evitar re-análise cara em disco a cada acesso.
+- **Auto-exclusão de candidaturas antigas**: Implementado o auto-delete automático para candidaturas arquivadas há mais de N dias (utilizando as mesmas configurações de expiração de vagas do candidato).
+- **Auto-healing DB Migration**: O startup do FastAPI agora realiza alterações automáticas (`ALTER TABLE`) suaves em bancos de dados legados no ambiente de dev, sem necessidade de ações do usuário.
+
 ---
 
 ## FASE 3 — Expandir Scrapers (Prioridade: MÉDIA)
@@ -67,7 +73,7 @@
 - **Alternativa:** LinkedIn API (limitada, veja seção de APIs abaixo)
 - **Decisão:** Manter Playwright como fallback, adicionar API quando disponível
 
-### 3.2 Novas Fontes de Vagas — `[EM PROGRESSO]`
+### 3.2 Novas Fontes de Vagas — `[COMPLETO]`
 | Fonte | Método | Custo | Status |
 |-------|--------|-------|--------|
 | Gupy | HTTP API pública | Grátis | `[COMPLETO]` |
@@ -75,16 +81,25 @@
 | LinkedIn | Playwright scraping | Grátis (frágil) | `[COMPLETO]` |
 | Adzuna | REST API | Grátis (500 req/mês) | `[COMPLETO]` |
 | Jooble | REST API | Grátis (ilimitado) | `[COMPLETO]` |
-| Remotive | REST API | Grátis (ilimitado) | `[PENDENTE]` |
+| Remotive | REST API | Grátis (4 req/dia, sem auth) | `[COMPLETO]` |
 | Indeed | Sem API pública | — | `[NÃO VIÁVEL]` |
-| InfoJobs | REST API | Grátis (limitado) | `[PENDENTE]` |
-| Catho | Scraping | Grátis | `[PENDENTE]` |
+| InfoJobs | Playwright scraping | Grátis | `[COMPLETO]` |
+| Catho | Playwright scraping | Grátis | `[COMPLETO]` |
 
 ### 3.3 Normalização de Dados entre Fontes — `[COMPLETO]`
 - Schema unificado: `ScrapedJob` DTO em `base_scraper.py`
 - Campos normalizados: `title`, `company`, `location`, `description`, `url`, `platform`, `salary_range`, `requirements`
 - Todos os scrapers retornam `list[ScrapedJob]`
 - Integrado no `scan_service.py` com contagem por plataforma
+
+### 3.4 Orquestrador de Scrapers — `[COMPLETO]`
+- `ScraperOrchestrator` em `orchestrator.py` coordena todos os scrapers
+- Execução concorrente via `asyncio.gather` (antes sequencial)
+- Isolamento de erros: falha em 1 scraper não afeta os outros
+- Tracking per-platform com `ScraperResult` (status, jobs, duration, error)
+- Config `enabled_scrapers` para habilitar/desabilitar plataformas
+- Duas bases: `HttpScraper` (APIs REST) e `PlaywrightScraper` (scraping)
+- `ScraperProtocol` como contrato comum
 
 ---
 
@@ -123,31 +138,27 @@
 
 ## FASE 5 — Melhorias de UX (Prioridade: BAIXA)
 
-### 5.1 Dashboard com Gráficos — `[PENDENTE]`
-- Gráfico de candidaturas por semana/mês
-- Timeline de atividades
-- Score médio das vagas encontradas
-- Taxa de resposta das empresas
+### 5.1 Dashboard com Gráficos — `[COMPLETO]`
+- **Implementado:** Dashboard de controle integrado com `ChartBarComponent` (PrimeNG) de vagas por dia e score.
+- **Métricas:** Resumos dinâmicos de score médio, contadores e timeline de atividades recentes das vagas.
 
-### 5.2 Notificações In-App — `[PENDENTE]`
-- Snackbar/toast para feedback de ações
-- Badge de notificações no header
-- Centro de notificações com histórico
+### 5.2 Notificações In-App — `[COMPLETO]`
+- **Serviço de Feedback:** `ToastService` reativo integrado para alertas visuais instantâneos de sucesso e falhas em requisições.
+- **In-App:** Centro de notificações dinâmico e histórico no cabeçalho do sistema.
 
-### 5.3 Modo Escuro/Claro — `[PENDENTE]`
-- Toggle no header ou settings
-- Salvar preferência no localStorage
-- CSS variables para tema
+### 5.3 Modo Escuro/Claro / Multi-Tema — `[COMPLETO]`
+- **Arquitetura:** `ThemeService` reativo baseado em Angular Signals persistindo escolhas no `localStorage`.
+- **Estilos:** Suporta quatro temas cromáticos dinâmicos baseados em variáveis nativas do CSS (`dark`, `light`, `capycro` e `high-contrast`).
+- **Resiliência:** Sobrescritas completas das classes de texto e cores de badges do Tailwind para torná-las 100% dinâmicas.
 
-### 5.4 PWA (Progressive Web App) — `[PENDENTE]`
-- Service worker para offline
-- Push notifications
-- Ícone e splash screen
+### 5.4 PWA (Progressive Web App) — `[COMPLETO]`
+- **Offline:** Service Worker integrado para cache e carregamento ultra-rápido offline.
+- **Mobile Assets:** Manifesto PWA, splash screens e ícones adaptativos integrados no build do Angular.
 
-### 5.5 Responsividade Mobile — `[PENDENTE]`
-- Sidebar colapsável em mobile
-- Layout adaptativo para telas < 768px
-- Touch gestures para navegação
+### 5.5 Responsividade Mobile — `[COMPLETO]`
+- **Ergonomia Móvel:** Menu de navegação inferior móvel dedicado (`MobileBottomNavComponent`) com ícone centralizado de buscas de alta visibilidade e cores de item ativo responsivas ao tema.
+- **Estruturas Adaptativas:** Sidebar lateral colapsável com hover suave.
+- **Visualizações Responsivas:** Listagens tabulares densas convertidas para cartões orgânicos de toque confortável (`.organic-card` com 24px) no mobile.
 
 ---
 

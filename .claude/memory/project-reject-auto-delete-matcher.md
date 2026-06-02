@@ -16,6 +16,11 @@ Three interconnected features implemented on 2026-06-01. Spec at `docs/superpowe
 - Non-favorites: select all non-favorited jobs
 - Filters REPLACE the current selection (not add), so switching between filters clears the previous selection
 
+**Bulk delete by filter (2026-06-01):**
+- "Excluir todas" button sends POST `/jobs/reject-by-filter` with maxScore, olderThanDays, or nonFavoritesOnly
+- Deletes ALL matching jobs across ALL pages in one request — not limited to current page
+- Endpoint creates rejected_jobs records before deleting, preserving history
+
 **Selection visual indicators (2026-06-01):**
 - Selected cards: red border (`border-red-500/50`), subtle red bg (`bg-red-500/8`), shadow
 - Checkbox: red with red background when selected (`bg-red-500/15`)
@@ -27,14 +32,15 @@ Three interconnected features implemented on 2026-06-01. Spec at `docs/superpowe
 - `backdrop-blur-md` + `shadow-2xl` for premium feel
 - Input/textarea use `bg-dark-bg` + `focus:border-primary` for theme consistency
 - Both jobs-list and job-detail modals updated
+- Delete filter panel uses `<app-select>` (themed custom dropdown) instead of native `<select>`
 
 **Key files:**
 - Backend: `app/models/rejected_job.py`, `app/services/auto_delete_service.py`, `app/services/matcher.py`, `app/services/scan_service.py`
-- API: DELETE `/jobs/{id}`, POST `/jobs/reject-batch`, GET `/jobs/rejected`, POST `/jobs/auto-delete/preview|run`
-- Frontend: JobsService (deleteJob, rejectBatch), JobsListComponent (checkboxes, reject modal, smart filters), JobDetailComponent (delete button)
+- API: DELETE `/jobs/{id}`, POST `/jobs/reject-batch`, POST `/jobs/reject-by-filter`, GET `/jobs/rejected`, POST `/jobs/auto-delete/preview|run`
+- Frontend: JobsService (deleteJob, rejectBatch, rejectByFilter), JobsListComponent (checkboxes, reject modal, smart filters), JobDetailComponent (delete button)
 - Profile: `auto_delete_days` field (configurable, 0=disabled)
 - Migrations: `f1a2b3c4d5e6` (rejected_jobs table), `g2b3c4d5e6f7` (auto_delete_days column)
 
 **Why:** User wants to control which jobs they see, ensure scrapers pull relevant results, and keep the DB clean without manual curation.
 
-**How to apply:** Feature fully implemented. 120 tests passing. User rejected status-based exclusion in favor of direct DB deletion + history table. DELETE with body uses `Request` + `await request.json()` since httpx test client doesn't support `json=` on delete. Modals must always use theme-aware CSS classes (bg-dark-surface, bg-dark-bg) not glass-v2 or hardcoded colors.
+**How to apply:** Feature fully implemented. 120 tests passing. User rejected status-based exclusion in favor of direct DB deletion + history table. DELETE with body uses `Request` + `await request.json()` since httpx test client doesn't support `json=` on delete. Modals must always use theme-aware CSS classes (bg-dark-surface, bg-dark-bg) not glass-v2 or hardcoded colors. `app-select` expects string values — when binding to number signals, convert with `+$event` on change.

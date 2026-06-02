@@ -321,6 +321,10 @@ export class GslPageHelp implements OnDestroy {
       /^### (.*?)$/gm,
       '<h3 class="text-lg font-semibold text-[var(--text-primary)] mb-2 mt-4">$1</h3>',
     );
+    html = html.replace(
+      /^#### (.*?)$/gm,
+      '<h4 class="text-base font-semibold text-[var(--text-primary)] mb-1.5 mt-3">$1</h4>',
+    );
 
     // Bold & Italic
     html = html.replace(
@@ -328,6 +332,7 @@ export class GslPageHelp implements OnDestroy {
       '<strong class="font-bold text-[var(--text-primary)]">$1</strong>',
     );
     html = html.replace(/\*(.*?)\*/g, '<em class="italic text-[var(--text-secondary)]">$1</em>');
+    html = html.replace(/_([^_]+)_/g, '<em class="italic text-[var(--text-secondary)]">$1</em>');
 
     // Blockquotes & Alerts
     // Support modern alert blocks like > [!NOTE], > [!WARNING], > [!TIP]

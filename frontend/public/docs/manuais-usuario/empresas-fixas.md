@@ -1,75 +1,115 @@
-# Manual — Gestão de Empresas Fixas
+# Visão Geral
 
-## Visão Geral
-A tela de **Empresas Fixas** permite que você cadastre e gerencie empresas específicas nas quais deseja manter seu currículo sempre atualizado. O sistema agenda e dispara envios automáticos recorrentes, garantindo que seu perfil seja enviado periodicamente sem que você precise preencher formulários manualmente toda vez.
+A tela de **Empresas Fixas** é um painel de controle estratégico de candidaturas periódicas no JobHunter. Ela foi desenvolvida para automatizar o envio recorrente de seu currículo para empresas específicas (ex: bancos de talentos, páginas de carreiras, startups de interesse).
 
----
+Em vez de preencher manualmente o mesmo formulário a cada 30 dias, o JobHunter gerencia uma fila cronológica e utiliza o motor de automação (Playwright) para se candidatar por você.
 
-## Pré-requisitos
+## Pré-requisitos e Preparação
+
 > [!IMPORTANT]
-> Para que os disparos automáticos funcionem com sucesso, é obrigatório preencher suas informações de contato e anexar seu currículo atualizado em formato PDF na aba **Meu Perfil**.
-
----
+> A automação baseia-se estritamente nas informações registradas no seu perfil. Antes de ativar qualquer empresa fixa:
+>
+> 1. Acesse a tela **Meu Perfil** no menu lateral.
+> 2. Preencha todos os dados obrigatórios: Nome Completo, E-mail, Telefone, Link do LinkedIn e Portfólio.
+> 3. Anexe seu currículo atualizado em formato **PDF**. Sem esse arquivo, qualquer tentativa do robô será interrompida por falta de anexo obrigatório.
 
 ## Como Acessar
-No menu lateral esquerdo do sistema, clique no ícone de prédio (segundo ícone de baixo para cima) ou selecione a opção **Empresas** no menu de navegação.
 
----
+No menu lateral esquerdo da aplicação, clique no ícone de prédio (o segundo ícone de baixo para cima) ou passe o mouse sobre o menu para expandi-lo e selecione a opção **Empresas**.
 
-## Funcionalidades Disponíveis
+## Componentes em Detalhes
 
-### 1. Cadastrar e Editar Empresas
-**O que faz:** Permite registrar um novo link de candidatura ou editar as configurações de uma empresa existente (como o intervalo de dias para reenvio).
+### 1. Cabeçalho de Ações Globais
 
-**Como usar:**
-1. Clique no botão **"Adicionar Empresa"** no topo da tela.
-2. Preencha o formulário com o nome da empresa, o link direto do formulário de candidatura (ex: Gupy, LinkedIn ou formulário próprio) e o intervalo de reenvio desejado.
-3. Clique em **"Salvar"**.
+- **Título "Empresas Fixas"**: Indica onde você está.
+- **Botão de Ajuda (Interrogação ❓)**: Abre este painel deslizante que você está lendo agora.
+- **Botão "+ Nova Empresa" / "Fechar"**: Abre o formulário de cadastro na parte superior da tela ou o oculta para expandir a lista de cards.
 
-| Campo | Obrigatório | Descrição |
-|-------|-------------|-----------|
-| Nome da Empresa | Sim | Nome identificador da empresa (ex: Google, Nubank). |
-| URL de Candidatura | Sim | Link direto do formulário onde o currículo deve ser enviado. |
-| Intervalo (Dias) | Sim | A cada quantos dias o robô deve reenviar o currículo (padrão: 30 dias). |
-| Observações | Não | Anotações pessoais sobre a vaga ou a empresa. |
+### 2. O Formulário de Cadastro e Edição
 
----
+Ao clicar em "+ Nova Empresa", um painel de configuração detalhado é exibido. Os campos disponíveis são:
 
-### 2. Disparos Automáticos e Teste do Robô
-Esta tela dispõe de dois botões fundamentais para o fluxo de candidatura automática:
+| Campo                             | Obrigatório | Tipo            | Descrição e Validações                                                                                                                                                       |
+| --------------------------------- | ----------- | --------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Nome da Empresa**               | Sim         | Texto / Seleção | O nome da empresa. Possui um sistema de autossugestão (`Famous Companies`) que sugere grandes empresas assim que você digita as primeiras letras.                            |
+| **URL do Formulário / Carreiras** | Sim         | URL (Link)      | O link direto da página de envio de currículo da empresa (ex: link do portal Gupy, formulário Google Docs, Typeform, ou LinkedIn). Deve começar com `http://` ou `https://`. |
+| **Intervalo de Reenvio (dias)**   | Sim         | Número          | O número de dias que o robô deve aguardar antes de realizar uma nova candidatura automática (mínimo: 7 dias; máximo: 90 dias; padrão recomendado: 30 dias).                  |
+| **Notas e Anotações**             | Não         | Texto Longo     | Um espaço livre para você anotar particularidades da empresa, histórico de conversas ou observações importantes sobre a vaga.                                                |
 
-#### A. Testar Robô (Automação Ativa 🤖)
-* **O que faz:** Dispara imediatamente o motor de automação (Playwright) em segundo plano. O robô abrirá o link da empresa no navegador, preencherá seus dados cadastrais, anexará seu currículo em PDF e enviará a candidatura.
-* **Quando usar:** Sempre que quiser verificar se o formulário da empresa continua compatível com a nossa automação ou forçar um envio imediato.
+### 3. Anatomia do Card de Empresa Fixa
 
-#### B. Registrar Envio (Marcação Manual ✍️)
-* **O que faz:** Registra no sistema que você realizou a candidatura por conta própria (manualmente) hoje. Ele **não** aciona o robô.
-* **Quando usar:** Se você mesmo abriu o link da vaga e preencheu o formulário manualmente no seu navegador. Isso atualiza o cronograma da empresa para que o robô aguarde mais 30 dias antes do próximo envio automático.
+Cada empresa cadastrada é representada por um card completo, repleto de informações e botões de ação:
 
----
+```
++-------------------------------------------------------------+
+| [Plataforma]  NOME DA EMPRESA          [Status]  [Toolbar]  |
+| URL de Candidatura                                          |
+| "Anotações e Observações..."                                |
+|                                                             |
+| Intervalo: XX dias  |  Enviados: X  |  Último: Há X dias     |
+| Próximo envio: Em X dias                                    |
+| ----------------------------------------------------------- |
+| [Testar Robô 🤖]     [Ver Print 📸]     [Registrar Envio ✍️]  |
++-------------------------------------------------------------+
+```
 
-### 3. Acompanhamento e Prints de Erro 📸
-**O que faz:** Exibe a captura de tela do último envio realizado pelo robô.
+#### A. O Cabeçalho do Card
 
-**Como usar:**
-1. Se um envio automático falhar ou você quiser auditar a última tentativa, localize o botão **"Ver Print"** no card da empresa.
-2. Um modal será aberto exibindo a foto exata do navegador no momento da última ação do robô.
-3. Isso permite que você identifique rapidamente se o site da empresa mudou o layout ou se o formulário passou a exigir alguma informação extra.
+- **Nome da Empresa**: Título em destaque.
+- **Badge de Plataforma**: Identifica automaticamente qual é a plataforma de candidatura com base na URL fornecida (ex: `Gupy`, `LinkedIn`, `Compleo`, `Solides` ou `Outros`).
+- **Chip de Status**:
+  - `Pendente`: A candidatura está aguardando o cronograma de envio.
+  - `Enviado`: O currículo foi enviado com sucesso na última rodada.
+  - `Falhou`: Ocorreu algum erro na última execução do robô.
+  - `Respondeu` (🎉): **Status Especial!** Indica que a empresa retornou seu contato.
+- **Mini-Toolbar de Gerenciamento (Topo Direito)**:
+  - ⏸️/▶️ **Pausar/Ativar**: Permite paralisar temporariamente os envios automáticos agendados para esta empresa sem precisar excluí-la.
+  - ✏️ **Editar**: Abre o formulário preenchido com as informações atuais para você fazer correções e salvar.
+  - 🗑️ **Remover**: Exclui definitivamente a empresa do seu painel e limpa o histórico de envios associados.
 
----
+### 4. Ações de Envio e Automação (Menu Inferior do Card)
+
+#### 🤖 Botão "Testar Robô" (Automação Ativa)
+
+- **O que faz:** Dispara em tempo real o motor do robô (Playwright) em nossos servidores. O robô simula o comportamento humano: abre o navegador, navega até a URL da empresa, preenche seus dados do perfil e anexa o currículo em PDF.
+- **Quando usar:** Para verificar se o formulário continua funcionando corretamente ou forçar o envio do seu currículo imediatamente sem esperar o agendamento de 30 dias.
+- **Comportamento de Execução:** O botão exibirá um indicador de carregamento (_"Testando..."_). Você pode continuar usando outras partes do sistema normalmente enquanto ele executa.
+
+#### 📸 Botão "Ver Print" (Visualizador de Logs Visuais)
+
+- **O que faz:** Abre um visualizador de imagem contendo a captura de tela da última tentativa de envio feita pelo robô.
+- **Como ajuda:** Se o status estiver como `Falhou`, clique em **Ver Print**. O robô tira uma foto do navegador no exato momento da falha. Você poderá ver se o formulário mudou de layout, se apareceu alguma pergunta nova obrigatória, ou se exigiu um Captcha humano.
+
+#### ✍️ Botão "Registrar Envio" (Marcação Manual)
+
+- **O que faz:** Informa ao JobHunter que você realizou a candidatura para esta empresa manualmente diretamente no seu navegador. Ele **não dispara o robô**.
+- **Como calcula:** O sistema atualiza o campo _"Último Envio"_ para a data de hoje e recalcula o _"Próximo Envio"_ somando o número de dias do intervalo configurado. Isso evita que o robô tente um envio automático em cima da candidatura manual que você acabou de fazer.
+
+## O Status Especial "Respondeu"
+
+Quando uma empresa entra em contato com você por e-mail ou telefone e você atualiza o status dela para **"Respondeu"**:
+
+- A borda do card fica iluminada em **âmbar (dourado)** para fácil identificação.
+- Um badge decorativo _"🎉 Retorno!"_ é exibido no topo.
+- **Bloqueio de Automação:** Todos os envios automáticos e botões de disparo de robô são **desativados**. Isso é uma medida de segurança para evitar que o robô reenvie seu currículo de forma inoportuna enquanto você está em processo de entrevista ativa com aquela empresa.
 
 ## Fluxo de Uso Recomendado
-1. **Configure seu Perfil:** Certifique-se de que seu nome, e-mail e currículo em PDF estão atualizados na tela **Meu Perfil**.
-2. **Cadastre a Empresa:** Adicione a empresa com a URL do formulário de talentos.
-3. **Faça o Primeiro Envio:** Clique em **"Testar Robô"** para garantir que a primeira candidatura foi enviada com sucesso.
-4. **Deixe no Automático:** O sistema calculará a data de reenvio automaticamente com base no intervalo escolhido. Acompanhe o status e as datas no próprio card.
 
----
+1.  **Configure o Perfil**: Certifique-se de ter anexado seu currículo em PDF e completado seus dados na tela de Perfil.
+2.  **Cadastre a Empresa**: Use o botão "+ Nova Empresa" e insira a URL da vaga ou do banco de talentos da empresa.
+3.  **Faça o Teste de Validação**: Clique em **"Testar Robô"**.
+    - _Se der certo_: O status mudará para `Enviado`. O robô funcionou!
+    - _Se falhar_: O status mudará para `Falhou`. Clique em **"Ver Print"** para ver a causa do erro. Se for uma pergunta extra, complete no formulário original e use o botão **"Registrar Envio"** para marcar o envio feito.
+4.  **Monitore as Próximas Datas**: A partir de agora, o sistema controlará o reenvio periódico sozinho de forma silenciosa de acordo com o intervalo escolhido.
 
 ## Dúvidas Frequentes
 
-**P: Por que o botão "Testar Robô" está desativado?**
-R: O botão fica desativado se a empresa estiver pausada, se o robô já estiver executando um teste no momento, ou se o status da empresa for "Respondeu" (quando o processo avança para entrevista).
+**P: Por que o botão "Testar Robô" está cinza/desativado?**
+R: Isso pode ocorrer por três razões:
 
-**P: O que significa o status "Respondeu" nos cards?**
-R: Significa que a empresa entrou em contato com você! Quando este status é ativo, a automação de reenvio é pausada automaticamente para não gerar envios duplicados enquanto você conversa com os recrutadores.
+1. A empresa está pausada (clique no botão ▶️ no topo direito do card para ativá-la).
+2. O status está marcado como "Respondeu" (indicando processo em andamento).
+3. O robô já está processando uma ação para este card no momento.
+
+**P: O robô resolve desafios de lógica ou testes comportamentais automaticamente?**
+R: Não. O robô realiza o preenchimento de campos cadastrais comuns (Nome, E-mail, LinkedIn, etc.) e o anexo do currículo. Testes de personalidade ou raciocínio lógico exigem sua interação manual direta no link original da empresa.

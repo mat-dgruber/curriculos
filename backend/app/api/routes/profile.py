@@ -31,6 +31,9 @@ def _profile_to_read(profile: CandidateProfile) -> CandidateProfileRead:
         linkedin_url=profile.linkedin_url,
         cv_filename=profile.cv_filename,
         cv_uploaded_at=profile.cv_uploaded_at,
+        cv_extracted_text=profile.cv_extracted_text,
+        is_paused=profile.is_paused,
+        paused_until=profile.paused_until,
         keywords=json.loads(profile.keywords) if profile.keywords else [],
         target_roles=json.loads(profile.target_roles) if profile.target_roles else [],
         preferred_locations=json.loads(profile.preferred_locations) if profile.preferred_locations else [],
@@ -127,6 +130,13 @@ async def upload_cv(file: UploadFile = File(...), db: AsyncSession = Depends(get
     with open(filepath, "wb") as f:
         f.write(content)
 
+    # Extract and cache text in the database profile
+    try:
+        from app.utils.pdf_handler import extract_text_from_bytes
+        profile.cv_extracted_text = extract_text_from_bytes(content)
+    except Exception:
+        profile.cv_extracted_text = ""
+
     # Update profile in database
     profile.cv_filename = file.filename
     profile.cv_uploaded_at = datetime.utcnow()
@@ -174,14 +184,16 @@ async def get_cv_suggestions(db: AsyncSession = Depends(get_db)):
     if not profile:
         raise HTTPException(status_code=404, detail="Perfil não encontrado")
 
-    text = ""
-    # Try to load PDF text if it exists on disk
-    if profile.cv_filename:
+    text = profile.cv_extracted_text or ""
+    # Try to load PDF text if it exists on disk and wasn't cached yet
+    if not text.strip() and profile.cv_filename:
         filepath = os.path.join(CV_DIR, f"{profile.id}.pdf")
         if os.path.exists(filepath):
             try:
                 from app.utils.pdf_handler import extract_text_from_pdf
                 text = extract_text_from_pdf(filepath)
+                profile.cv_extracted_text = text
+                await db.commit()
             except Exception:
                 pass
 

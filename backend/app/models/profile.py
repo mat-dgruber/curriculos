@@ -31,6 +31,9 @@ class CandidateProfile(Base):
     )
     auto_apply: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
     auto_delete_days: Mapped[int] = mapped_column(Integer, nullable=False, default=30)
+    cv_extracted_text: Mapped[str | None] = mapped_column(Text, nullable=True)
+    is_paused: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    paused_until: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
     created_at: Mapped[datetime] = mapped_column(
         DateTime, nullable=False, default=datetime.utcnow
     )
@@ -76,6 +79,9 @@ class CandidateProfileRead(CamelModel):
     linkedin_url: str | None
     cv_filename: str | None
     cv_uploaded_at: datetime | None
+    cv_extracted_text: str | None = None
+    is_paused: bool = False
+    paused_until: datetime | None = None
     keywords: list[str] = Field(default_factory=list)
     target_roles: list[str] = Field(default_factory=list)
     preferred_locations: list[str] = Field(default_factory=list)

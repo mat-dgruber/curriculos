@@ -13,7 +13,7 @@ router = APIRouter()
 
 @router.get("/scheduler/status")
 async def get_status():
-    return get_scheduler_status()
+    return await get_scheduler_status()
 
 
 @router.post("/scheduler/trigger/{job_id}", status_code=202)
@@ -35,11 +35,11 @@ async def trigger_job_endpoint(job_id: str):
 
 @router.put("/scheduler/pause")
 async def pause_endpoint():
-    pause_scheduler()
+    await pause_scheduler()
     return {"message": "Agendador pausado"}
 
 
 @router.delete("/scheduler/pause")
 async def resume_endpoint():
-    resume_scheduler()
+    await resume_scheduler()
     return {"message": "Agendador retomado", "isRunning": True}

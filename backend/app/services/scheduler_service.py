@@ -99,10 +99,38 @@ async def start_scheduler():
     """Initialize and start the APScheduler."""
     global is_paused, paused_until
 
+    # Check if we should unpause or load state from DB
+    try:
+        from sqlalchemy import select
+        from app.models.profile import CandidateProfile
+        from app.core.database import async_session
+        async with async_session() as db:
+            result = await db.execute(select(CandidateProfile).limit(1))
+            profile = result.scalar_one_or_none()
+            if profile:
+                is_paused = profile.is_paused
+                paused_until = profile.paused_until
+                logger.info(f"Loaded scheduler state from DB profile: is_paused={is_paused}, paused_until={paused_until}")
+    except Exception as e:
+        logger.error(f"Failed to load scheduler state from DB: {e}")
+
     # Check if we should unpause
     if paused_until and datetime.utcnow() >= paused_until:
         is_paused = False
         paused_until = None
+        try:
+            from sqlalchemy import select
+            from app.models.profile import CandidateProfile
+            from app.core.database import async_session
+            async with async_session() as db:
+                result = await db.execute(select(CandidateProfile).limit(1))
+                profile = result.scalar_one_or_none()
+                if profile:
+                    profile.is_paused = False
+                    profile.paused_until = None
+                    await db.commit()
+        except Exception as e:
+            logger.error(f"Failed to auto-resume scheduler in DB: {e}")
 
     # Load interval from database if profile exists
     hours = settings.scan_interval_hours
@@ -171,23 +199,53 @@ def stop_scheduler():
     logger.info("Scheduler stopped")
 
 
-def pause_scheduler(until: datetime | None = None):
+async def pause_scheduler(until: datetime | None = None):
     """Pause the scheduler globally."""
     global is_paused, paused_until
     is_paused = True
     paused_until = until
     logger.info(f"Scheduler paused until {until or 'indefinitely'}")
 
+    try:
+        from sqlalchemy import select
+        from app.models.profile import CandidateProfile
+        from app.core.database import async_session
+        async with async_session() as db:
+            result = await db.execute(select(CandidateProfile).limit(1))
+            profile = result.scalar_one_or_none()
+            if profile:
+                profile.is_paused = True
+                profile.paused_until = until
+                await db.commit()
+                logger.info("Persisted scheduler pause state to DB")
+    except Exception as e:
+        logger.error(f"Failed to persist scheduler pause state to DB: {e}")
 
-def resume_scheduler():
+
+async def resume_scheduler():
     """Resume the scheduler."""
     global is_paused, paused_until
     is_paused = False
     paused_until = None
     logger.info("Scheduler resumed")
 
+    try:
+        from sqlalchemy import select
+        from app.models.profile import CandidateProfile
+        from app.core.database import async_session
+        async with async_session() as db:
+            result = await db.execute(select(CandidateProfile).limit(1))
+            profile = result.scalar_one_or_none()
+            if profile:
+                profile.is_paused = False
+                profile.paused_until = None
+                await db.commit()
+                logger.info("Persisted scheduler resume state to DB")
+    except Exception as e:
+        logger.error(f"Failed to persist scheduler resume state to DB: {e}")
 
-def get_scheduler_status() -> dict:
+
+async def get_scheduler_status() -> dict:
     """Get current scheduler status."""
     global is_paused, paused_until
 
@@ -195,6 +253,19 @@ def get_scheduler_status() -> dict:
     if paused_until and datetime.utcnow() >= paused_until:
         is_paused = False
         paused_until = None
+        try:
+            from sqlalchemy import select
+            from app.models.profile import CandidateProfile
+            from app.core.database import async_session
+            async with async_session() as db:
+                result = await db.execute(select(CandidateProfile).limit(1))
+                profile = result.scalar_one_or_none()
+                if profile:
+                    profile.is_paused = False
+                    profile.paused_until = None
+                    await db.commit()
+        except Exception as e:
+            logger.error(f"Failed to auto-resume scheduler in DB: {e}")
 
     jobs = []
     for job in scheduler.get_jobs():

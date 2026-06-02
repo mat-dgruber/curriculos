@@ -29,6 +29,7 @@ import { TriangleAlertIconComponent } from '../../../shared/components/triangle-
 import { JobsService } from '../../../core/services/jobs.service';
 import { ToastService } from '../../../core/services/toast.service';
 import { Job, JobFilters } from '../../../core/models/job.model';
+import { GslPageHelp } from '../../../shared/components/gsl-page-help/gsl-page-help.component';
 
 @Component({
   selector: 'app-jobs-list',
@@ -50,14 +51,18 @@ import { Job, JobFilters } from '../../../core/models/job.model';
     SearchIconComponent,
     SpinnerIconComponent,
     TriangleAlertIconComponent,
-    InputComponent
+    InputComponent,
+    GslPageHelp,
 ],
   template: `
     <div class="p-4 md:p-6">
       <!-- Header -->
       <div class="flex flex-wrap items-center justify-between gap-3 mb-6 md:mb-8">
         <div class="animate-fade-in-up">
-          <h1 class="text-3xl md:text-4xl font-serif font-bold text-white">Vagas</h1>
+          <div class="flex items-center gap-3">
+            <h1 class="text-3xl md:text-4xl font-serif font-bold text-white">Vagas</h1>
+            <app-gsl-page-help document="vagas.md" title="Manual: Oportunidades de Vagas" />
+          </div>
           <p class="text-xs md:text-sm text-text-muted mt-1">{{ total() }} vagas encontradas</p>
         </div>
         <div class="flex items-center gap-2">
@@ -137,7 +142,7 @@ import { Job, JobFilters } from '../../../core/models/job.model';
             }
           </button>
 
-          <button
+          <!-- <button
             class="btn-secondary flex items-center gap-2 text-xs"
             (click)="triggerEnrich()"
             [disabled]="enriching()"
@@ -149,7 +154,7 @@ import { Job, JobFilters } from '../../../core/models/job.model';
             } @else {
               <span class="hidden sm:inline">Preencher descricoes</span>
             }
-          </button>
+          </button> -->
         </div>
       </div>
 

@@ -9,6 +9,7 @@ import { CompaniesService } from '../../core/services/companies.service';
 import { ToastService } from '../../core/services/toast.service';
 import { FixedCompany, FixedCompanyCreate } from '../../core/models/company.model';
 import { environment } from '../../../environments/environment';
+import { GslPageHelp } from '../../shared/components/gsl-page-help/gsl-page-help.component';
 
 @Component({
   selector: 'app-companies',
@@ -20,6 +21,7 @@ import { environment } from '../../../environments/environment';
     StatusChipComponent,
     RelativeTimePipe,
     SendIconComponent,
+    GslPageHelp,
   ],
   template: `
     <div class="p-4 md:p-6 relative overflow-hidden min-h-screen">
@@ -30,9 +32,12 @@ import { environment } from '../../../environments/environment';
 
       <div class="relative z-10">
         <div class="flex items-center justify-between mb-4 md:mb-6">
-          <h1 class="text-3xl md:text-4xl font-serif font-bold text-white animate-fade-in-up">
-            Empresas Fixas
-          </h1>
+          <div class="flex items-center gap-3">
+            <h1 class="text-3xl md:text-4xl font-serif font-bold text-white animate-fade-in-up">
+              Empresas Fixas
+            </h1>
+            <app-gsl-page-help document="empresas-fixas.md" title="Manual: Empresas Fixas" class="animate-fade-in-up" />
+          </div>
           <button (click)="toggleFormBtn()" class="btn-primary animate-fade-in-up">
             @if (showForm()) {
               Fechar

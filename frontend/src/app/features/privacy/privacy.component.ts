@@ -65,12 +65,12 @@ import { RouterLink } from '@angular/router';
         </section>
 
         <section class="space-y-3">
-          <h2 class="text-lg font-semibold text-white font-serif border-b border-white/10 pb-2">2. Caching e Processamento de Arquivos PDF</h2>
+          <h2 class="text-lg font-semibold text-white font-serif border-b border-white/10 pb-2">2. Processamento Seguro do seu Currículo</h2>
           <p>
-            <strong>Como funciona o Caching de Currículo:</strong> Ao enviar seu currículo em PDF pela interface de perfil, o backend realiza uma validação binária de segurança (Magic Bytes <code>%PDF</code>) e extrai o texto textual completo uma única vez, salvando o cache diretamente no campo <code>cv_extracted_text</code> no banco de dados.
+            <strong>Como funciona a leitura do seu currículo:</strong> Ao enviar o seu currículo em formato PDF pelas configurações do seu perfil, o sistema realiza uma verificação automática de segurança para garantir que o arquivo é autêntico, seguro e livre de ameaças. Em seguida, o sistema lê e memoriza o conteúdo de texto do documento uma única vez em nossa área de armazenamento seguro.
           </p>
           <p>
-            Essa arquitetura impede que o disco rígido seja acessado repetidamente a cada requisição de análise de compatibilidade semântica, proporcionando maior performance, privacidade e impedindo vazamento de dados de arquivos em cache temporário de sistema.
+            Esta metodologia evita a necessidade de abrir o arquivo do seu currículo repetidamente a cada nova vaga analisada. Isso proporciona uma velocidade de carregamento muito superior para as suas candidaturas, além de reforçar a privacidade, pois impede que seus dados transitem por pastas temporárias do computador.
           </p>
         </section>
 

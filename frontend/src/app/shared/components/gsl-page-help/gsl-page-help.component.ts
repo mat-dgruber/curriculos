@@ -209,14 +209,14 @@ export class GslPageHelp {
 
     // Tables
     html = html.replace(/^\|(.*?)\|$/gm, (match, content) => {
-      const cells = content.split('|').map(c => c.trim());
+      const cells = content.split('|').map((c: string) => c.trim());
       // Skip spacer row |-|-|-|
-      if (cells.every(c => c.startsWith('-') || c === '')) return '';
+      if (cells.every((c: string) => c.startsWith('-') || c === '')) return '';
       
-      const isHeader = html.indexOf(match) < 300 && cells.every(c => c.length > 0); // Basic heuristic for headers
+      const isHeader = html.indexOf(match) < 300 && cells.every((c: string) => c.length > 0); // Basic heuristic for headers
       const cellTag = isHeader ? 'th' : 'td';
       const cellClass = isHeader ? 'px-4 py-2 font-serif font-bold text-white border-b-2 border-white/10' : 'px-4 py-2 border-b border-white/5';
-      return `<tr class="hover:bg-white/5 transition-colors">${cells.map(c => `<${cellTag} class="${cellClass}">${c}</${cellTag}>`).join('')}</tr>`;
+      return `<tr class="hover:bg-white/5 transition-colors">${cells.map((c: string) => `<${cellTag} class="${cellClass}">${c}</${cellTag}>`).join('')}</tr>`;
     });
     // Wrap table rows in full HTML table tag
     html = html.replace(/((?:<tr class="hover:bg-white\/5 transition-colors">[\s\S]*?<\/tr>\n?)+)/g, '<div class="overflow-x-auto my-4"><table class="w-full text-left border-collapse border border-white/10 bg-white/5 rounded-xl">$1</table></div>');

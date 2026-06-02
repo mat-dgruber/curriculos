@@ -49,9 +49,7 @@ async def list_companies(
 
 
 @router.post("/companies", status_code=201, response_model=FixedCompanyRead)
-async def create_company(
-    body: FixedCompanyCreate, db: AsyncSession = Depends(get_db)
-):
+async def create_company(body: FixedCompanyCreate, db: AsyncSession = Depends(get_db)):
     company = FixedCompany(
         id=str(uuid4()),
         name=body.name,
@@ -72,9 +70,7 @@ async def update_company(
     body: FixedCompanyUpdate,
     db: AsyncSession = Depends(get_db),
 ):
-    result = await db.execute(
-        select(FixedCompany).where(FixedCompany.id == company_id)
-    )
+    result = await db.execute(select(FixedCompany).where(FixedCompany.id == company_id))
     company = result.scalar_one_or_none()
     if not company:
         raise HTTPException(status_code=404, detail="Empresa não encontrada")
@@ -94,12 +90,8 @@ async def update_company(
 
 
 @router.delete("/companies/{company_id}")
-async def delete_company(
-    company_id: str, db: AsyncSession = Depends(get_db)
-):
-    result = await db.execute(
-        select(FixedCompany).where(FixedCompany.id == company_id)
-    )
+async def delete_company(company_id: str, db: AsyncSession = Depends(get_db)):
+    result = await db.execute(select(FixedCompany).where(FixedCompany.id == company_id))
     company = result.scalar_one_or_none()
     if not company:
         raise HTTPException(status_code=404, detail="Empresa não encontrada")
@@ -110,12 +102,8 @@ async def delete_company(
 
 
 @router.put("/companies/{company_id}/toggle", response_model=FixedCompanyRead)
-async def toggle_company(
-    company_id: str, db: AsyncSession = Depends(get_db)
-):
-    result = await db.execute(
-        select(FixedCompany).where(FixedCompany.id == company_id)
-    )
+async def toggle_company(company_id: str, db: AsyncSession = Depends(get_db)):
+    result = await db.execute(select(FixedCompany).where(FixedCompany.id == company_id))
     company = result.scalar_one_or_none()
     if not company:
         raise HTTPException(status_code=404, detail="Empresa não encontrada")
@@ -132,3 +120,58 @@ async def toggle_company(
     await db.commit()
     await db.refresh(company)
     return FixedCompanyRead.model_validate(company)
+
+
+@router.post("/companies/{company_id}/record-sent", response_model=FixedCompanyRead)
+async def record_sent(company_id: str, db: AsyncSession = Depends(get_db)):
+    result = await db.execute(select(FixedCompany).where(FixedCompany.id == company_id))
+    company = result.scalar_one_or_none()
+    if not company:
+        raise HTTPException(status_code=404, detail="Empresa não encontrada")
+
+    company.total_sent += 1
+    company.last_sent_at = datetime.utcnow()
+    company.next_send_at = datetime.utcnow() + timedelta(days=company.interval_days)
+
+    await db.commit()
+    await db.refresh(company)
+    return FixedCompanyRead.model_validate(company)
+
+
+@router.post("/companies/{company_id}/test-automation")
+async def test_automation(company_id: str, db: AsyncSession = Depends(get_db)):
+    from app.services.recurring_service import run_single_company_send
+
+    res = await run_single_company_send(company_id, db)
+    if "error" in res and not res.get("success", False):
+        raise HTTPException(status_code=400, detail=res["error"])
+    return res
+
+
+@router.get("/companies/{company_id}/last-screenshot")
+async def get_last_screenshot(company_id: str, db: AsyncSession = Depends(get_db)):
+    import os
+    from app.models.application import Application
+
+    result = await db.execute(
+        select(Application)
+        .where(
+            Application.fixed_company_id == company_id,
+            Application.screenshot_path != None,
+        )
+        .order_by(Application.created_at.desc())
+        .limit(1)
+    )
+    application = result.scalar_one_or_none()
+    if not application or not application.screenshot_path:
+        raise HTTPException(
+            status_code=404,
+            detail="Nenhum screenshot encontrado para esta empresa",
+        )
+
+    filename = os.path.basename(application.screenshot_path)
+    return {
+        "screenshotPath": filename,
+        "status": application.status,
+        "sentAt": application.sent_at.isoformat() if application.sent_at else None,
+    }

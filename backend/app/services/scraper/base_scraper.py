@@ -3,6 +3,7 @@ import random
 from abc import ABC, abstractmethod
 from datetime import datetime
 
+import httpx
 from playwright.async_api import async_playwright, Browser, Page, TimeoutError as PlaywrightTimeout
 
 
@@ -29,8 +30,35 @@ class ScrapedJob:
         self.requirements = requirements or []
 
 
-class BaseScraper(ABC):
-    """Base class for all job scrapers."""
+class HttpScraper(ABC):
+    """Base for API/HTTP scrapers. No Playwright overhead."""
+
+    platform: str = ""
+    enabled: bool = True
+
+    def __init__(self):
+        self.logger = logging.getLogger(self.__class__.__name__)
+        self._client: httpx.AsyncClient | None = None
+
+    async def __aenter__(self):
+        self._client = httpx.AsyncClient(timeout=30.0)
+        return self
+
+    async def __aexit__(self, exc_type, exc_val, exc_tb):
+        if self._client:
+            await self._client.aclose()
+            self._client = None
+
+    @abstractmethod
+    async def scrape(self, search_params: dict) -> list[ScrapedJob]:
+        ...
+
+
+class PlaywrightScraper(ABC):
+    """Base for scrapers needing a real browser."""
+
+    platform: str = ""
+    enabled: bool = True
 
     def __init__(self, headless: bool = True, slow_mo: int = 100):
         self.headless = headless
@@ -56,11 +84,9 @@ class BaseScraper(ABC):
 
     @abstractmethod
     async def scrape(self, search_params: dict) -> list[ScrapedJob]:
-        """Scrape jobs from the platform. Must be implemented by subclasses."""
         ...
 
     async def _safe_goto(self, url: str, timeout: int = 30000):
-        """Navigate to URL with error handling."""
         try:
             await self.page.goto(url, timeout=timeout, wait_until="domcontentloaded")
         except PlaywrightTimeout:
@@ -71,12 +97,10 @@ class BaseScraper(ABC):
             raise
 
     async def _random_delay(self, min_sec: float = 1.0, max_sec: float = 3.0):
-        """Random delay to avoid bot detection."""
         delay = random.uniform(min_sec, max_sec)
         await self.page.wait_for_timeout(int(delay * 1000))
 
     async def _safe_click(self, selector: str, timeout: int = 10000):
-        """Click element with error handling."""
         try:
             await self.page.click(selector, timeout=timeout)
         except PlaywrightTimeout:
@@ -84,7 +108,6 @@ class BaseScraper(ABC):
             raise
 
     async def _safe_fill(self, selector: str, value: str, timeout: int = 10000):
-        """Fill input with error handling."""
         try:
             await self.page.fill(selector, value, timeout=timeout)
         except PlaywrightTimeout:
@@ -92,7 +115,6 @@ class BaseScraper(ABC):
             raise
 
     async def _safe_query_text(self, selector: str, default: str = "") -> str:
-        """Query element text safely."""
         try:
             el = await self.page.query_selector(selector)
             if el:
@@ -102,7 +124,6 @@ class BaseScraper(ABC):
         return default
 
     async def _safe_query_attr(self, selector: str, attr: str, default: str = "") -> str:
-        """Query element attribute safely."""
         try:
             el = await self.page.query_selector(selector)
             if el:
@@ -111,3 +132,7 @@ class BaseScraper(ABC):
         except Exception:
             pass
         return default
+
+
+# Backward compatibility alias
+BaseScraper = PlaywrightScraper

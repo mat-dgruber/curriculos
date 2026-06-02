@@ -65,8 +65,8 @@ import { UserIconComponent } from '../../shared/components/user-icon/user-icon.c
     }
 
     .nav-item-active {
-      color: #2563eb;
-      background: rgba(37, 99, 235, 0.12);
+      color: var(--primary-color);
+      background: rgba(var(--primary-color-rgb), 0.12);
     }
 
     .nav-item:not(.nav-item-active):hover {
@@ -78,16 +78,14 @@ import { UserIconComponent } from '../../shared/components/user-icon/user-icon.c
     }
 
     .nav-item-center.nav-item-active {
-      background: rgba(37, 99, 235, 0.18);
-      box-shadow: 0 4px 16px rgba(37, 99, 235, 0.25);
+      background: rgba(var(--primary-color-rgb), 0.18);
+      box-shadow: 0 4px 16px rgba(var(--primary-color-rgb), 0.25);
     }
 
-    :host-context(.light) .nav-item:not(.nav-item-active):hover {
-      color: #1e293b;
-    }
-
-    :host-context(.light) .nav-item-active {
-      background: rgba(37, 99, 235, 0.1);
+    /* Cobertura de opacidades reduzidas para os temas claros (padrão e Capycro) */
+    :host-context(.light) .nav-item-active,
+    :host-context(.capycro) .nav-item-active {
+      background: rgba(var(--primary-color-rgb), 0.1);
     }
 
     .safe-area-bottom {

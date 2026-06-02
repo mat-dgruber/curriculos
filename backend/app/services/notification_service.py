@@ -40,13 +40,26 @@ def send_email(subject: str, body: str) -> bool:
 
 def notify_new_jobs(count: int, platform_summary: dict) -> None:
     """Send notification about new jobs found."""
+    platform_names = {
+        "linkedin": "LinkedIn",
+        "gupy": "Gupy",
+        "vagas": "Vagas.com",
+        "jooble": "Jooble",
+        "adzuna": "Adzuna",
+        "remotive": "Remotive",
+        "infojobs": "InfoJobs",
+        "catho": "Catho",
+    }
+    items = ""
+    for key, label in platform_names.items():
+        count_p = platform_summary.get(key, 0)
+        if count_p > 0:
+            items += f"<li>{label}: {count_p} vagas</li>"
     body = f"""
     <h2>Novas vagas encontradas!</h2>
     <p>O JobHunter encontrou <strong>{count}</strong> novas vagas compatíveis.</p>
     <ul>
-        <li>LinkedIn: {platform_summary.get('linkedin', 0)} vagas</li>
-        <li>Gupy: {platform_summary.get('gupy', 0)} vagas</li>
-        <li>Vagas.com: {platform_summary.get('vagas', 0)} vagas</li>
+        {items}
     </ul>
     <p>Acesse o painel para verificar as vagas.</p>
     """

@@ -58,6 +58,7 @@ class ApplicationCreate(CamelModel):
 class ApplicationRead(CamelModel):
     id: str
     job_id: str
+    job_title: str = ""
     company_name: str
     status: str
     sent_at: datetime | None
@@ -66,6 +67,7 @@ class ApplicationRead(CamelModel):
     error_message: str | None
     notes: str | None
     fixed_company_id: str | None
+    click_count: int = 0
     created_at: datetime
     updated_at: datetime
 

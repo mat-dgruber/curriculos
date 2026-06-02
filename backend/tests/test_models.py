@@ -43,7 +43,7 @@ class TestJobCreate:
                 title="Dev",
                 company="Corp",
                 location="SP",
-                platform="infojobs",
+                platform="invalid_platform",
                 url="https://x.com",
             )
 
@@ -73,6 +73,7 @@ class TestJobRead:
             "salary_range": None,
             "score": 80,
             "status": "Nova",
+            "is_favorite": False,
             "found_at": "2025-01-15T10:00:00",
             "created_at": "2025-01-15T10:00:00",
             "updated_at": "2025-01-15T10:00:00",
@@ -93,6 +94,7 @@ class TestJobRead:
             "salary_range": "R$ 10k",
             "score": 80,
             "status": "Nova",
+            "is_favorite": False,
             "found_at": "2025-01-15T10:00:00",
             "created_at": "2025-01-15T10:00:00",
             "updated_at": "2025-01-15T10:00:00",

@@ -71,6 +71,48 @@ async def test_list_jobs_filter_platform(client, db):
 
 
 @pytest.mark.asyncio
+async def test_list_jobs_filter_favorite(client, db):
+    from app.models.job import Job
+    from datetime import datetime
+
+    job_fav = Job(
+        id="fav-job-yes",
+        title="Job Favorito",
+        company="Corp",
+        location="SP",
+        platform="linkedin",
+        url="https://linkedin.com/fav-yes",
+        score=50,
+        is_favorite=True,
+        found_at=datetime.utcnow(),
+    )
+    job_not_fav = Job(
+        id="fav-job-no",
+        title="Job Nao Favorito",
+        company="Corp",
+        location="SP",
+        platform="linkedin",
+        url="https://linkedin.com/fav-no",
+        score=50,
+        is_favorite=False,
+        found_at=datetime.utcnow(),
+    )
+    db.add_all([job_fav, job_not_fav])
+    await db.commit()
+
+    resp = await client.get("/api/v1/jobs?is_favorite=true")
+    assert resp.status_code == 200
+    data = resp.json()
+    assert data["total"] == 1
+    assert data["items"][0]["id"] == "fav-job-yes"
+
+    resp_all = await client.get("/api/v1/jobs")
+    assert resp_all.status_code == 200
+    data_all = resp_all.json()
+    assert data_all["total"] >= 2
+
+
+@pytest.mark.asyncio
 async def test_list_jobs_filter_min_score(client, db):
     from app.models.job import Job
     from datetime import datetime

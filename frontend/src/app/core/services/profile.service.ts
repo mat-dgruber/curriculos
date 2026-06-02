@@ -20,4 +20,8 @@ export class ProfileService {
     formData.append('file', file);
     return this.api.upload('/api/v1/profile/cv', formData);
   }
+
+  getCVSuggestions(): Observable<{ keywords: string[]; target_roles: string[]; preferred_locations: string[] }> {
+    return this.api.get<{ keywords: string[]; target_roles: string[]; preferred_locations: string[] }>('/api/v1/profile/cv-suggestions');
+  }
 }

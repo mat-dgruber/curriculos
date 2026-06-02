@@ -1,5 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
+import os
 
 from app.core.config import settings
 from app.core.database import init_db
@@ -17,6 +19,10 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# Ensure screenshots directory exists and mount it
+os.makedirs(settings.screenshots_path, exist_ok=True)
+app.mount("/screenshots", StaticFiles(directory=settings.screenshots_path), name="screenshots")
+
 app.include_router(jobs.router, prefix="/api/v1", tags=["Jobs"])
 app.include_router(applications.router, prefix="/api/v1", tags=["Applications"])
 app.include_router(companies.router, prefix="/api/v1", tags=["Companies"])
@@ -30,7 +36,7 @@ async def startup():
     # To apply migrations: cd backend && alembic upgrade head
     # To create new migration after model changes: cd backend && alembic revision --autogenerate -m "description"
     await init_db()
-    start_scheduler()
+    await start_scheduler()
 
 
 @app.on_event("shutdown")

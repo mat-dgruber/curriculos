@@ -6,6 +6,7 @@ import { JobsService } from '../../../core/services/jobs.service';
 import { ApplicationsService } from '../../../core/services/applications.service';
 import { ToastService } from '../../../core/services/toast.service';
 import { Job } from '../../../core/models/job.model';
+import { CompaniesService } from '../../../core/services/companies.service';
 import { ScoreBadgeComponent } from '../../../shared/components/score-badge/score-badge.component';
 import { StatusChipComponent } from '../../../shared/components/status-chip/status-chip.component';
 import { SearchIconComponent } from '../../../shared/components/search-icon/search-icon.component';
@@ -133,11 +134,30 @@ import { PlatformClassPipe } from '../../../shared/pipes/platform-class.pipe';
             </div>
 
             <!-- Right column: Description -->
-            <div class="organic-card p-5 min-h-[200px]">
-              <h3 class="text-xs font-semibold text-text-muted/60 uppercase tracking-wider mb-3">Descrição</h3>
-              <p class="text-sm text-white/80 whitespace-pre-line leading-relaxed">
-                {{ job()!.description || 'Descrição não disponível para esta vaga.' }}
-              </p>
+            <div class="organic-card p-5 flex flex-col justify-between max-h-[420px] transition-all duration-300">
+              <div class="flex-1 flex flex-col min-h-0">
+                <h3 class="text-xs font-semibold text-text-muted/60 uppercase tracking-wider mb-3">Descrição</h3>
+                <div class="flex-1 overflow-y-auto pr-1 max-h-[300px] transition-all duration-300">
+                  <p class="text-sm text-white/80 whitespace-pre-line leading-relaxed">
+                    {{ formattedDescription() || 'Descrição não disponível para esta vaga.' }}
+                  </p>
+                </div>
+              </div>
+
+              @if (shouldShowReadMore()) {
+                <button
+                  (click)="isExpanded.set(!isExpanded())"
+                  class="mt-4 text-xs font-semibold text-accent hover:text-accent/80 flex items-center gap-1 transition-all self-start"
+                >
+                  @if (isExpanded()) {
+                    Ver menos
+                    <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="m18 15-6-6-6 6"/></svg>
+                  } @else {
+                    Ler descrição completa
+                    <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="m6 9 6 6 6-6"/></svg>
+                  }
+                </button>
+              }
             </div>
           </div>
 
@@ -207,6 +227,16 @@ import { PlatformClassPipe } from '../../../shared/pipes/platform-class.pipe';
                 <path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/>
               </svg>
               <span>{{ job()!.isFavorite ? 'Favoritada' : 'Favoritar' }}</span>
+            </button>
+
+            <!-- Fixed Company Import Button -->
+            <button
+              class="btn-secondary rounded-full px-5 py-2.5 text-amber-400 hover:bg-amber-400/10 border-amber-500/20"
+              (click)="addToFixedCompanies()"
+              title="Importar esta empresa como Empresa Fixa"
+              [disabled]="!job()!.url"
+            >
+              ⭐ Empresa Fixa
             </button>
 
             <!-- Delete Button -->
@@ -311,6 +341,7 @@ import { PlatformClassPipe } from '../../../shared/pipes/platform-class.pipe';
 export class JobDetailComponent {
   private readonly jobsService = inject(JobsService);
   private readonly applicationsService = inject(ApplicationsService);
+  private readonly companiesService = inject(CompaniesService);
   private readonly toastService = inject(ToastService);
   private readonly router = inject(Router);
 
@@ -332,6 +363,25 @@ export class JobDetailComponent {
     { value: 'local_incompativel', label: 'Localização incompatível' },
     { value: 'outro', label: 'Outro' },
   ];
+
+  isExpanded = signal(false);
+  descriptionThreshold = 400;
+
+  shouldShowReadMore = computed(() => {
+    const desc = this.job()?.description;
+    return desc ? desc.length > this.descriptionThreshold : false;
+  });
+
+  formattedDescription = computed(() => {
+    const desc = this.job()?.description;
+    if (!desc) return '';
+    if (this.isExpanded() || desc.length <= this.descriptionThreshold) {
+      return desc;
+    }
+    const truncated = desc.substring(0, this.descriptionThreshold);
+    const lastSpace = truncated.lastIndexOf(' ');
+    return truncated.substring(0, lastSpace > 0 ? lastSpace : this.descriptionThreshold) + '...';
+  });
 
   parsedRequirements = computed(() => {
     const req = this.job()?.requirements;
@@ -437,5 +487,32 @@ export class JobDetailComponent {
       error: () => this.toastService.error('Erro ao excluir'),
     });
     this.showRejectModal.set(false);
+  }
+
+  addToFixedCompanies(): void {
+    const currentJob = this.job();
+    if (!currentJob) return;
+
+    if (!currentJob.url) {
+      this.toastService.error('A vaga precisa ter uma URL válida para ser importada como Empresa Fixa.');
+      return;
+    }
+
+    const data = {
+      name: currentJob.company,
+      applicationUrl: currentJob.url,
+      intervalDays: 30,
+      notes: `Importada automaticamente a partir da vaga "${currentJob.title}".`
+    };
+
+    this.companiesService.createCompany(data).subscribe({
+      next: () => {
+        this.toastService.success(`${currentJob.company} adicionada às Empresas Fixas com sucesso!`);
+      },
+      error: (err) => {
+        const detail = err?.error?.detail || 'Erro ao favoritar empresa.';
+        this.toastService.error(detail);
+      }
+    });
   }
 }

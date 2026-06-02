@@ -2,15 +2,17 @@ import logging
 import asyncio
 from bs4 import BeautifulSoup
 
-from app.services.scraper.base_scraper import BaseScraper, ScrapedJob
+from app.services.scraper.base_scraper import PlaywrightScraper, ScrapedJob
 
 logger = logging.getLogger(__name__)
 
 VAGAS_URL = "https://www.vagas.com.br/vagas-de"
 
 
-class VagasScraper(BaseScraper):
+class VagasScraper(PlaywrightScraper):
     """Scraper for Vagas.com.br job listings."""
+
+    platform = "vagas"
 
     async def scrape(self, search_params: dict) -> list[ScrapedJob]:
         jobs: list[ScrapedJob] = []
@@ -70,11 +72,36 @@ class VagasScraper(BaseScraper):
                 logger.warning(f"Vagas.com scrape error for '{term}': {e}")
                 continue
 
+        # Enrichment: busca descrição nas páginas de detalhe
+        await self._enrich_descriptions(jobs)
+
         logger.info(f"Vagas.com: found {len(jobs)} jobs")
         return jobs
 
+    async def _enrich_descriptions(self, jobs: list[ScrapedJob]):
+        """Navega na página de detalhe de cada vaga para extrair a descrição."""
+        enriched = 0
+        for job in jobs[:15]:
+            try:
+                await self._safe_goto(job.url, timeout=20000)
+                await self._random_delay(1, 2)
+
+                desc_el = await self.page.query_selector(
+                    ".job-description, .descricao-vaga, [class*='description'], [class*='descricao']"
+                )
+                if desc_el:
+                    desc = (await desc_el.inner_text()).strip()
+                    if desc:
+                        job.description = desc[:1000]
+                        enriched += 1
+
+                await self._random_delay(1, 2)
+            except Exception as e:
+                logger.debug(f"Vagas.com enrich failed for {job.url}: {e}")
+
+        logger.info(f"Vagas.com: enriched {enriched}/{len(jobs)} descriptions")
+
     async def _scroll_page(self):
-        """Scroll down to load more jobs."""
         for _ in range(3):
             await self.page.evaluate("window.scrollBy(0, 800)")
             await asyncio.sleep(1)

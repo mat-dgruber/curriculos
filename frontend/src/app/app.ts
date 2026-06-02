@@ -6,6 +6,7 @@ import { MobileBottomNavComponent } from './layout/mobile-bottom-nav/mobile-bott
 import { ToastContainerComponent } from './shared/components/toast-container/toast-container.component';
 import { SchedulerService } from './core/services/scheduler.service';
 import { SchedulerStatus } from './core/models/profile.model';
+import { ToastService } from './core/services/toast.service';
 
 @Component({
   selector: 'app-root',
@@ -16,15 +17,22 @@ import { SchedulerStatus } from './core/models/profile.model';
 })
 export class App implements OnInit {
   protected readonly schedulerService = inject(SchedulerService);
-  protected readonly schedulerStatus = signal<SchedulerStatus | null>(null);
+  protected readonly toastService = inject(ToastService);
+  protected readonly schedulerStatus = this.schedulerService.status;
 
   ngOnInit(): void {
-    this.schedulerService.getStatus().subscribe(status => {
-      this.schedulerStatus.set(status);
-    });
+    this.schedulerService.getStatus().subscribe();
   }
 
   onScanNow(): void {
-    this.schedulerService.triggerJob('scan_jobs').subscribe();
+    this.toastService.info('Disparando varredura de vagas...');
+    this.schedulerService.triggerJob('scan_jobs').subscribe({
+      next: () => {
+        this.toastService.success('Varredura de vagas iniciada com sucesso em segundo plano!');
+      },
+      error: () => {
+        this.toastService.error('Erro ao disparar a varredura de vagas.');
+      }
+    });
   }
 }

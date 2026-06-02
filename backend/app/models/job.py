@@ -1,7 +1,7 @@
 from datetime import datetime
 from uuid import uuid4
 
-from sqlalchemy import String, Integer, Text, DateTime, Index
+from sqlalchemy import String, Integer, Text, DateTime, Index, Boolean
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core.database import Base
@@ -24,6 +24,7 @@ class Job(Base):
     salary_range: Mapped[str | None] = mapped_column(String(100), nullable=True)
     score: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     status: Mapped[str] = mapped_column(String(20), nullable=False, default="Nova")
+    is_favorite: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
     found_at: Mapped[datetime] = mapped_column(
         DateTime, nullable=False, default=datetime.utcnow
     )
@@ -54,11 +55,12 @@ class JobCreate(CamelModel):
     title: str = Field(..., max_length=255)
     company: str = Field(..., max_length=255)
     location: str = Field(..., max_length=255)
-    platform: str = Field(..., pattern=r"^(linkedin|gupy|vagas)$")
+    platform: str = Field(..., pattern=r"^(linkedin|gupy|vagas|jooble|adzuna|remotive|infojobs|catho)$")
     url: str = Field(..., max_length=1024)
     description: str | None = None
     requirements: str | None = None
     salary_range: str | None = Field(None, max_length=100)
+    is_favorite: bool = False
 
 
 class JobRead(CamelModel):
@@ -73,6 +75,7 @@ class JobRead(CamelModel):
     salary_range: str | None
     score: int
     status: str
+    is_favorite: bool
     found_at: datetime
     created_at: datetime
     updated_at: datetime
@@ -82,13 +85,14 @@ class JobUpdate(CamelModel):
     title: str | None = Field(None, max_length=255)
     company: str | None = Field(None, max_length=255)
     location: str | None = Field(None, max_length=255)
-    platform: str | None = Field(None, pattern=r"^(linkedin|gupy|vagas)$")
+    platform: str | None = Field(None, pattern=r"^(linkedin|gupy|vagas|jooble|adzuna|remotive|infojobs|catho)$")
     url: str | None = Field(None, max_length=1024)
     description: str | None = None
     requirements: str | None = None
     salary_range: str | None = Field(None, max_length=100)
     score: int | None = Field(None, ge=0, le=100)
     status: str | None = Field(None, pattern=r"^(Nova|Visualizada|Candidatou)$")
+    is_favorite: bool | None = Field(None)
 
 
 class JobListResponse(CamelModel):

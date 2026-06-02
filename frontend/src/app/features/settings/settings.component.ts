@@ -2,7 +2,7 @@ import { Component, inject, OnInit, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ProfileService } from '../../core/services/profile.service';
 import { ToastService } from '../../core/services/toast.service';
-import { ThemeService } from '../../core/services/theme.service';
+import { ThemeService, ThemeId } from '../../core/services/theme.service';
 import { TagIconComponent } from '../../shared/components/tag-icon/tag-icon.component';
 import { BriefcaseIconComponent } from '../../shared/components/briefcase-icon/briefcase-icon.component';
 import { MapPinIconComponent } from '../../shared/components/map-pin-icon/map-pin-icon.component';
@@ -16,7 +16,7 @@ import { CheckIconComponent } from '../../shared/components/check-icon/check-ico
   imports: [FormsModule, TagIconComponent, BriefcaseIconComponent, MapPinIconComponent, CogIconComponent, TriangleAlertIconComponent, CheckIconComponent],
   template: `
     <div class="p-4 md:p-8">
-      <h1 class="text-xl md:text-2xl font-bold text-white mb-6 md:mb-8">Configurações</h1>
+      <h1 class="text-3xl md:text-4xl font-serif font-bold text-white mb-6 md:mb-8 animate-fade-in-up">Configurações</h1>
 
       @if (loading()) {
         <!-- Skeleton -->
@@ -46,33 +46,40 @@ import { CheckIconComponent } from '../../shared/components/check-icon/check-ico
           <!-- Theme Card -->
           <div class="bg-dark-surface border border-dark-border rounded-2xl p-6">
             <h3 class="text-white font-semibold mb-4 flex items-center gap-2">
-              @if (themeService.isDark()) {
-                <svg class="w-5 h-5 text-warning" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"/>
-                </svg>
-              } @else {
-                <svg class="w-5 h-5 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"/>
-                </svg>
-              }
+              <svg class="w-5 h-5 text-warning" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 17h.01"/>
+              </svg>
               Aparência
             </h3>
-            <div class="space-y-3">
-              <div class="p-3 rounded-xl" style="background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.05);">
-                <label class="flex items-center gap-3 cursor-pointer">
-                  <div class="relative">
-                    <input type="checkbox" class="sr-only peer"
-                           [checked]="themeService.isDark()"
-                           (change)="themeService.toggle()" />
-                    <div class="w-10 h-5 bg-dark-border rounded-full peer peer-checked:bg-primary transition-colors"></div>
-                    <div class="absolute left-0.5 top-0.5 w-4 h-4 bg-white rounded-full peer-checked:translate-x-5 transition-transform"></div>
+            <div class="grid grid-cols-2 gap-3">
+              @for (theme of themeService.themes; track theme.id) {
+                <button
+                  class="p-3 rounded-xl border-2 text-left transition-all duration-200 cursor-pointer"
+                  [class]="themeService.currentTheme() === theme.id
+                    ? 'border-primary bg-primary/10'
+                    : 'border-dark-border hover:border-text-muted/30 bg-white/[0.02]'"
+                  (click)="themeService.setTheme(theme.id)">
+                  <div class="flex items-center gap-2 mb-2">
+                    <span class="text-base">{{ theme.icon }}</span>
+                    <span class="text-xs font-medium text-text-main">{{ theme.label }}</span>
                   </div>
-                  <div>
-                    <span class="text-text-main text-sm font-medium">Modo escuro</span>
-                    <p class="text-text-muted text-xs">{{ themeService.isDark() ? 'Tema escuro ativado' : 'Tema claro ativado' }}</p>
+                  <div class="flex gap-1">
+                    @for (color of getThemeSwatch(theme.id); track color) {
+                      <div class="w-4 h-4 rounded-full border border-white/10" [style.background]="color"></div>
+                    }
                   </div>
-                </label>
-              </div>
+                  @if (themeService.currentTheme() === theme.id) {
+                    <div class="mt-2 flex items-center gap-1">
+                      <div class="w-3 h-3 rounded-full bg-primary flex items-center justify-center">
+                        <svg class="w-2 h-2 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/>
+                        </svg>
+                      </div>
+                      <span class="text-[10px] text-primary font-medium">Ativo</span>
+                    </div>
+                  }
+                </button>
+              }
             </div>
           </div>
 
@@ -278,6 +285,16 @@ export class SettingsComponent implements OnInit {
 
   removeLocation(loc: string): void {
     this.preferredLocations.update(l => l.filter(x => x !== loc));
+  }
+
+  getThemeSwatch(themeId: ThemeId): string[] {
+    const swatches: Record<ThemeId, string[]> = {
+      'dark': ['#0a0f1e', '#111827', '#60a5fa', '#f97316'],
+      'light': ['#f1f5f9', '#ffffff', '#2563eb', '#0891b2'],
+      'capycro': ['#faf9f6', '#fdfdfd', '#5d8a8c', '#d8704c'],
+      'high-contrast': ['#000000', '#111111', '#ffff00', '#00ffff'],
+    };
+    return swatches[themeId];
   }
 
   saveSettings(): void {

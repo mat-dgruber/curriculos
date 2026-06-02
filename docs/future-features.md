@@ -454,6 +454,39 @@ Sistema de conquistas para manter o candidato engajado.
 
 ---
 
+## 11. Gerador de Currículos por IA
+
+### Descrição
+Um assistente inteligente que ajuda o candidato a construir o currículo perfeito. O usuário responde a um questionário simplificado e interativo, a IA destila, otimiza e converte as respostas em informações altamente profissionais e atraentes para o mercado (enfatizando conquistas, métricas e verbos de ação), formatando o resultado final em um documento PDF moderno, elegante e otimizado para sistemas de triagem ATS (Applicant Tracking Systems).
+
+### Fluxo de Uso
+1. O usuário acessa `/profile/resume-builder` e inicia o assistente.
+2. Responde a perguntas simplificadas e guiadas (ex: "Qual foi sua maior conquista técnica na empresa X?" ou "De que forma você reduziu custos/tempo lá?").
+3. A IA (via LLM) analisa e filtra as respostas brutas do usuário, removendo redundâncias, adicionando tom corporativo refinado e reescrevendo descrições com verbos de ação fortes.
+4. O usuário revisa o rascunho gerado (Perfil Profissional, Experiências, Formação, Habilidades).
+5. Seleciona um template visual elegante e clica em "Gerar PDF".
+6. O sistema renderiza o PDF de alta performance e faz o download.
+
+### Componentes Angular
+- `ResumeBuilderComponent` — Container principal de montagem do currículo
+- `ResumeQuestionnaireComponent` — Questionário guiado por etapas (passo a passo)
+- `ResumePreviewComponent` — Visualização em tempo real do texto gerado por IA
+- `ResumePdfTemplateComponent` — Layouts de exportação em PDF
+
+### Endpoints de API
+| Método | Rota | Descrição |
+|--------|------|-----------|
+| POST | `/api/v1/resume/optimize-section` | Processa respostas de uma etapa e reescreve profissionalmente via IA |
+| POST | `/api/v1/resume/generate-pdf` | Converte o currículo em um PDF elegante e faz o download |
+
+### Esforço Estimado: 4-5 dias
+
+### Dependências
+- Integração com LLMs (item 5)
+- Biblioteca de renderização de PDF no backend (Weasyprint ou ReportLab)
+
+---
+
 ## Resumo de Esforço
 
 | Funcionalidade | Dias | Prioridade |
@@ -468,4 +501,5 @@ Sistema de conquistas para manter o candidato engajado.
 | 8. Gamificação | 3-4 | Baixa |
 | 9. Integrações | 4-5 | Baixa |
 | 10. LGPD | 5-7 | Alta |
-| **Total** | **52-68** | |
+| 11. Gerador de Currículos | 4-5 | Média |
+| **Total** | **56-73** | |

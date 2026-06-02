@@ -23,6 +23,9 @@ class Settings(BaseSettings):
     adzuna_app_id: str = ""
     adzuna_app_key: str = ""
 
+    # Plataformas habilitadas (comma-separated, vazio = todas)
+    enabled_scrapers: str = ""
+
     model_config = {"env_file": ".env"}
 
 

@@ -17,7 +17,8 @@ module.exports = {
         'error': '#ef4444',
       },
       fontFamily: {
-        'sans': ['Inter', 'system-ui', 'sans-serif'],
+        'sans': ['Outfit', 'system-ui', 'sans-serif'],
+        'serif': ['Outfit', 'Georgia', 'sans-serif'],
       },
     },
   },

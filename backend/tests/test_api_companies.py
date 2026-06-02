@@ -158,3 +158,33 @@ async def test_toggle_company_responded(client, db):
 async def test_toggle_company_not_found(client):
     resp = await client.put("/api/v1/companies/nonexistent/toggle")
     assert resp.status_code == 404
+
+
+@pytest.mark.asyncio
+async def test_record_sent(client, db):
+    from app.models.company import FixedCompany
+
+    company = FixedCompany(
+        id="record-sent-1",
+        name="Sent Corp",
+        application_url="https://sent.com/careers",
+        status="Ativo",
+        is_active=True,
+        interval_days=10,
+        total_sent=2,
+    )
+    db.add(company)
+    await db.commit()
+
+    resp = await client.post("/api/v1/companies/record-sent-1/record-sent")
+    assert resp.status_code == 200
+    data = resp.json()
+    assert data["totalSent"] == 3
+    assert data["lastSentAt"] is not None
+    assert data["nextSendAt"] is not None
+
+
+@pytest.mark.asyncio
+async def test_record_sent_not_found(client):
+    resp = await client.post("/api/v1/companies/nonexistent/record-sent")
+    assert resp.status_code == 404

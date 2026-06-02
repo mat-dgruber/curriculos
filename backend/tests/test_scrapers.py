@@ -37,10 +37,11 @@ async def test_jooble_returns_jobs():
     }
     mock_response.raise_for_status = MagicMock()
 
-    with patch("app.services.scraper.jooble_scraper.httpx.AsyncClient") as mock_client:
-        instance = mock_client.return_value.__aenter__.return_value
-        instance.post.return_value = mock_response
+    mock_client = AsyncMock()
+    mock_client.post.return_value = mock_response
+    mock_client.aclose = AsyncMock()
 
+    with patch("app.services.scraper.base_scraper.httpx.AsyncClient", return_value=mock_client):
         scraper = JoobleScraper(api_key="test-key")
         async with scraper:
             jobs = await scraper.scrape({
@@ -69,10 +70,11 @@ async def test_jooble_skips_empty_title():
     }
     mock_response.raise_for_status = MagicMock()
 
-    with patch("app.services.scraper.jooble_scraper.httpx.AsyncClient") as mock_client:
-        instance = mock_client.return_value.__aenter__.return_value
-        instance.post.return_value = mock_response
+    mock_client = AsyncMock()
+    mock_client.post.return_value = mock_response
+    mock_client.aclose = AsyncMock()
 
+    with patch("app.services.scraper.base_scraper.httpx.AsyncClient", return_value=mock_client):
         scraper = JoobleScraper()
         async with scraper:
             jobs = await scraper.scrape({"keywords": ["dev"], "location": ""})
@@ -88,10 +90,11 @@ async def test_jooble_empty_api_key_works():
     mock_response.json.return_value = {"jobs": []}
     mock_response.raise_for_status = MagicMock()
 
-    with patch("app.services.scraper.jooble_scraper.httpx.AsyncClient") as mock_client:
-        instance = mock_client.return_value.__aenter__.return_value
-        instance.post.return_value = mock_response
+    mock_client = AsyncMock()
+    mock_client.post.return_value = mock_response
+    mock_client.aclose = AsyncMock()
 
+    with patch("app.services.scraper.base_scraper.httpx.AsyncClient", return_value=mock_client):
         scraper = JoobleScraper()
         async with scraper:
             jobs = await scraper.scrape({"keywords": ["dev"], "location": ""})
@@ -122,10 +125,11 @@ async def test_adzuna_returns_jobs():
     }
     mock_response.raise_for_status = MagicMock()
 
-    with patch("app.services.scraper.adzuna_scraper.httpx.AsyncClient") as mock_client:
-        instance = mock_client.return_value.__aenter__.return_value
-        instance.get.return_value = mock_response
+    mock_client = AsyncMock()
+    mock_client.get.return_value = mock_response
+    mock_client.aclose = AsyncMock()
 
+    with patch("app.services.scraper.base_scraper.httpx.AsyncClient", return_value=mock_client):
         scraper = AdzunaScraper(app_id="id", app_key="key")
         async with scraper:
             jobs = await scraper.scrape({"keywords": ["python"], "location": "São Paulo"})
@@ -152,10 +156,11 @@ async def test_adzuna_empty_results():
     mock_response.json.return_value = {"results": []}
     mock_response.raise_for_status = MagicMock()
 
-    with patch("app.services.scraper.adzuna_scraper.httpx.AsyncClient") as mock_client:
-        instance = mock_client.return_value.__aenter__.return_value
-        instance.get.return_value = mock_response
+    mock_client = AsyncMock()
+    mock_client.get.return_value = mock_response
+    mock_client.aclose = AsyncMock()
 
+    with patch("app.services.scraper.base_scraper.httpx.AsyncClient", return_value=mock_client):
         scraper = AdzunaScraper(app_id="id", app_key="key")
         async with scraper:
             jobs = await scraper.scrape({"keywords": ["dev"], "location": ""})

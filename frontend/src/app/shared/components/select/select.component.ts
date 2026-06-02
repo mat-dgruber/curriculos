@@ -59,17 +59,19 @@ export interface SelectOption {
       color: var(--text-primary);
     }
     .select-trigger:hover {
-      border-color: rgba(37,99,235,0.3);
+      border-color: rgba(var(--primary-color-rgb), 0.3);
     }
     .select-trigger-open {
-      border-color: rgba(37,99,235,0.5);
+      border-color: rgba(var(--primary-color-rgb), 0.5);
     }
 
     .select-dropdown {
-      background: var(--bg-elevated);
-      border: 1px solid var(--bg-border);
+      background: color-mix(in srgb, var(--bg-surface) 90%, transparent);
+      border: 1px solid var(--glass-border);
+      backdrop-filter: blur(20px) saturate(1.4);
+      -webkit-backdrop-filter: blur(20px) saturate(1.4);
       border-radius: 14px;
-      box-shadow: 0 8px 32px rgba(0,0,0,0.15);
+      box-shadow: var(--glass-shadow);
     }
 
     .select-option {
@@ -79,8 +81,8 @@ export interface SelectOption {
       background: var(--bg-hover);
     }
     .select-option-active {
-      background: rgba(37,99,235,0.1);
-      color: #2563eb;
+      background: rgba(var(--primary-color-rgb), 0.1);
+      color: var(--primary-color);
     }
   `]
 })

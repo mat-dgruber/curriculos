@@ -46,9 +46,9 @@ import { filter } from 'rxjs';
       <!-- Logo -->
       <div class="p-4 flex items-center justify-center shrink-0">
         <div
-          class="w-10 h-10 rounded-2xl bg-gradient-to-br from-primary to-accent flex items-center justify-center shadow-lg shadow-primary/25 shrink-0"
+          class="w-10 h-10 rounded-2xl logo-gradient logo-shadow flex items-center justify-center shrink-0"
         >
-          <app-plug-connected-icon [size]="20" [strokeWidth]="2" class="text-white" />
+          <app-plug-connected-icon [size]="20" [strokeWidth]="2" class="text-white-absolute" />
         </div>
         @if (expanded() || isMobile()) {
           <div class="ml-3 overflow-hidden whitespace-nowrap">

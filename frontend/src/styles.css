@@ -405,6 +405,14 @@ body { background: var(--bg-main); color: var(--text-primary); }
 .text-error { color: var(--error-color) !important; }
 .text-text-muted { color: var(--text-muted) !important; }
 
+/* --- Hovers Dinâmicos responsivos ao tema --- */
+.hover-text-primary {
+  transition: color 0.2s ease-in-out;
+}
+.hover-text-primary:hover {
+  color: var(--primary-color) !important;
+}
+
 /* --- Backgrounds de Badges Dinâmicos --- */
 .bg-primary\/20 { background-color: rgba(var(--primary-color-rgb), 0.2) !important; }
 .bg-primary\/15 { background-color: rgba(var(--primary-color-rgb), 0.15) !important; }

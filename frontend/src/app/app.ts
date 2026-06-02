@@ -1,5 +1,5 @@
 import { Component, inject, OnInit, signal } from '@angular/core';
-import { RouterOutlet } from '@angular/router';
+import { RouterOutlet, RouterLink } from '@angular/router';
 import { SidebarComponent } from './layout/sidebar/sidebar.component';
 import { TopbarComponent } from './layout/topbar/topbar.component';
 import { MobileBottomNavComponent } from './layout/mobile-bottom-nav/mobile-bottom-nav.component';
@@ -11,7 +11,7 @@ import { ToastService } from './core/services/toast.service';
 @Component({
   selector: 'app-root',
   standalone: true,
-  imports: [RouterOutlet, SidebarComponent, TopbarComponent, MobileBottomNavComponent, ToastContainerComponent],
+  imports: [RouterOutlet, RouterLink, SidebarComponent, TopbarComponent, MobileBottomNavComponent, ToastContainerComponent],
   templateUrl: './app.html',
   styleUrl: './app.css'
 })

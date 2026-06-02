@@ -34,6 +34,14 @@ export const routes: Routes = [
     path: 'profile',
     loadComponent: () => import('./features/profile/profile.component').then(m => m.ProfileComponent)
   },
+  {
+    path: 'terms',
+    loadComponent: () => import('./features/terms/terms.component').then(m => m.TermsComponent)
+  },
+  {
+    path: 'privacy',
+    loadComponent: () => import('./features/privacy/privacy.component').then(m => m.PrivacyComponent)
+  },
   // Configurações movidas para /profile (profile.component.ts)
   {
     path: '**',

@@ -15,6 +15,7 @@ import { TagIconComponent } from '../../shared/components/tag-icon/tag-icon.comp
 import { BriefcaseIconComponent } from '../../shared/components/briefcase-icon/briefcase-icon.component';
 import { MapPinIconComponent } from '../../shared/components/map-pin-icon/map-pin-icon.component';
 import { CogIconComponent } from '../../shared/components/cog-icon/cog-icon.component';
+import { GslPageHelp } from '../../shared/components/gsl-page-help/gsl-page-help.component';
 
 @Component({
   selector: 'app-profile',
@@ -31,10 +32,14 @@ import { CogIconComponent } from '../../shared/components/cog-icon/cog-icon.comp
     BriefcaseIconComponent,
     MapPinIconComponent,
     CogIconComponent,
+    GslPageHelp,
   ],
   template: `
     <div class="p-4 md:p-8">
-      <h1 class="text-3xl md:text-4xl font-serif font-bold text-white mb-6 md:mb-8 animate-fade-in-up">Meu Perfil</h1>
+      <div class="flex items-center gap-3 mb-6 md:mb-8 animate-fade-in-up">
+        <h1 class="text-3xl md:text-4xl font-serif font-bold text-white">Meu Perfil</h1>
+        <app-gsl-page-help document="perfil.md" title="Manual: Perfil Profissional" />
+      </div>
 
       @if (loading()) {
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-5">

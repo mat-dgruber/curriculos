@@ -14,6 +14,7 @@ import { Application } from '../../core/models/application.model';
 import { RouterLink } from '@angular/router';
 import { provideCharts, withDefaultRegisterables } from 'ng2-charts';
 import { forkJoin } from 'rxjs';
+import { GslPageHelp } from '../../shared/components/gsl-page-help/gsl-page-help.component';
 
 @Component({
   selector: 'app-dashboard',
@@ -26,6 +27,7 @@ import { forkJoin } from 'rxjs';
     ChartBarComponent,
     RouterLink,
     SendIconComponent,
+    GslPageHelp,
   ],
   providers: [provideCharts(withDefaultRegisterables())],
   template: `
@@ -35,7 +37,10 @@ import { forkJoin } from 'rxjs';
       <div class="blob-orange" style="bottom: 10%; left: -30px;"></div>
       <div class="blob-gold" style="top: 40%; right: 10%;"></div>
 
-      <h1 class="text-3xl md:text-4xl font-serif font-bold text-white mb-6 md:mb-8 relative z-10 animate-fade-in-up">Dashboard</h1>
+      <div class="flex items-center gap-3 mb-6 md:mb-8 relative z-10 animate-fade-in-up">
+        <h1 class="text-3xl md:text-4xl font-serif font-bold text-white">Dashboard</h1>
+        <app-gsl-page-help document="dashboard.md" title="Manual: Painel de Métricas" />
+      </div>
 
       @if (loading()) {
         <!-- Stats Skeleton -->

@@ -9,14 +9,18 @@ import { MapPinIconComponent } from '../../shared/components/map-pin-icon/map-pi
 import { CogIconComponent } from '../../shared/components/cog-icon/cog-icon.component';
 import { TriangleAlertIconComponent } from '../../shared/components/triangle-alert-icon/triangle-alert-icon.component';
 import { CheckIconComponent } from '../../shared/components/check-icon/check-icon.component';
+import { GslPageHelp } from '../../shared/components/gsl-page-help/gsl-page-help.component';
 
 @Component({
   selector: 'app-settings',
   standalone: true,
-  imports: [FormsModule, TagIconComponent, BriefcaseIconComponent, MapPinIconComponent, CogIconComponent, TriangleAlertIconComponent, CheckIconComponent],
+  imports: [FormsModule, TagIconComponent, BriefcaseIconComponent, MapPinIconComponent, CogIconComponent, TriangleAlertIconComponent, CheckIconComponent, GslPageHelp],
   template: `
     <div class="p-4 md:p-8">
-      <h1 class="text-3xl md:text-4xl font-serif font-bold text-white mb-6 md:mb-8 animate-fade-in-up">Configurações</h1>
+      <div class="flex items-center gap-3 mb-6 md:mb-8 animate-fade-in-up">
+        <h1 class="text-3xl md:text-4xl font-serif font-bold text-white">Configurações</h1>
+        <app-gsl-page-help document="configuracoes.md" title="Manual: Configurações Gerais" />
+      </div>
 
       @if (loading()) {
         <!-- Skeleton -->

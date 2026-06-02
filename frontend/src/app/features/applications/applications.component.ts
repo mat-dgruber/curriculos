@@ -13,6 +13,7 @@ import { ChevronRightIconComponent } from '../../shared/components/chevron-right
 import { ApplicationsService } from '../../core/services/applications.service';
 import { ToastService } from '../../core/services/toast.service';
 import { Application, VALID_STATUS_TRANSITIONS, ApplicationStatus } from '../../core/models/application.model';
+import { GslPageHelp } from '../../shared/components/gsl-page-help/gsl-page-help.component';
 
 const SEARCH_SVG = `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>`;
 
@@ -30,6 +31,7 @@ const SEARCH_SVG = `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="1
     ChevronLeftIconComponent,
     ChevronRightIconComponent,
     SelectComponent,
+    GslPageHelp,
   ],
   template: `
     <div class="p-4 md:p-6 relative overflow-hidden min-h-screen">
@@ -41,7 +43,10 @@ const SEARCH_SVG = `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="1
       <div class="relative z-10">
         <div class="flex items-center justify-between mb-4 md:mb-6 animate-fade-in-up">
           <div>
-            <h1 class="text-3xl md:text-4xl font-serif font-bold text-white">Candidaturas</h1>
+            <div class="flex items-center gap-3">
+              <h1 class="text-3xl md:text-4xl font-serif font-bold text-white">Candidaturas</h1>
+              <app-gsl-page-help document="candidaturas.md" title="Manual: Acompanhamento de Candidaturas" />
+            </div>
             <p class="text-xs md:text-sm text-text-muted mt-1">{{ total() }} candidaturas</p>
           </div>
           <!-- View Toggle -->

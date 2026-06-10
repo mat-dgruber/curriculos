@@ -320,6 +320,7 @@ select.input-field option {
   --radius-pill: 9999px;
   --shadow-elegant: 0 10px 40px -10px rgba(0, 0, 0, 0.08);
   --shadow-elegant-dark: 0 10px 40px -10px rgba(0, 0, 0, 0.4);
+  --z-dropdown: 50;
 }
 
 /* ═══════════════════════════════════════════════════════════════

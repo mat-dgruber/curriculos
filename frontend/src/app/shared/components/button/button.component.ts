@@ -66,14 +66,14 @@ export type ButtonSize = 'sm' | 'md' | 'lg';
 
     /* Primary */
     .btn-primary {
-      background: linear-gradient(135deg, #2563eb, #38bdf8);
+      background: linear-gradient(135deg, var(--primary-color), var(--primary-light));
       color: white;
-      box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
+      box-shadow: 0 4px 12px var(--primary-shadow);
     }
 
     .btn-primary:hover:not(:disabled) {
       transform: translateY(-1px);
-      box-shadow: 0 6px 16px rgba(37, 99, 235, 0.4);
+      box-shadow: 0 6px 16px var(--primary-shadow-hover);
     }
 
     .btn-primary:active:not(:disabled) {
@@ -89,7 +89,7 @@ export type ButtonSize = 'sm' | 'md' | 'lg';
 
     .btn-secondary:hover:not(:disabled) {
       background: var(--bg-elevated);
-      border-color: rgba(37, 99, 235, 0.3);
+      border-color: var(--primary-color);
     }
 
     /* Ghost */
@@ -105,14 +105,14 @@ export type ButtonSize = 'sm' | 'md' | 'lg';
 
     /* Danger */
     .btn-danger {
-      background: rgba(220, 38, 38, 0.1);
-      border-color: rgba(220, 38, 38, 0.2);
-      color: #dc2626;
+      background: var(--error-bg);
+      border-color: var(--error-border);
+      color: var(--error-color);
     }
 
     .btn-danger:hover:not(:disabled) {
-      background: rgba(220, 38, 38, 0.15);
-      border-color: rgba(220, 38, 38, 0.3);
+      background: var(--error-bg-hover);
+      border-color: var(--error-border-hover);
     }
 
     /* Icon only */

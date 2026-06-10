@@ -72,6 +72,7 @@ export interface SelectOption {
       -webkit-backdrop-filter: blur(20px) saturate(1.4);
       border-radius: 14px;
       box-shadow: var(--glass-shadow);
+      z-index: var(--z-dropdown, 50);
     }
 
     .select-option {

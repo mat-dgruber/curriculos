@@ -22,43 +22,43 @@ describe('ScoreBadgeComponent', () => {
   it('should show green for score >= 80', () => {
     fixture.componentRef.setInput('score', 85);
     fixture.detectChanges();
-    expect(component.colorClass()).toBe('bg-green-500');
+    expect(component.colorClass()).toBe('bg-success/15 text-success border-success/20');
   });
 
   it('should show yellow for score >= 60', () => {
     fixture.componentRef.setInput('score', 65);
     fixture.detectChanges();
-    expect(component.colorClass()).toBe('bg-yellow-500');
+    expect(component.colorClass()).toBe('bg-warning/15 text-warning border-warning/20');
   });
 
   it('should show orange for score >= 40', () => {
     fixture.componentRef.setInput('score', 45);
     fixture.detectChanges();
-    expect(component.colorClass()).toBe('bg-orange-500');
+    expect(component.colorClass()).toBe('bg-accent/15 text-accent border-accent/20');
   });
 
   it('should show red for score < 40', () => {
     fixture.componentRef.setInput('score', 20);
     fixture.detectChanges();
-    expect(component.colorClass()).toBe('bg-red-500');
+    expect(component.colorClass()).toBe('bg-error/15 text-error border-error/20');
   });
 
   it('should show green at exact boundary of 80', () => {
     fixture.componentRef.setInput('score', 80);
     fixture.detectChanges();
-    expect(component.colorClass()).toBe('bg-green-500');
+    expect(component.colorClass()).toBe('bg-success/15 text-success border-success/20');
   });
 
   it('should show red for score 0', () => {
     fixture.componentRef.setInput('score', 0);
     fixture.detectChanges();
-    expect(component.colorClass()).toBe('bg-red-500');
+    expect(component.colorClass()).toBe('bg-error/15 text-error border-error/20');
   });
 
   it('should show green for score 100', () => {
     fixture.componentRef.setInput('score', 100);
     fixture.detectChanges();
-    expect(component.colorClass()).toBe('bg-green-500');
+    expect(component.colorClass()).toBe('bg-success/15 text-success border-success/20');
   });
 
   it('should display percentage in template', () => {

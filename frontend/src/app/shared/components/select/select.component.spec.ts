@@ -66,10 +66,10 @@ describe('SelectComponent', () => {
     fixture.nativeElement.querySelector('button').click();
     fixture.detectChanges();
 
-    // Click first option
+    // Click second option ('linkedin')
     const options = fixture.nativeElement.querySelectorAll('button');
-    if (options.length > 1) {
-      options[1].click();
+    if (options.length > 2) {
+      options[2].click();
       expect(spy).toHaveBeenCalledWith('linkedin');
     }
   });
@@ -84,8 +84,8 @@ describe('SelectComponent', () => {
     expect(component.isOpen()).toBe(true);
 
     const options = fixture.nativeElement.querySelectorAll('button');
-    if (options.length > 1) {
-      options[1].click();
+    if (options.length > 2) {
+      options[2].click();
       expect(component.isOpen()).toBe(false);
     }
   });

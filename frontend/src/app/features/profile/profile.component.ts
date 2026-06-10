@@ -1,8 +1,9 @@
-import { Component, inject, OnInit, signal, ViewChild } from '@angular/core';
+import { Component, inject, OnInit, signal, ViewChild, DestroyRef } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { FileUpload, FileUploadModule } from 'primeng/fileupload';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { ProfileService } from '../../core/services/profile.service';
-import { ToastService } from '../../core/services/toast.service';
+import { ToastService } from '../../shared/services/toast.service';
 import { ThemeService, ThemeId } from '../../core/services/theme.service';
 import { CandidateProfile, CandidateProfileUpdate } from '../../core/models/profile.model';
 import { UserIconComponent } from '../../shared/components/user-icon/user-icon.component';
@@ -210,7 +211,10 @@ import { GslPageHelp } from '../../shared/components/gsl-page-help/gsl-page-help
                 styleClass="cv-upload-zone"
               >
                 <ng-template #empty>
-                  <div class="flex flex-col items-center justify-center py-4 cursor-pointer w-full h-full hover:bg-white/[0.01] rounded-2xl transition-all" (click)="cvUploadZone.choose()">
+                  <div
+                    class="flex flex-col items-center justify-center py-4 cursor-pointer w-full h-full hover:bg-white/[0.01] rounded-2xl transition-all"
+                    (click)="cvUploadZone.choose()"
+                  >
                     <div
                       class="w-14 h-14 rounded-2xl bg-dark-border/30 flex items-center justify-center mb-3"
                     >
@@ -231,8 +235,18 @@ import { GslPageHelp } from '../../shared/components/gsl-page-help/gsl-page-help
           <!-- Aparência -->
           <div class="lg:col-span-3 bg-dark-surface border border-dark-border rounded-2xl p-6">
             <h3 class="text-white font-semibold mb-4 flex items-center gap-2">
-              <svg class="w-5 h-5 text-warning" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 17h.01"/>
+              <svg
+                class="w-5 h-5 text-warning"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="1.5"
+                  d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 17h.01"
+                />
               </svg>
               Aparência
             </h3>
@@ -242,24 +256,45 @@ import { GslPageHelp } from '../../shared/components/gsl-page-help/gsl-page-help
                   class="p-3 rounded-xl border-2 text-left transition-all duration-200 cursor-pointer theme-preview-card"
                   [style.--theme-primary]="getThemeSwatch(theme.id)[2]"
                   [class.theme-active]="themeService.currentTheme() === theme.id"
-                  (click)="themeService.setTheme(theme.id)">
+                  (click)="themeService.setTheme(theme.id)"
+                >
                   <div class="flex items-center gap-2 mb-2">
                     <span class="text-base">{{ theme.icon }}</span>
                     <span class="text-xs font-medium text-text-main">{{ theme.label }}</span>
                   </div>
                   <div class="flex gap-1">
                     @for (color of getThemeSwatch(theme.id); track color) {
-                      <div class="w-4 h-4 rounded-full border border-white/10" [style.background]="color"></div>
+                      <div
+                        class="w-4 h-4 rounded-full border border-white/10"
+                        [style.background]="color"
+                      ></div>
                     }
                   </div>
                   @if (themeService.currentTheme() === theme.id) {
                     <div class="mt-2 flex items-center gap-1">
-                      <div class="w-3 h-3 rounded-full flex items-center justify-center" [style.backgroundColor]="getThemeSwatch(theme.id)[2]">
-                        <svg class="w-2 h-2 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/>
+                      <div
+                        class="w-3 h-3 rounded-full flex items-center justify-center"
+                        [style.backgroundColor]="getThemeSwatch(theme.id)[2]"
+                      >
+                        <svg
+                          class="w-2 h-2 text-white"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            stroke-width="3"
+                            d="M5 13l4 4L19 7"
+                          />
                         </svg>
                       </div>
-                      <span class="text-[10px] font-medium" [style.color]="getThemeSwatch(theme.id)[2]">Ativo</span>
+                      <span
+                        class="text-[10px] font-medium"
+                        [style.color]="getThemeSwatch(theme.id)[2]"
+                        >Ativo</span
+                      >
                     </div>
                   }
                 </button>
@@ -277,9 +312,16 @@ import { GslPageHelp } from '../../shared/components/gsl-page-help/gsl-page-help
               </h3>
               <div class="flex flex-wrap gap-2 mb-4">
                 @for (kw of keywords(); track kw) {
-                  <span class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium bg-primary/15 text-primary border border-primary/20">
+                  <span
+                    class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium bg-primary/15 text-primary border border-primary/20"
+                  >
                     {{ kw }}
-                    <button (click)="removeKeyword(kw)" class="hover:text-error transition-colors ml-0.5">✕</button>
+                    <button
+                      (click)="removeKeyword(kw)"
+                      class="hover:text-error transition-colors ml-0.5"
+                    >
+                      ✕
+                    </button>
                   </span>
                 } @empty {
                   <span class="text-text-muted text-xs">Nenhuma palavra-chave</span>
@@ -288,13 +330,16 @@ import { GslPageHelp } from '../../shared/components/gsl-page-help/gsl-page-help
 
               <!-- Sugestões de Palavras-chave -->
               <div class="mb-4">
-                <span class="text-text-muted text-[10px] uppercase tracking-wider block mb-1.5">Sugestões rápidas</span>
+                <span class="text-text-muted text-[10px] uppercase tracking-wider block mb-1.5"
+                  >Sugestões rápidas</span
+                >
                 <div class="flex flex-wrap gap-1.5">
                   @for (suggest of suggestedKeywords(); track suggest) {
                     @if (!keywords().includes(suggest)) {
                       <button
                         (click)="addSuggestedKeyword(suggest)"
-                        class="text-[10px] px-2 py-0.5 rounded border border-dark-border hover:border-primary/40 hover:text-primary bg-white/[0.01] transition-all cursor-pointer">
+                        class="text-[10px] px-2 py-0.5 rounded border border-dark-border hover:border-primary/40 hover:text-primary bg-white/[0.01] transition-all cursor-pointer"
+                      >
                         + {{ suggest }}
                       </button>
                     }
@@ -303,8 +348,14 @@ import { GslPageHelp } from '../../shared/components/gsl-page-help/gsl-page-help
               </div>
 
               <div class="flex gap-2 mt-auto">
-                <input type="text" class="input-field flex-1 text-sm" placeholder="Nova palavra-chave"
-                       [ngModel]="newKeyword()" (ngModelChange)="newKeyword.set($event)" (keyup.enter)="addKeyword()" />
+                <input
+                  type="text"
+                  class="input-field flex-1 text-sm"
+                  placeholder="Nova palavra-chave"
+                  [ngModel]="newKeyword()"
+                  (ngModelChange)="newKeyword.set($event)"
+                  (keyup.enter)="addKeyword()"
+                />
                 <button class="btn-secondary text-sm shrink-0" (click)="addKeyword()">+</button>
               </div>
             </div>
@@ -317,9 +368,16 @@ import { GslPageHelp } from '../../shared/components/gsl-page-help/gsl-page-help
               </h3>
               <div class="flex flex-wrap gap-2 mb-4">
                 @for (role of targetRoles(); track role) {
-                  <span class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium bg-accent/15 text-accent border border-accent/20">
+                  <span
+                    class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium bg-accent/15 text-accent border border-accent/20"
+                  >
                     {{ role }}
-                    <button (click)="removeRole(role)" class="hover:text-error transition-colors ml-0.5">✕</button>
+                    <button
+                      (click)="removeRole(role)"
+                      class="hover:text-error transition-colors ml-0.5"
+                    >
+                      ✕
+                    </button>
                   </span>
                 } @empty {
                   <span class="text-text-muted text-xs">Nenhum cargo</span>
@@ -328,13 +386,16 @@ import { GslPageHelp } from '../../shared/components/gsl-page-help/gsl-page-help
 
               <!-- Sugestões de Cargos -->
               <div class="mb-4">
-                <span class="text-text-muted text-[10px] uppercase tracking-wider block mb-1.5">Sugestões rápidas</span>
+                <span class="text-text-muted text-[10px] uppercase tracking-wider block mb-1.5"
+                  >Sugestões rápidas</span
+                >
                 <div class="flex flex-wrap gap-1.5">
                   @for (suggest of suggestedRoles(); track suggest) {
                     @if (!targetRoles().includes(suggest)) {
                       <button
                         (click)="addSuggestedRole(suggest)"
-                        class="text-[10px] px-2 py-0.5 rounded border border-dark-border hover:border-accent/40 hover:text-accent bg-white/[0.01] transition-all cursor-pointer">
+                        class="text-[10px] px-2 py-0.5 rounded border border-dark-border hover:border-accent/40 hover:text-accent bg-white/[0.01] transition-all cursor-pointer"
+                      >
                         + {{ suggest }}
                       </button>
                     }
@@ -343,8 +404,14 @@ import { GslPageHelp } from '../../shared/components/gsl-page-help/gsl-page-help
               </div>
 
               <div class="flex gap-2 mt-auto">
-                <input type="text" class="input-field flex-1 text-sm" placeholder="Novo cargo"
-                       [ngModel]="newRole()" (ngModelChange)="newRole.set($event)" (keyup.enter)="addRole()" />
+                <input
+                  type="text"
+                  class="input-field flex-1 text-sm"
+                  placeholder="Novo cargo"
+                  [ngModel]="newRole()"
+                  (ngModelChange)="newRole.set($event)"
+                  (keyup.enter)="addRole()"
+                />
                 <button class="btn-secondary text-sm shrink-0" (click)="addRole()">+</button>
               </div>
             </div>
@@ -357,9 +424,16 @@ import { GslPageHelp } from '../../shared/components/gsl-page-help/gsl-page-help
               </h3>
               <div class="flex flex-wrap gap-2 mb-4">
                 @for (loc of preferredLocations(); track loc) {
-                  <span class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium bg-success/15 text-success border border-success/20">
+                  <span
+                    class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium bg-success/15 text-success border border-success/20"
+                  >
                     {{ loc }}
-                    <button (click)="removeLocation(loc)" class="hover:text-error transition-colors ml-0.5">✕</button>
+                    <button
+                      (click)="removeLocation(loc)"
+                      class="hover:text-error transition-colors ml-0.5"
+                    >
+                      ✕
+                    </button>
                   </span>
                 } @empty {
                   <span class="text-text-muted text-xs">Nenhuma localização</span>
@@ -368,13 +442,16 @@ import { GslPageHelp } from '../../shared/components/gsl-page-help/gsl-page-help
 
               <!-- Sugestões de Localizações -->
               <div class="mb-4">
-                <span class="text-text-muted text-[10px] uppercase tracking-wider block mb-1.5">Sugestões rápidas</span>
+                <span class="text-text-muted text-[10px] uppercase tracking-wider block mb-1.5"
+                  >Sugestões rápidas</span
+                >
                 <div class="flex flex-wrap gap-1.5">
                   @for (suggest of suggestedLocations(); track suggest) {
                     @if (!preferredLocations().includes(suggest)) {
                       <button
                         (click)="addSuggestedLocation(suggest)"
-                        class="text-[10px] px-2 py-0.5 rounded border border-dark-border hover:border-success/40 hover:text-success bg-white/[0.01] transition-all cursor-pointer">
+                        class="text-[10px] px-2 py-0.5 rounded border border-dark-border hover:border-success/40 hover:text-success bg-white/[0.01] transition-all cursor-pointer"
+                      >
                         + {{ suggest }}
                       </button>
                     }
@@ -383,8 +460,14 @@ import { GslPageHelp } from '../../shared/components/gsl-page-help/gsl-page-help
               </div>
 
               <div class="flex gap-2 mt-auto">
-                <input type="text" class="input-field flex-1 text-sm" placeholder="Nova localização"
-                       [ngModel]="newLocation()" (ngModelChange)="newLocation.set($event)" (keyup.enter)="addLocation()" />
+                <input
+                  type="text"
+                  class="input-field flex-1 text-sm"
+                  placeholder="Nova localização"
+                  [ngModel]="newLocation()"
+                  (ngModelChange)="newLocation.set($event)"
+                  (keyup.enter)="addLocation()"
+                />
                 <button class="btn-secondary text-sm shrink-0" (click)="addLocation()">+</button>
               </div>
             </div>
@@ -414,7 +497,10 @@ import { GslPageHelp } from '../../shared/components/gsl-page-help/gsl-page-help
                 </select>
               </div>
               <div>
-                <label class="block text-xs font-medium text-text-muted mb-2 uppercase tracking-wider">Excluir vagas após (dias)</label>
+                <label
+                  class="block text-xs font-medium text-text-muted mb-2 uppercase tracking-wider"
+                  >Excluir vagas após (dias)</label
+                >
                 <input
                   type="number"
                   min="0"
@@ -483,6 +569,7 @@ export class ProfileComponent implements OnInit {
   private readonly profileService = inject(ProfileService);
   private readonly toast = inject(ToastService);
   readonly themeService = inject(ThemeService);
+  private readonly destroyRef = inject(DestroyRef);
 
   profileData = signal<Partial<CandidateProfile>>({});
   loading = signal(true);
@@ -503,9 +590,33 @@ export class ProfileComponent implements OnInit {
   newLocation = signal('');
 
   // Sugestões recomendadas para auxiliar o preenchimento de tags (carregadas via API se houver perfil/CV)
-  suggestedKeywords = signal<string[]>(['Python', 'Angular', 'React', 'TypeScript', 'Docker', 'AWS', 'PostgreSQL', 'RxJS', 'Node.js', 'FastAPI']);
-  suggestedRoles = signal<string[]>(['Desenvolvedor Fullstack', 'Desenvolvedor Frontend', 'Desenvolvedor Backend', 'Engenheiro de Software', 'Tech Lead']);
-  suggestedLocations = signal<string[]>(['Remoto', 'São Paulo, SP', 'Rio de Janeiro, RJ', 'Belo Horizonte, MG', 'Curitiba, PR', 'Híbrido']);
+  suggestedKeywords = signal<string[]>([
+    'Python',
+    'Angular',
+    'React',
+    'TypeScript',
+    'Docker',
+    'AWS',
+    'PostgreSQL',
+    'RxJS',
+    'Node.js',
+    'FastAPI',
+  ]);
+  suggestedRoles = signal<string[]>([
+    'Desenvolvedor Fullstack',
+    'Desenvolvedor Frontend',
+    'Desenvolvedor Backend',
+    'Engenheiro de Software',
+    'Tech Lead',
+  ]);
+  suggestedLocations = signal<string[]>([
+    'Remoto',
+    'São Paulo, SP',
+    'Rio de Janeiro, RJ',
+    'Belo Horizonte, MG',
+    'Curitiba, PR',
+    'Híbrido',
+  ]);
 
   ngOnInit(): void {
     this.loadProfile();
@@ -513,9 +624,9 @@ export class ProfileComponent implements OnInit {
 
   getThemeSwatch(themeId: ThemeId): string[] {
     const swatches: Record<ThemeId, string[]> = {
-      'dark': ['#0a0f1e', '#111827', '#60a5fa', '#f97316'],
-      'light': ['#f1f5f9', '#ffffff', '#2563eb', '#0891b2'],
-      'capycro': ['#faf9f6', '#fdfdfd', '#5d8a8c', '#d8704c'],
+      dark: ['#0a0f1e', '#111827', '#60a5fa', '#f97316'],
+      light: ['#f1f5f9', '#ffffff', '#2563eb', '#0891b2'],
+      capycro: ['#faf9f6', '#fdfdfd', '#5d8a8c', '#d8704c'],
       'high-contrast': ['#000000', '#111111', '#ffff00', '#00ffff'],
     };
     return swatches[themeId];
@@ -524,37 +635,43 @@ export class ProfileComponent implements OnInit {
   loadProfile(): void {
     this.loading.set(true);
     this.error.set(null);
-    this.profileService.getProfile().subscribe({
-      next: (profile) => {
-        this.profileData.set(profile);
-        this.keywords.set(profile.keywords || []);
-        this.targetRoles.set(profile.targetRoles || []);
-        this.preferredLocations.set(profile.preferredLocations || []);
-        this.scanInterval.set(profile.scanIntervalHours);
-        this.autoApply.set(profile.autoApply);
-        this.autoDeleteDays.set(profile.autoDeleteDays ?? 30);
-        this.loading.set(false);
-        this.loadSuggestions();
-      },
-      error: () => {
-        this.error.set('Erro ao carregar perfil.');
-        this.loading.set(false);
-        this.toast.error('Erro ao carregar perfil.');
-      },
-    });
+    this.profileService
+      .getProfile()
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (profile) => {
+          this.profileData.set(profile);
+          this.keywords.set(profile.keywords || []);
+          this.targetRoles.set(profile.targetRoles || []);
+          this.preferredLocations.set(profile.preferredLocations || []);
+          this.scanInterval.set(profile.scanIntervalHours);
+          this.autoApply.set(profile.autoApply);
+          this.autoDeleteDays.set(profile.autoDeleteDays ?? 30);
+          this.loading.set(false);
+          this.loadSuggestions();
+        },
+        error: () => {
+          this.error.set('Erro ao carregar perfil.');
+          this.loading.set(false);
+          this.toast.error('Erro ao carregar perfil.');
+        },
+      });
   }
 
   loadSuggestions(): void {
-    this.profileService.getCVSuggestions().subscribe({
-      next: (res) => {
-        this.suggestedKeywords.set(res.keywords || []);
-        this.suggestedRoles.set(res.target_roles || []);
-        this.suggestedLocations.set(res.preferred_locations || []);
-      },
-      error: () => {
-        // Fallback happens implicitly through default signal values
-      }
-    });
+    this.profileService
+      .getCVSuggestions()
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (res) => {
+          this.suggestedKeywords.set(res.keywords || []);
+          this.suggestedRoles.set(res.target_roles || []);
+          this.suggestedLocations.set(res.preferred_locations || []);
+        },
+        error: () => {
+          // Fallback happens implicitly through default signal values
+        },
+      });
   }
 
   updateField(field: keyof CandidateProfileUpdate, value: string): void {
@@ -635,34 +752,40 @@ export class ProfileComponent implements OnInit {
       autoApply: this.autoApply(),
       autoDeleteDays: this.autoDeleteDays(),
     };
-    this.profileService.updateProfile(payload).subscribe({
-      next: () => {
-        this.saving.set(false);
-        this.saved.set(true);
-        this.toast.success('Perfil salvo com sucesso!');
-        setTimeout(() => this.saved.set(false), 3000);
-        this.loadSuggestions();
-      },
-      error: () => {
-        this.saving.set(false);
-        this.toast.error('Erro ao salvar perfil.');
-      },
-    });
+    this.profileService
+      .updateProfile(payload)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: () => {
+          this.saving.set(false);
+          this.saved.set(true);
+          this.toast.success('Perfil salvo com sucesso!');
+          setTimeout(() => this.saved.set(false), 3000);
+          this.loadSuggestions();
+        },
+        error: () => {
+          this.saving.set(false);
+          this.toast.error('Erro ao salvar perfil.');
+        },
+      });
   }
 
   onFileUpload(event: any): void {
     const file = event.files?.[0];
     if (file) {
-      this.profileService.uploadCV(file).subscribe({
-        next: (res) => {
-          this.profileData.update((d) => ({ ...d, cvFilename: res.filename }));
-          this.toast.success('Currículo carregado com sucesso!');
-          if (this.cvUploadZone) this.cvUploadZone.clear();
-          if (this.cvUploadCompact) this.cvUploadCompact.clear();
-          this.loadSuggestions();
-        },
-        error: () => this.toast.error('Erro ao carregar currículo.'),
-      });
+      this.profileService
+        .uploadCV(file)
+        .pipe(takeUntilDestroyed(this.destroyRef))
+        .subscribe({
+          next: (res) => {
+            this.profileData.update((d) => ({ ...d, cvFilename: res.filename }));
+            this.toast.success('Currículo carregado com sucesso!');
+            if (this.cvUploadZone) this.cvUploadZone.clear();
+            if (this.cvUploadCompact) this.cvUploadCompact.clear();
+            this.loadSuggestions();
+          },
+          error: () => this.toast.error('Erro ao carregar currículo.'),
+        });
     }
   }
 
@@ -670,13 +793,16 @@ export class ProfileComponent implements OnInit {
     const input = event.target as HTMLInputElement;
     if (input.files?.length) {
       const file = input.files[0];
-      this.profileService.uploadCV(file).subscribe({
-        next: (res) => {
-          this.profileData.update((d) => ({ ...d, cvFilename: res.filename }));
-          this.toast.success('Currículo carregado com sucesso!');
-        },
-        error: () => this.toast.error('Erro ao carregar currículo.'),
-      });
+      this.profileService
+        .uploadCV(file)
+        .pipe(takeUntilDestroyed(this.destroyRef))
+        .subscribe({
+          next: (res) => {
+            this.profileData.update((d) => ({ ...d, cvFilename: res.filename }));
+            this.toast.success('Currículo carregado com sucesso!');
+          },
+          error: () => this.toast.error('Erro ao carregar currículo.'),
+        });
     }
   }
 }

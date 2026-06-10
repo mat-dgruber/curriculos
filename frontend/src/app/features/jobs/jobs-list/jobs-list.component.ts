@@ -1,4 +1,13 @@
-import { Component, computed, effect, inject, OnInit, OnDestroy, signal } from '@angular/core';
+import {
+  Component,
+  computed,
+  effect,
+  inject,
+  OnInit,
+  OnDestroy,
+  signal,
+  DestroyRef,
+} from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import {
@@ -11,6 +20,7 @@ import {
   distinctUntilChanged,
   takeUntil,
 } from 'rxjs';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { EmptyStateComponent } from '../../../shared/components/empty-state/empty-state.component';
 import { ScoreBadgeComponent } from '../../../shared/components/score-badge/score-badge.component';
 import { StatusChipComponent } from '../../../shared/components/status-chip/status-chip.component';
@@ -27,7 +37,7 @@ import { SearchIconComponent } from '../../../shared/components/search-icon/sear
 import { SpinnerIconComponent } from '../../../shared/components/spinner-icon/spinner-icon.component';
 import { TriangleAlertIconComponent } from '../../../shared/components/triangle-alert-icon/triangle-alert-icon.component';
 import { JobsService } from '../../../core/services/jobs.service';
-import { ToastService } from '../../../core/services/toast.service';
+import { ToastService } from '../../../shared/services/toast.service';
 import { Job, JobFilters } from '../../../core/models/job.model';
 import { GslPageHelp } from '../../../shared/components/gsl-page-help/gsl-page-help.component';
 
@@ -53,7 +63,7 @@ import { GslPageHelp } from '../../../shared/components/gsl-page-help/gsl-page-h
     TriangleAlertIconComponent,
     InputComponent,
     GslPageHelp,
-],
+  ],
   template: `
     <div class="p-4 md:p-6">
       <!-- Header -->
@@ -67,9 +77,7 @@ import { GslPageHelp } from '../../../shared/components/gsl-page-help/gsl-page-h
         </div>
         <div class="flex items-center gap-2">
           <!-- View Toggle -->
-          <div
-            class="flex items-center glass-v2 rounded-full p-1"
-          >
+          <div class="flex items-center glass-v2 rounded-full p-1">
             <button
               class="p-1.5 md:p-2 rounded-full transition-colors"
               [class]="
@@ -159,9 +167,7 @@ import { GslPageHelp } from '../../../shared/components/gsl-page-help/gsl-page-h
       </div>
 
       <!-- Filters -->
-      <div
-        class="relative z-20 glass-v2 rounded-2xl p-3 md:p-4 mb-4 md:mb-6"
-      >
+      <div class="relative z-20 glass-v2 rounded-2xl p-3 md:p-4 mb-4 md:mb-6">
         <div class="flex flex-wrap lg:flex-nowrap items-center gap-2">
           <!-- Search -->
           <div class="flex-1 min-w-[200px] lg:max-w-[240px] xl:max-w-xs relative">
@@ -230,7 +236,9 @@ import { GslPageHelp } from '../../../shared/components/gsl-page-help/gsl-page-h
                 stroke-linejoin="round"
                 [class.text-red-500]="onlyFavorites()"
               >
-                <path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/>
+                <path
+                  d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"
+                />
               </svg>
               <span>Favoritas</span>
             </button>
@@ -286,11 +294,22 @@ import { GslPageHelp } from '../../../shared/components/gsl-page-help/gsl-page-h
 
       <!-- Batch selection bar -->
       @if (selectedIds().size > 0) {
-        <div class="mb-4 bg-red-500/10 border border-red-500/20 rounded-2xl p-3 flex items-center justify-between gap-3">
-          <span class="text-sm text-red-400 font-medium">{{ selectedIds().size }} selecionada(s) para exclusão</span>
+        <div
+          class="mb-4 bg-red-500/10 border border-red-500/20 rounded-2xl p-3 flex items-center justify-between gap-3"
+        >
+          <span class="text-sm text-red-400 font-medium"
+            >{{ selectedIds().size }} selecionada(s) para exclusão</span
+          >
           <div class="flex items-center gap-2">
-            <button (click)="deselectAll()" class="btn-secondary text-xs px-3 py-1.5">Limpar</button>
-            <button (click)="openRejectModal(getSelectedIds())" class="bg-red-500/20 text-red-400 hover:bg-red-500/30 text-xs px-3 py-1.5 rounded-xl transition-colors font-medium">Excluir selecionadas</button>
+            <button (click)="deselectAll()" class="btn-secondary text-xs px-3 py-1.5">
+              Limpar
+            </button>
+            <button
+              (click)="openRejectModal(getSelectedIds())"
+              class="bg-red-500/20 text-red-400 hover:bg-red-500/30 text-xs px-3 py-1.5 rounded-xl transition-colors font-medium"
+            >
+              Excluir selecionadas
+            </button>
           </div>
         </div>
       }
@@ -298,12 +317,39 @@ import { GslPageHelp } from '../../../shared/components/gsl-page-help/gsl-page-h
       <!-- Quick delete filters -->
       @if (!loading() && jobs().length > 0) {
         <div class="flex items-center gap-2 mb-3 flex-wrap">
-          <button (click)="selectAll()" class="text-xs text-text-muted hover:text-white transition-colors">Selecionar todas</button>
+          <button
+            (click)="selectAll()"
+            class="text-xs text-text-muted hover:text-white transition-colors"
+          >
+            Selecionar todas
+          </button>
           <span class="text-text-muted/30">|</span>
-          <button (click)="deselectAll()" class="text-xs text-text-muted hover:text-white transition-colors">Limpar seleção</button>
+          <button
+            (click)="deselectAll()"
+            class="text-xs text-text-muted hover:text-white transition-colors"
+          >
+            Limpar seleção
+          </button>
           <span class="text-text-muted/30">|</span>
-          <button (click)="showDeleteFilters.update(v => !v)" class="text-xs text-red-400/70 hover:text-red-400 transition-colors flex items-center gap-1">
-            <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg>
+          <button
+            (click)="showDeleteFilters.update(v => !v)"
+            class="text-xs text-red-400/70 hover:text-red-400 transition-colors flex items-center gap-1"
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="12"
+              height="12"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <path d="M3 6h18" />
+              <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6" />
+              <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2" />
+            </svg>
             Filtros de exclusão
           </button>
         </div>
@@ -311,28 +357,69 @@ import { GslPageHelp } from '../../../shared/components/gsl-page-help/gsl-page-h
         @if (showDeleteFilters()) {
           <div class="mb-4 bg-red-500/5 border border-red-500/10 rounded-2xl p-4 space-y-3">
             <div class="flex items-center gap-2 mb-2">
-              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-red-400"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
-              <span class="text-xs text-red-400 font-medium uppercase tracking-wider">Selecionar para exclusão</span>
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="14"
+                height="14"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                class="text-red-400"
+              >
+                <circle cx="11" cy="11" r="8" />
+                <path d="m21 21-4.3-4.3" />
+              </svg>
+              <span class="text-xs text-red-400 font-medium uppercase tracking-wider"
+                >Selecionar para exclusão</span
+              >
             </div>
 
             <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
               <!-- Select by score -->
               <div class="flex items-center gap-2">
                 <span class="text-xs text-text-muted whitespace-nowrap">Score abaixo de</span>
-                <app-select [options]="scoreThresholdOptions" [selectedValue]="deleteScoreThreshold()" (valueChange)="deleteScoreThreshold.set($event)" placeholder="Score" />
-                <button (click)="deleteByFilter('score')" class="text-xs bg-red-500/20 text-red-400 hover:bg-red-500/30 px-2 py-1 rounded-lg transition-colors font-medium">Excluir todas</button>
+                <app-select
+                  [options]="scoreThresholdOptions"
+                  [selectedValue]="deleteScoreThreshold()"
+                  (valueChange)="deleteScoreThreshold.set($event)"
+                  placeholder="Score"
+                />
+                <button
+                  (click)="deleteByFilter('score')"
+                  class="text-xs bg-red-500/20 text-red-400 hover:bg-red-500/30 px-2 py-1 rounded-lg transition-colors font-medium"
+                >
+                  Excluir todas
+                </button>
               </div>
 
               <!-- Select by age -->
               <div class="flex items-center gap-2">
                 <span class="text-xs text-text-muted whitespace-nowrap">Mais antiga que</span>
-                <app-select [options]="ageDaysOptions" [selectedValue]="deleteAgeDays()" (valueChange)="deleteAgeDays.set($event)" placeholder="Dias" />
-                <button (click)="deleteByFilter('age')" class="text-xs bg-red-500/20 text-red-400 hover:bg-red-500/30 px-2 py-1 rounded-lg transition-colors font-medium">Excluir todas</button>
+                <app-select
+                  [options]="ageDaysOptions"
+                  [selectedValue]="deleteAgeDays()"
+                  (valueChange)="deleteAgeDays.set($event)"
+                  placeholder="Dias"
+                />
+                <button
+                  (click)="deleteByFilter('age')"
+                  class="text-xs bg-red-500/20 text-red-400 hover:bg-red-500/30 px-2 py-1 rounded-lg transition-colors font-medium"
+                >
+                  Excluir todas
+                </button>
               </div>
 
               <!-- Select non-favorites -->
               <div class="flex items-center gap-2">
-                <button (click)="deleteByFilter('nonFavorites')" class="text-xs bg-red-500/20 text-red-400 hover:bg-red-500/30 px-2 py-1 rounded-lg transition-colors font-medium">Excluir não favoritas</button>
+                <button
+                  (click)="deleteByFilter('nonFavorites')"
+                  class="text-xs bg-red-500/20 text-red-400 hover:bg-red-500/30 px-2 py-1 rounded-lg transition-colors font-medium"
+                >
+                  Excluir não favoritas
+                </button>
               </div>
             </div>
           </div>
@@ -397,9 +484,13 @@ import { GslPageHelp } from '../../../shared/components/gsl-page-help/gsl-page-h
       } @else if (jobs().length === 0) {
         <app-empty-state
           [message]="onlyFavorites() ? 'Nenhuma vaga favoritada' : 'Nenhuma vaga encontrada'"
-          [description]="onlyFavorites() ? 'Você ainda não adicionou nenhuma vaga aos favoritos. Clique no ícone de coração nos cards para destacar suas vagas preferidas!' : 'Tente ajustar os filtros ou aguarde uma nova varredura do robo.'"
+          [description]="
+            onlyFavorites()
+              ? 'Você ainda não adicionou nenhuma vaga aos favoritos. Clique no ícone de coração nos cards para destacar suas vagas preferidas!'
+              : 'Tente ajustar os filtros ou aguarde uma nova varredura do robo.'
+          "
           [icon]="onlyFavorites() ? 'inbox' : 'search'"
-          [actionLabel]="onlyFavorites() ? '' : (total() === 0 ? 'Buscar vagas agora' : '')"
+          [actionLabel]="onlyFavorites() ? '' : total() === 0 ? 'Buscar vagas agora' : ''"
           (action)="triggerScan()"
         />
       } @else {
@@ -447,9 +538,34 @@ import { GslPageHelp } from '../../../shared/components/gsl-page-help/gsl-page-h
                         [title]="isSelected(job.id) ? 'Desmarcar' : 'Selecionar para exclusão'"
                       >
                         @if (isSelected(job.id)) {
-                          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="18" x="3" y="3" rx="2"/><path d="m9 12 2 2 4-4"/></svg>
+                          <svg
+                            xmlns="http://www.w3.org/2000/svg"
+                            width="16"
+                            height="16"
+                            viewBox="0 0 24 24"
+                            fill="currentColor"
+                            stroke="currentColor"
+                            stroke-width="2"
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                          >
+                            <rect width="18" height="18" x="3" y="3" rx="2" />
+                            <path d="m9 12 2 2 4-4" />
+                          </svg>
                         } @else {
-                          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="18" x="3" y="3" rx="2"/></svg>
+                          <svg
+                            xmlns="http://www.w3.org/2000/svg"
+                            width="16"
+                            height="16"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            stroke-width="2"
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                          >
+                            <rect width="18" height="18" x="3" y="3" rx="2" />
+                          </svg>
                         }
                       </button>
                       <button
@@ -459,15 +575,47 @@ import { GslPageHelp } from '../../../shared/components/gsl-page-help/gsl-page-h
                         [class.text-red-500]="job.isFavorite"
                         [title]="job.isFavorite ? 'Remover dos favoritos' : 'Favoritar vaga'"
                       >
-                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" [attr.fill]="job.isFavorite ? 'currentColor' : 'none'" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/></svg>
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          width="18"
+                          height="18"
+                          viewBox="0 0 24 24"
+                          [attr.fill]="job.isFavorite ? 'currentColor' : 'none'"
+                          stroke="currentColor"
+                          stroke-width="2"
+                          stroke-linecap="round"
+                          stroke-linejoin="round"
+                        >
+                          <path
+                            d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"
+                          />
+                        </svg>
                       </button>
                       <button
                         type="button"
-                        (click)="openRejectModal([job.id]); $event.stopPropagation(); $event.preventDefault()"
+                        (click)="
+                          openRejectModal([job.id]);
+                          $event.stopPropagation();
+                          $event.preventDefault()
+                        "
                         class="p-1.5 rounded-full hover:bg-white/5 text-text-muted hover:text-red-400 transition-all"
                         title="Excluir vaga"
                       >
-                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg>
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          width="16"
+                          height="16"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          stroke-width="2"
+                          stroke-linecap="round"
+                          stroke-linejoin="round"
+                        >
+                          <path d="M3 6h18" />
+                          <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6" />
+                          <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2" />
+                        </svg>
                       </button>
                     </div>
 
@@ -486,8 +634,23 @@ import { GslPageHelp } from '../../../shared/components/gsl-page-help/gsl-page-h
                     <!-- Badges row -->
                     <div class="flex items-center gap-2 mt-3">
                       @if (isSelected(job.id)) {
-                        <span class="inline-flex items-center gap-1 text-[10px] font-medium px-2 py-0.5 rounded-full bg-red-500/20 text-red-400 border border-red-500/30">
-                          <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/></svg>
+                        <span
+                          class="inline-flex items-center gap-1 text-[10px] font-medium px-2 py-0.5 rounded-full bg-red-500/20 text-red-400 border border-red-500/30"
+                        >
+                          <svg
+                            xmlns="http://www.w3.org/2000/svg"
+                            width="10"
+                            height="10"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            stroke-width="2.5"
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                          >
+                            <path d="M3 6h18" />
+                            <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6" />
+                          </svg>
                           Excluir
                         </span>
                       }
@@ -554,7 +717,9 @@ import { GslPageHelp } from '../../../shared/components/gsl-page-help/gsl-page-h
                     stroke-linejoin="round"
                     [class.text-red-500]="job.isFavorite"
                   >
-                    <path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/>
+                    <path
+                      d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"
+                    />
                   </svg>
                 </button>
 
@@ -655,8 +820,12 @@ import { GslPageHelp } from '../../../shared/components/gsl-page-help/gsl-page-h
     <!-- Reject Modal -->
     @if (showRejectModal()) {
       <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-md">
-        <div class="bg-dark-surface border border-dark-border rounded-2xl p-6 w-full max-w-md mx-4 space-y-4 shadow-2xl">
-          <h3 class="text-lg font-semibold text-white">Excluir {{ rejectTargetIds().length }} vaga(s)</h3>
+        <div
+          class="bg-dark-surface border border-dark-border rounded-2xl p-6 w-full max-w-md mx-4 space-y-4 shadow-2xl"
+        >
+          <h3 class="text-lg font-semibold text-white">
+            Excluir {{ rejectTargetIds().length }} vaga(s)
+          </h3>
 
           <div>
             <label class="text-sm text-text-muted mb-1 block">Motivo</label>
@@ -682,8 +851,18 @@ import { GslPageHelp } from '../../../shared/components/gsl-page-help/gsl-page-h
           </div>
 
           <div class="flex justify-end gap-2 pt-2">
-            <button (click)="showRejectModal.set(false)" class="px-4 py-2 rounded-xl text-text-muted hover:text-white hover:bg-white/5 transition-colors">Cancelar</button>
-            <button (click)="confirmReject()" class="px-4 py-2 rounded-xl bg-red-500/20 text-red-400 hover:bg-red-500/30 border border-red-500/20 transition-colors font-medium">Excluir</button>
+            <button
+              (click)="showRejectModal.set(false)"
+              class="px-4 py-2 rounded-xl text-text-muted hover:text-white hover:bg-white/5 transition-colors"
+            >
+              Cancelar
+            </button>
+            <button
+              (click)="confirmReject()"
+              class="px-4 py-2 rounded-xl bg-red-500/20 text-red-400 hover:bg-red-500/30 border border-red-500/20 transition-colors font-medium"
+            >
+              Excluir
+            </button>
           </div>
         </div>
       </div>
@@ -693,6 +872,7 @@ import { GslPageHelp } from '../../../shared/components/gsl-page-help/gsl-page-h
 export class JobsListComponent implements OnInit, OnDestroy {
   private readonly jobsService = inject(JobsService);
   private readonly toastService = inject(ToastService);
+  private readonly destroyRef = inject(DestroyRef);
   private readonly search$ = new Subject<string>();
   private searchSub?: Subscription;
   private readonly scanStop$ = new Subject<void>();
@@ -842,18 +1022,21 @@ export class JobsListComponent implements OnInit, OnDestroy {
       perPage: 20,
     };
 
-    this.jobsService.getJobs(filters).subscribe({
-      next: (res) => {
-        this.jobs.set(res.items);
-        this.total.set(res.total);
-        this.totalPages.set(res.pages);
-        this.loading.set(false);
-      },
-      error: () => {
-        this.loading.set(false);
-        this.error.set('Erro ao carregar vagas. Tente novamente.');
-      },
-    });
+    this.jobsService
+      .getJobs(filters)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (res) => {
+          this.jobs.set(res.items);
+          this.total.set(res.total);
+          this.totalPages.set(res.pages);
+          this.loading.set(false);
+        },
+        error: () => {
+          this.loading.set(false);
+          this.error.set('Erro ao carregar vagas. Tente novamente.');
+        },
+      });
   }
 
   clearFilters(): void {
@@ -871,44 +1054,54 @@ export class JobsListComponent implements OnInit, OnDestroy {
     this.scanning.set(true);
     this.error.set('');
     this.success.set('');
-    this.jobsService.scanJobs().subscribe({
-      next: () => this.pollScanStatus(),
-      error: (err) => {
-        this.scanning.set(false);
-        if (err?.status === 409) {
-          this.toastService.warning('Varredura ja esta em execucao. Aguarde.');
-          this.pollScanStatus();
-        } else {
-          this.toastService.error('Erro ao iniciar varredura. Tente novamente.');
-        }
-      },
-    });
+    this.jobsService
+      .scanJobs()
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: () => this.pollScanStatus(),
+        error: (err) => {
+          this.scanning.set(false);
+          if (err?.status === 409) {
+            this.toastService.warning('Varredura ja esta em execucao. Aguarde.');
+            this.pollScanStatus();
+          } else {
+            this.toastService.error('Erro ao iniciar varredura. Tente novamente.');
+          }
+        },
+      });
   }
 
   triggerEnrich(): void {
     if (this.enriching()) return;
     this.enriching.set(true);
-    this.jobsService.enrichDescriptions().subscribe({
-      next: () => {
-        this.toastService.success('Enriquecimento iniciado. As descricoes serao preenchidas em background.');
-        // Polla a cada 5s por 60s para detectar quando terminar
-        let attempts = 0;
-        const enrichStop$ = new Subject<void>();
-        const sub = interval(5000).pipe(takeUntil(enrichStop$)).subscribe(() => {
-          attempts++;
-          this.loadJobs();
-          if (attempts >= 12) {
-            enrichStop$.next();
-            sub.unsubscribe();
-            this.enriching.set(false);
-          }
-        });
-      },
-      error: () => {
-        this.enriching.set(false);
-        this.toastService.error('Erro ao iniciar enriquecimento.');
-      },
-    });
+    this.jobsService
+      .enrichDescriptions()
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: () => {
+          this.toastService.success(
+            'Enriquecimento iniciado. As descricoes serao preenchidas em background.',
+          );
+          // Polla a cada 5s por 60s para detectar quando terminar
+          let attempts = 0;
+          const enrichStop$ = new Subject<void>();
+          const sub = interval(5000)
+            .pipe(takeUntil(enrichStop$), takeUntilDestroyed(this.destroyRef))
+            .subscribe(() => {
+              attempts++;
+              this.loadJobs();
+              if (attempts >= 12) {
+                enrichStop$.next();
+                sub.unsubscribe();
+                this.enriching.set(false);
+              }
+            });
+        },
+        error: () => {
+          this.enriching.set(false);
+          this.toastService.error('Erro ao iniciar enriquecimento.');
+        },
+      });
   }
 
   private pollScanStatus(): void {
@@ -918,6 +1111,7 @@ export class JobsListComponent implements OnInit, OnDestroy {
         switchMap(() => this.jobsService.getScanStatus()),
         takeWhile((s) => s.status === 'running', true),
         takeUntil(this.scanStop$),
+        takeUntilDestroyed(this.destroyRef),
       )
       .subscribe({
         next: (status) => {
@@ -952,19 +1146,22 @@ export class JobsListComponent implements OnInit, OnDestroy {
     event.stopPropagation();
     event.preventDefault();
     const newStatus = !job.isFavorite;
-    this.jobsService.updateJob(job.id, { isFavorite: newStatus }).subscribe({
-      next: (updated) => {
-        this.jobs.update((list) =>
-          list.map((j) => (j.id === job.id ? { ...j, isFavorite: updated.isFavorite } : j))
-        );
-        this.toastService.success(
-          newStatus ? 'Vaga adicionada aos favoritos!' : 'Vaga removida dos favoritos.'
-        );
-      },
-      error: () => {
-        this.toastService.error('Erro ao atualizar favorito.');
-      },
-    });
+    this.jobsService
+      .updateJob(job.id, { isFavorite: newStatus })
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (updated) => {
+          this.jobs.update((list) =>
+            list.map((j) => (j.id === job.id ? { ...j, isFavorite: updated.isFavorite } : j)),
+          );
+          this.toastService.success(
+            newStatus ? 'Vaga adicionada aos favoritos!' : 'Vaga removida dos favoritos.',
+          );
+        },
+        error: () => {
+          this.toastService.error('Erro ao atualizar favorito.');
+        },
+      });
   }
 
   toggleSelect(jobId: string, event: MouseEvent): void {
@@ -980,7 +1177,7 @@ export class JobsListComponent implements OnInit, OnDestroy {
   }
 
   selectAll(): void {
-    const allIds = new Set(this.jobs().map(j => j.id));
+    const allIds = new Set(this.jobs().map((j) => j.id));
     this.selectedIds.set(allIds);
   }
 
@@ -1009,23 +1206,32 @@ export class JobsListComponent implements OnInit, OnDestroy {
     const notes = this.rejectNotes() || undefined;
 
     if (ids.length === 1) {
-      this.jobsService.deleteJob(ids[0], reason, notes).subscribe({
-        next: () => {
-          this.toastService.success('Vaga excluída');
-          this.selectedIds.update(s => { s.delete(ids[0]); return new Set(s); });
-          this.loadJobs();
-        },
-        error: () => this.toastService.error('Erro ao excluir'),
-      });
+      this.jobsService
+        .deleteJob(ids[0], reason, notes)
+        .pipe(takeUntilDestroyed(this.destroyRef))
+        .subscribe({
+          next: () => {
+            this.toastService.success('Vaga excluída');
+            this.selectedIds.update((s) => {
+              s.delete(ids[0]);
+              return new Set(s);
+            });
+            this.loadJobs();
+          },
+          error: () => this.toastService.error('Erro ao excluir'),
+        });
     } else {
-      this.jobsService.rejectBatch(ids, reason, notes).subscribe({
-        next: (res) => {
-          this.toastService.success(`${res.deleted} vagas excluídas`);
-          this.selectedIds.set(new Set());
-          this.loadJobs();
-        },
-        error: () => this.toastService.error('Erro ao excluir'),
-      });
+      this.jobsService
+        .rejectBatch(ids, reason, notes)
+        .pipe(takeUntilDestroyed(this.destroyRef))
+        .subscribe({
+          next: (res) => {
+            this.toastService.success(`${res.deleted} vagas excluídas`);
+            this.selectedIds.set(new Set());
+            this.loadJobs();
+          },
+          error: () => this.toastService.error('Erro ao excluir'),
+        });
     }
 
     this.showRejectModal.set(false);
@@ -1034,7 +1240,12 @@ export class JobsListComponent implements OnInit, OnDestroy {
   // Filter-based bulk delete — deletes ALL matching jobs across all pages
   deleteByFilter(type: 'score' | 'age' | 'nonFavorites'): void {
     const reason = 'incompativel';
-    let params: { maxScore?: number; olderThanDays?: number; nonFavoritesOnly?: boolean; reason: string } = { reason };
+    let params: {
+      maxScore?: number;
+      olderThanDays?: number;
+      nonFavoritesOnly?: boolean;
+      reason: string;
+    } = { reason };
 
     if (type === 'score') {
       params.maxScore = +this.deleteScoreThreshold();
@@ -1044,19 +1255,24 @@ export class JobsListComponent implements OnInit, OnDestroy {
       params.nonFavoritesOnly = true;
     }
 
-    this.jobsService.rejectByFilter(params).subscribe({
-      next: (res) => {
-        this.toastService.success(`${res.deleted} vagas excluídas`);
-        this.selectedIds.set(new Set());
-        this.loadJobs();
-      },
-      error: () => this.toastService.error('Erro ao excluir'),
-    });
+    this.jobsService
+      .rejectByFilter(params)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (res) => {
+          this.toastService.success(`${res.deleted} vagas excluídas`);
+          this.selectedIds.set(new Set());
+          this.loadJobs();
+        },
+        error: () => this.toastService.error('Erro ao excluir'),
+      });
   }
 
   selectByScoreBelow(): void {
     const threshold = +this.deleteScoreThreshold();
-    const ids = this.jobs().filter(j => j.score < threshold).map(j => j.id);
+    const ids = this.jobs()
+      .filter((j) => j.score < threshold)
+      .map((j) => j.id);
     this.selectedIds.set(new Set(ids));
   }
 
@@ -1064,12 +1280,16 @@ export class JobsListComponent implements OnInit, OnDestroy {
     const days = +this.deleteAgeDays();
     const cutoff = new Date();
     cutoff.setDate(cutoff.getDate() - days);
-    const ids = this.jobs().filter(j => new Date(j.foundAt) < cutoff).map(j => j.id);
+    const ids = this.jobs()
+      .filter((j) => new Date(j.foundAt) < cutoff)
+      .map((j) => j.id);
     this.selectedIds.set(new Set(ids));
   }
 
   selectNonFavorites(): void {
-    const ids = this.jobs().filter(j => !j.isFavorite).map(j => j.id);
+    const ids = this.jobs()
+      .filter((j) => !j.isFavorite)
+      .map((j) => j.id);
     this.selectedIds.set(new Set(ids));
   }
 }

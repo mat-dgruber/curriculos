@@ -1,12 +1,13 @@
-import { Component, computed, inject, OnInit, signal } from '@angular/core';
+import { Component, computed, inject, OnInit, signal, DestroyRef } from '@angular/core';
 import { FormsModule } from '@angular/forms';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { EmptyStateComponent } from '../../shared/components/empty-state/empty-state.component';
 import { TriangleAlertIconComponent } from '../../shared/components/triangle-alert-icon/triangle-alert-icon.component';
 import { StatusChipComponent } from '../../shared/components/status-chip/status-chip.component';
 import { RelativeTimePipe } from '../../shared/pipes/relative-time.pipe';
 import { SendIconComponent } from '../../shared/components/send-icon/send-icon.component';
 import { CompaniesService } from '../../core/services/companies.service';
-import { ToastService } from '../../core/services/toast.service';
+import { ToastService } from '../../shared/services/toast.service';
 import { FixedCompany, FixedCompanyCreate } from '../../core/models/company.model';
 import { environment } from '../../../environments/environment';
 import { GslPageHelp } from '../../shared/components/gsl-page-help/gsl-page-help.component';
@@ -36,7 +37,11 @@ import { GslPageHelp } from '../../shared/components/gsl-page-help/gsl-page-help
             <h1 class="text-3xl md:text-4xl font-serif font-bold text-white animate-fade-in-up">
               Empresas Fixas
             </h1>
-            <app-gsl-page-help document="empresas-fixas.md" title="Manual: Empresas Fixas" class="animate-fade-in-up" />
+            <app-gsl-page-help
+              document="empresas-fixas.md"
+              title="Manual: Empresas Fixas"
+              class="animate-fade-in-up"
+            />
           </div>
           <button (click)="toggleFormBtn()" class="btn-primary animate-fade-in-up">
             @if (showForm()) {
@@ -487,6 +492,7 @@ import { GslPageHelp } from '../../shared/components/gsl-page-help/gsl-page-help
 export class CompaniesComponent implements OnInit {
   private readonly companiesService = inject(CompaniesService);
   private readonly toast = inject(ToastService);
+  private readonly destroyRef = inject(DestroyRef);
 
   companies = signal<FixedCompany[]>([]);
   loading = signal(false);
@@ -554,17 +560,20 @@ export class CompaniesComponent implements OnInit {
   loadCompanies(): void {
     this.loading.set(true);
     this.error.set(null);
-    this.companiesService.getCompanies().subscribe({
-      next: (res) => {
-        this.companies.set(res.items);
-        this.loading.set(false);
-      },
-      error: () => {
-        this.loading.set(false);
-        this.error.set('Erro ao carregar empresas.');
-        this.toast.error('Erro ao carregar empresas.');
-      },
-    });
+    this.companiesService
+      .getCompanies()
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (res) => {
+          this.companies.set(res.items);
+          this.loading.set(false);
+        },
+        error: () => {
+          this.loading.set(false);
+          this.error.set('Erro ao carregar empresas.');
+          this.toast.error('Erro ao carregar empresas.');
+        },
+      });
   }
 
   toggleFormBtn(): void {
@@ -625,18 +634,21 @@ export class CompaniesComponent implements OnInit {
         intervalDays: this.formInterval(),
         notes: this.formNotes().trim() || undefined,
       };
-      this.companiesService.updateCompany(editing.id, data).subscribe({
-        next: () => {
-          this.saving.set(false);
-          this.resetForm();
-          this.loadCompanies();
-          this.toast.success('Empresa atualizada com sucesso!');
-        },
-        error: () => {
-          this.saving.set(false);
-          this.toast.error('Erro ao atualizar empresa.');
-        },
-      });
+      this.companiesService
+        .updateCompany(editing.id, data)
+        .pipe(takeUntilDestroyed(this.destroyRef))
+        .subscribe({
+          next: () => {
+            this.saving.set(false);
+            this.resetForm();
+            this.loadCompanies();
+            this.toast.success('Empresa atualizada com sucesso!');
+          },
+          error: () => {
+            this.saving.set(false);
+            this.toast.error('Erro ao atualizar empresa.');
+          },
+        });
     } else {
       const data: FixedCompanyCreate = {
         name: this.formName().trim(),
@@ -644,50 +656,62 @@ export class CompaniesComponent implements OnInit {
         intervalDays: this.formInterval(),
         notes: this.formNotes().trim() || undefined,
       };
-      this.companiesService.createCompany(data).subscribe({
-        next: () => {
-          this.saving.set(false);
-          this.resetForm();
-          this.loadCompanies();
-          this.toast.success('Empresa cadastrada com sucesso!');
-        },
-        error: () => {
-          this.saving.set(false);
-          this.toast.error('Erro ao cadastrar empresa.');
-        },
-      });
+      this.companiesService
+        .createCompany(data)
+        .pipe(takeUntilDestroyed(this.destroyRef))
+        .subscribe({
+          next: () => {
+            this.saving.set(false);
+            this.resetForm();
+            this.loadCompanies();
+            this.toast.success('Empresa cadastrada com sucesso!');
+          },
+          error: () => {
+            this.saving.set(false);
+            this.toast.error('Erro ao cadastrar empresa.');
+          },
+        });
     }
   }
 
   toggleCompany(company: FixedCompany): void {
-    this.companiesService.toggleCompany(company.id).subscribe({
-      next: () => {
-        this.loadCompanies();
-        this.toast.success(company.isActive ? 'Empresa pausada.' : 'Empresa ativada.');
-      },
-      error: () => this.toast.error('Erro ao alterar status da empresa.'),
-    });
+    this.companiesService
+      .toggleCompany(company.id)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: () => {
+          this.loadCompanies();
+          this.toast.success(company.isActive ? 'Empresa pausada.' : 'Empresa ativada.');
+        },
+        error: () => this.toast.error('Erro ao alterar status da empresa.'),
+      });
   }
 
   deleteCompany(company: FixedCompany): void {
     if (!confirm(`Remover "${company.name}"?`)) return;
-    this.companiesService.deleteCompany(company.id).subscribe({
-      next: () => {
-        this.loadCompanies();
-        this.toast.success('Empresa removida.');
-      },
-      error: () => this.toast.error('Erro ao remover empresa.'),
-    });
+    this.companiesService
+      .deleteCompany(company.id)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: () => {
+          this.loadCompanies();
+          this.toast.success('Empresa removida.');
+        },
+        error: () => this.toast.error('Erro ao remover empresa.'),
+      });
   }
 
   recordSent(company: FixedCompany): void {
-    this.companiesService.recordSent(company.id).subscribe({
-      next: () => {
-        this.loadCompanies();
-        this.toast.success(`Envio registrado com sucesso para ${company.name}!`);
-      },
-      error: () => this.toast.error('Erro ao registrar envio.'),
-    });
+    this.companiesService
+      .recordSent(company.id)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: () => {
+          this.loadCompanies();
+          this.toast.success(`Envio registrado com sucesso para ${company.name}!`);
+        },
+        error: () => this.toast.error('Erro ao registrar envio.'),
+      });
   }
 
   getPlatform(url: string): string {
@@ -720,38 +744,44 @@ export class CompaniesComponent implements OnInit {
   testAutomation(company: FixedCompany): void {
     this.testingId.set(company.id);
     this.toast.info(`Iniciando robô para testar a candidatura em ${company.name}...`);
-    this.companiesService.testAutomation(company.id).subscribe({
-      next: (res) => {
-        this.testingId.set(null);
-        if (res.success) {
-          this.toast.success(`Automação concluída com sucesso para ${company.name}!`);
-        } else {
-          this.toast.warning(`Automação terminou com aviso: ${res.errorMessage || res.status}`);
-        }
-        this.loadCompanies();
-      },
-      error: (err) => {
-        this.testingId.set(null);
-        const errMsg = err.error?.detail || 'Erro desconhecido';
-        this.toast.error(`Erro ao rodar automação: ${errMsg}`);
-      },
-    });
+    this.companiesService
+      .testAutomation(company.id)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (res) => {
+          this.testingId.set(null);
+          if (res.success) {
+            this.toast.success(`Automação concluída com sucesso para ${company.name}!`);
+          } else {
+            this.toast.warning(`Automação terminou com aviso: ${res.errorMessage || res.status}`);
+          }
+          this.loadCompanies();
+        },
+        error: (err) => {
+          this.testingId.set(null);
+          const errMsg = err.error?.detail || 'Erro desconhecido';
+          this.toast.error(`Erro ao rodar automação: ${errMsg}`);
+        },
+      });
   }
 
   viewLastScreenshot(company: FixedCompany): void {
-    this.companiesService.getLastScreenshot(company.id).subscribe({
-      next: (res) => {
-        const screenshotUrl = `${environment.apiUrl}/screenshots/${res.screenshotPath}`;
-        this.activeScreenshot.set({
-          url: screenshotUrl,
-          status: res.status,
-          sentAt: res.sentAt,
-        });
-      },
-      error: () => {
-        this.toast.error('Nenhum screenshot disponível para esta empresa.');
-      },
-    });
+    this.companiesService
+      .getLastScreenshot(company.id)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (res) => {
+          const screenshotUrl = `${environment.apiUrl}/screenshots/${res.screenshotPath}`;
+          this.activeScreenshot.set({
+            url: screenshotUrl,
+            status: res.status,
+            sentAt: res.sentAt,
+          });
+        },
+        error: () => {
+          this.toast.error('Nenhum screenshot disponível para esta empresa.');
+        },
+      });
   }
 
   closeScreenshotModal(): void {

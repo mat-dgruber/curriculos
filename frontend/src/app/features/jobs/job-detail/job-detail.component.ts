@@ -1,10 +1,10 @@
-import { Component, computed, inject, input, signal, effect } from '@angular/core';
+import { Component, computed, inject, input, signal, effect, DestroyRef } from '@angular/core';
 import { DatePipe } from '@angular/common';
 import { Router, RouterLink } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { JobsService } from '../../../core/services/jobs.service';
 import { ApplicationsService } from '../../../core/services/applications.service';
-import { ToastService } from '../../../core/services/toast.service';
+import { ToastService } from '../../../shared/services/toast.service';
 import { Job } from '../../../core/models/job.model';
 import { CompaniesService } from '../../../core/services/companies.service';
 import { ScoreBadgeComponent } from '../../../shared/components/score-badge/score-badge.component';
@@ -18,6 +18,7 @@ import { TriangleAlertIconComponent } from '../../../shared/components/triangle-
 import { SpinnerIconComponent } from '../../../shared/components/spinner-icon/spinner-icon.component';
 import { ChevronLeftIconComponent } from '../../../shared/components/chevron-left-icon/chevron-left-icon.component';
 import { PlatformClassPipe } from '../../../shared/pipes/platform-class.pipe';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
 @Component({
   selector: 'app-job-detail',
@@ -41,7 +42,10 @@ import { PlatformClassPipe } from '../../../shared/pipes/platform-class.pipe';
   template: `
     <div class="p-6">
       <!-- Back Button (pill style) -->
-      <a routerLink="/jobs" class="inline-flex items-center gap-1.5 text-sm text-text-muted hover:text-white transition-colors mb-6 glass-v2 rounded-full px-4 py-2">
+      <a
+        routerLink="/jobs"
+        class="inline-flex items-center gap-1.5 text-sm text-text-muted hover:text-white transition-colors mb-6 glass-v2 rounded-full px-4 py-2"
+      >
         <app-chevron-left-icon [size]="16" [strokeWidth]="2" />
         Voltar para vagas
       </a>
@@ -85,7 +89,9 @@ import { PlatformClassPipe } from '../../../shared/pipes/platform-class.pipe';
         </div>
       } @else if (error()) {
         <!-- Error State -->
-        <div class="bg-dark-surface/80 backdrop-blur-xl border border-red-500/20 rounded-2xl p-8 text-center">
+        <div
+          class="bg-dark-surface/80 backdrop-blur-xl border border-red-500/20 rounded-2xl p-8 text-center"
+        >
           <div class="flex justify-center mb-4 text-red-400">
             <app-triangle-alert-icon [size]="48" [strokeWidth]="2" />
           </div>
@@ -100,7 +106,10 @@ import { PlatformClassPipe } from '../../../shared/pipes/platform-class.pipe';
           <div>
             <h1 class="text-3xl font-bold text-white mb-3">{{ job()!.title }}</h1>
             <div class="flex items-center gap-2 flex-wrap">
-              <span class="text-sm text-text-muted bg-dark-surface/80 backdrop-blur-sm border border-white/5 rounded-full px-3 py-1">{{ job()!.company }}</span>
+              <span
+                class="text-sm text-text-muted bg-dark-surface/80 backdrop-blur-sm border border-white/5 rounded-full px-3 py-1"
+                >{{ job()!.company }}</span
+              >
               <span class="text-text-muted/30">&middot;</span>
               <span class="text-sm text-text-muted/70">{{ job()!.location }}</span>
             </div>
@@ -110,7 +119,9 @@ import { PlatformClassPipe } from '../../../shared/pipes/platform-class.pipe';
           <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <!-- Left column: Score + Status + Platform -->
             <div class="organic-card p-5 space-y-3 min-h-[200px]">
-              <h3 class="text-xs font-semibold text-text-muted/60 uppercase tracking-wider">Informações</h3>
+              <h3 class="text-xs font-semibold text-text-muted/60 uppercase tracking-wider">
+                Informações
+              </h3>
               <div class="space-y-2">
                 <div class="flex items-center gap-2">
                   <span class="text-xs text-text-muted/60 w-16">Score</span>
@@ -122,21 +133,32 @@ import { PlatformClassPipe } from '../../../shared/pipes/platform-class.pipe';
                 </div>
                 <div class="flex items-center gap-2">
                   <span class="text-xs text-text-muted/60 w-16">Origem</span>
-                  <span class="text-xs px-3 py-1 rounded-lg border" [class]="job()!.platform | platformClass">{{ job()!.platform }}</span>
+                  <span
+                    class="text-xs px-3 py-1 rounded-lg border"
+                    [class]="job()!.platform | platformClass"
+                    >{{ job()!.platform }}</span
+                  >
                 </div>
                 @if (job()!.salaryRange) {
                   <div class="flex items-center gap-2">
                     <span class="text-xs text-text-muted/60 w-16">Salário</span>
-                    <span class="text-xs px-3 py-1 rounded-lg bg-green-500/10 border border-green-500/20 text-green-400">{{ job()!.salaryRange }}</span>
+                    <span
+                      class="text-xs px-3 py-1 rounded-lg bg-green-500/10 border border-green-500/20 text-green-400"
+                      >{{ job()!.salaryRange }}</span
+                    >
                   </div>
                 }
               </div>
             </div>
 
             <!-- Right column: Description -->
-            <div class="organic-card p-5 flex flex-col justify-between max-h-[420px] transition-all duration-300">
+            <div
+              class="organic-card p-5 flex flex-col justify-between max-h-[420px] transition-all duration-300"
+            >
               <div class="flex-1 flex flex-col min-h-0">
-                <h3 class="text-xs font-semibold text-text-muted/60 uppercase tracking-wider mb-3">Descrição</h3>
+                <h3 class="text-xs font-semibold text-text-muted/60 uppercase tracking-wider mb-3">
+                  Descrição
+                </h3>
                 <div class="flex-1 overflow-y-auto pr-1 max-h-[300px] transition-all duration-300">
                   <p class="text-sm text-white/80 whitespace-pre-line leading-relaxed">
                     {{ formattedDescription() || 'Descrição não disponível para esta vaga.' }}
@@ -151,10 +173,30 @@ import { PlatformClassPipe } from '../../../shared/pipes/platform-class.pipe';
                 >
                   @if (isExpanded()) {
                     Ver menos
-                    <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="m18 15-6-6-6 6"/></svg>
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      width="12"
+                      height="12"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="2.5"
+                    >
+                      <path d="m18 15-6-6-6 6" />
+                    </svg>
                   } @else {
                     Ler descrição completa
-                    <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="m6 9 6 6 6-6"/></svg>
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      width="12"
+                      height="12"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="2.5"
+                    >
+                      <path d="m6 9 6 6 6-6" />
+                    </svg>
                   }
                 </button>
               }
@@ -164,10 +206,14 @@ import { PlatformClassPipe } from '../../../shared/pipes/platform-class.pipe';
           <!-- Requirements (full-width) -->
           @if (parsedRequirements().length > 0) {
             <div class="organic-card p-5">
-              <h3 class="text-xs font-semibold text-text-muted/60 uppercase tracking-wider mb-3">Requisitos</h3>
+              <h3 class="text-xs font-semibold text-text-muted/60 uppercase tracking-wider mb-3">
+                Requisitos
+              </h3>
               <div class="flex flex-wrap gap-2">
                 @for (req of parsedRequirements(); track req) {
-                  <span class="text-xs px-3 py-1 rounded-full bg-primary/10 border border-primary/20 text-primary">
+                  <span
+                    class="text-xs px-3 py-1 rounded-full bg-primary/10 border border-primary/20 text-primary"
+                  >
                     {{ req }}
                   </span>
                 }
@@ -197,7 +243,7 @@ import { PlatformClassPipe } from '../../../shared/pipes/platform-class.pipe';
                 (click)="showConfirm.set(true)"
               >
                 @if (applying()) {
-                  <app-spinner-icon [size]="16"/>
+                  <app-spinner-icon [size]="16" />
                   Enviando...
                 } @else {
                   <app-send-icon [size]="16" [strokeWidth]="2" />
@@ -224,7 +270,9 @@ import { PlatformClassPipe } from '../../../shared/pipes/platform-class.pipe';
                 stroke-linecap="round"
                 stroke-linejoin="round"
               >
-                <path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/>
+                <path
+                  d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"
+                />
               </svg>
               <span>{{ job()!.isFavorite ? 'Favoritada' : 'Favoritar' }}</span>
             </button>
@@ -244,7 +292,21 @@ import { PlatformClassPipe } from '../../../shared/pipes/platform-class.pipe';
               class="btn-secondary rounded-full px-5 py-2.5 hover:border-red-500/20 hover:text-red-400"
               (click)="openRejectModal()"
             >
-              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg>
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="16"
+                height="16"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <path d="M3 6h18" />
+                <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6" />
+                <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2" />
+              </svg>
               <span>Excluir</span>
             </button>
 
@@ -274,12 +336,14 @@ import { PlatformClassPipe } from '../../../shared/pipes/platform-class.pipe';
 
     <!-- Confirm Modal -->
     @if (showConfirm()) {
-      <div class="fixed inset-0 bg-black/70 backdrop-blur-md z-50 flex items-center justify-center p-4">
-        <div class="bg-dark-surface/95 backdrop-blur-2xl border border-white/10 rounded-3xl p-8 max-w-sm w-full space-y-5">
+      <div
+        class="fixed inset-0 bg-black/70 backdrop-blur-md z-50 flex items-center justify-center p-4"
+      >
+        <div
+          class="bg-dark-surface/95 backdrop-blur-2xl border border-white/10 rounded-3xl p-8 max-w-sm w-full space-y-5"
+        >
           <h3 class="text-xl font-bold text-white">Confirmar candidatura</h3>
-          <p class="text-sm text-text-muted leading-relaxed">
-            Deseja se candidatar para
-          </p>
+          <p class="text-sm text-text-muted leading-relaxed">Deseja se candidatar para</p>
           <div class="bg-dark-surface/80 border border-white/5 rounded-xl p-4 space-y-1">
             <p class="text-sm font-semibold text-white">{{ job()!.title }}</p>
             <p class="text-xs text-text-muted/70">{{ job()!.company }}</p>
@@ -288,10 +352,16 @@ import { PlatformClassPipe } from '../../../shared/pipes/platform-class.pipe';
             Sua candidatura será registrada automaticamente no sistema.
           </p>
           <div class="flex gap-3 justify-end pt-1">
-            <button (click)="showConfirm.set(false)" class="text-sm glass-v2 rounded-full px-5 py-2 text-text-muted hover:text-white hover:border-white/20 transition-all">
+            <button
+              (click)="showConfirm.set(false)"
+              class="text-sm glass-v2 rounded-full px-5 py-2 text-text-muted hover:text-white hover:border-white/20 transition-all"
+            >
               Cancelar
             </button>
-            <button (click)="confirmApply()" class="btn-primary text-sm flex items-center gap-2 rounded-full px-5 py-2">
+            <button
+              (click)="confirmApply()"
+              class="btn-primary text-sm flex items-center gap-2 rounded-full px-5 py-2"
+            >
               <app-send-icon [size]="14" [strokeWidth]="2" />
               Confirmar
             </button>
@@ -303,7 +373,9 @@ import { PlatformClassPipe } from '../../../shared/pipes/platform-class.pipe';
     <!-- Reject Modal -->
     @if (showRejectModal()) {
       <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-md">
-        <div class="bg-dark-surface border border-dark-border rounded-2xl p-6 w-full max-w-md mx-4 space-y-4 shadow-2xl">
+        <div
+          class="bg-dark-surface border border-dark-border rounded-2xl p-6 w-full max-w-md mx-4 space-y-4 shadow-2xl"
+        >
           <h3 class="text-lg font-semibold text-white">Excluir vaga</h3>
 
           <div>
@@ -330,8 +402,18 @@ import { PlatformClassPipe } from '../../../shared/pipes/platform-class.pipe';
           </div>
 
           <div class="flex justify-end gap-2 pt-2">
-            <button (click)="showRejectModal.set(false)" class="px-4 py-2 rounded-xl text-text-muted hover:text-white hover:bg-white/5 transition-colors">Cancelar</button>
-            <button (click)="confirmReject()" class="px-4 py-2 rounded-xl bg-red-500/20 text-red-400 hover:bg-red-500/30 border border-red-500/20 transition-colors font-medium">Excluir</button>
+            <button
+              (click)="showRejectModal.set(false)"
+              class="px-4 py-2 rounded-xl text-text-muted hover:text-white hover:bg-white/5 transition-colors"
+            >
+              Cancelar
+            </button>
+            <button
+              (click)="confirmReject()"
+              class="px-4 py-2 rounded-xl bg-red-500/20 text-red-400 hover:bg-red-500/30 border border-red-500/20 transition-colors font-medium"
+            >
+              Excluir
+            </button>
           </div>
         </div>
       </div>
@@ -344,6 +426,7 @@ export class JobDetailComponent {
   private readonly companiesService = inject(CompaniesService);
   private readonly toastService = inject(ToastService);
   private readonly router = inject(Router);
+  private readonly destroyRef = inject(DestroyRef);
 
   id = input<string>('');
 
@@ -411,22 +494,28 @@ export class JobDetailComponent {
     this.loading.set(true);
     this.error.set('');
 
-    this.jobsService.getJob(id).subscribe({
-      next: (job) => {
-        this.job.set(job);
-        this.loading.set(false);
-        if (job.status === 'Nova') {
-          this.jobsService.updateJob(job.id, { status: 'Visualizada' }).subscribe({
-            next: (updated) => this.job.set(updated),
-            error: () => {} // silently fail - non-critical
-          });
-        }
-      },
-      error: (err) => {
-        this.error.set(err?.error?.detail || 'Não foi possível carregar os detalhes da vaga.');
-        this.loading.set(false);
-      },
-    });
+    this.jobsService
+      .getJob(id)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (job) => {
+          this.job.set(job);
+          this.loading.set(false);
+          if (job.status === 'Nova') {
+            this.jobsService
+              .updateJob(job.id, { status: 'Visualizada' })
+              .pipe(takeUntilDestroyed(this.destroyRef))
+              .subscribe({
+                next: (updated) => this.job.set(updated),
+                error: () => {}, // silently fail - non-critical
+              });
+          }
+        },
+        error: (err) => {
+          this.error.set(err?.error?.detail || 'Não foi possível carregar os detalhes da vaga.');
+          this.loading.set(false);
+        },
+      });
   }
 
   confirmApply(): void {
@@ -440,17 +529,20 @@ export class JobDetailComponent {
 
     this.applying.set(true);
 
-    this.applicationsService.createApplication({ jobId: currentJob.id }).subscribe({
-      next: () => {
-        this.job.set({ ...currentJob, status: 'Candidatou' });
-        this.applying.set(false);
-        this.toastService.success('Candidatura enviada com sucesso!');
-      },
-      error: (err) => {
-        this.applying.set(false);
-        this.toastService.error(err?.error?.detail || 'Erro ao enviar candidatura.');
-      },
-    });
+    this.applicationsService
+      .createApplication({ jobId: currentJob.id })
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: () => {
+          this.job.set({ ...currentJob, status: 'Candidatou' });
+          this.applying.set(false);
+          this.toastService.success('Candidatura enviada com sucesso!');
+        },
+        error: (err) => {
+          this.applying.set(false);
+          this.toastService.error(err?.error?.detail || 'Erro ao enviar candidatura.');
+        },
+      });
   }
 
   toggleFavorite(): void {
@@ -458,15 +550,18 @@ export class JobDetailComponent {
     if (!currentJob) return;
     const newStatus = !currentJob.isFavorite;
 
-    this.jobsService.updateJob(currentJob.id, { isFavorite: newStatus }).subscribe({
-      next: (updated) => {
-        this.job.set(updated);
-        this.toastService.success(
-          newStatus ? 'Vaga adicionada aos favoritos!' : 'Vaga removida dos favoritos.'
-        );
-      },
-      error: () => this.toastService.error('Erro ao atualizar favorito.'),
-    });
+    this.jobsService
+      .updateJob(currentJob.id, { isFavorite: newStatus })
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (updated) => {
+          this.job.set(updated);
+          this.toastService.success(
+            newStatus ? 'Vaga adicionada aos favoritos!' : 'Vaga removida dos favoritos.',
+          );
+        },
+        error: () => this.toastService.error('Erro ao atualizar favorito.'),
+      });
   }
 
   openRejectModal(): void {
@@ -479,13 +574,16 @@ export class JobDetailComponent {
     const currentJob = this.job();
     if (!currentJob) return;
 
-    this.jobsService.deleteJob(currentJob.id, this.rejectReason(), this.rejectNotes() || undefined).subscribe({
-      next: () => {
-        this.toastService.success('Vaga excluída');
-        this.router.navigate(['/jobs']);
-      },
-      error: () => this.toastService.error('Erro ao excluir'),
-    });
+    this.jobsService
+      .deleteJob(currentJob.id, this.rejectReason(), this.rejectNotes() || undefined)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: () => {
+          this.toastService.success('Vaga excluída');
+          this.router.navigate(['/jobs']);
+        },
+        error: () => this.toastService.error('Erro ao excluir'),
+      });
     this.showRejectModal.set(false);
   }
 
@@ -494,7 +592,9 @@ export class JobDetailComponent {
     if (!currentJob) return;
 
     if (!currentJob.url) {
-      this.toastService.error('A vaga precisa ter uma URL válida para ser importada como Empresa Fixa.');
+      this.toastService.error(
+        'A vaga precisa ter uma URL válida para ser importada como Empresa Fixa.',
+      );
       return;
     }
 
@@ -502,17 +602,22 @@ export class JobDetailComponent {
       name: currentJob.company,
       applicationUrl: currentJob.url,
       intervalDays: 30,
-      notes: `Importada automaticamente a partir da vaga "${currentJob.title}".`
+      notes: `Importada automaticamente a partir da vaga "${currentJob.title}".`,
     };
 
-    this.companiesService.createCompany(data).subscribe({
-      next: () => {
-        this.toastService.success(`${currentJob.company} adicionada às Empresas Fixas com sucesso!`);
-      },
-      error: (err) => {
-        const detail = err?.error?.detail || 'Erro ao favoritar empresa.';
-        this.toastService.error(detail);
-      }
-    });
+    this.companiesService
+      .createCompany(data)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: () => {
+          this.toastService.success(
+            `${currentJob.company} adicionada às Empresas Fixas com sucesso!`,
+          );
+        },
+        error: (err) => {
+          const detail = err?.error?.detail || 'Erro ao favoritar empresa.';
+          this.toastService.error(detail);
+        },
+      });
   }
 }

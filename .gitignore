@@ -105,3 +105,6 @@ __screenshots__/
 *.pem
 *.key
 *.cert
+
+# ----- Firebase CLI -----
+.firebase/

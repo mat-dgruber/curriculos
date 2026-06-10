@@ -1,4 +1,4 @@
 export const environment = {
   production: true,
-  apiUrl: 'https://jobhunter-api.oraclevm.com'
+  apiUrl: 'http://137.131.190.22:8000',
 };

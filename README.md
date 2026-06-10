@@ -276,10 +276,10 @@ firebase deploy --only hosting
 | 1-2 | Concluido | Models, migrations, seed data, API real |
 | 3-4 | Concluido | Scrapers LinkedIn/Gupy/Vagas, matcher 0-100% |
 | 5 | Concluido | Applicators (auto-apply), scheduler, notificacoes |
-| 6 | Em progresso | Frontend completo, UI glassmorphism |
-| 7-8 | Planejado | Testes automatizados, CI/CD |
-| 9-10 | Planejado | Deploy Oracle + Firebase |
-| 11-12 | Planejado | Monitoramento, logging, refinamento |
+| 6 | Concluido | Frontend completo, UI glassmorphism |
+| 7-8 | Concluido | Testes automatizados, CI/CD |
+| 9-10 | Concluido | Deploy Oracle + Firebase |
+| 11-12 | Em progresso | Monitoramento, logging, refinamento |
 
 Veja o roadmap completo em [`docs/roadmap.md`](docs/roadmap.md).
 

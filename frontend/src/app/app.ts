@@ -3,15 +3,15 @@ import { RouterOutlet, RouterLink } from '@angular/router';
 import { SidebarComponent } from './layout/sidebar/sidebar.component';
 import { TopbarComponent } from './layout/topbar/topbar.component';
 import { MobileBottomNavComponent } from './layout/mobile-bottom-nav/mobile-bottom-nav.component';
-import { ToastContainerComponent } from './shared/components/toast-container/toast-container.component';
+import { ToastComponent } from './shared/components/toast/toast.component';
 import { SchedulerService } from './core/services/scheduler.service';
 import { SchedulerStatus } from './core/models/profile.model';
-import { ToastService } from './core/services/toast.service';
+import { ToastService } from './shared/services/toast.service';
 
 @Component({
   selector: 'app-root',
   standalone: true,
-  imports: [RouterOutlet, RouterLink, SidebarComponent, TopbarComponent, MobileBottomNavComponent, ToastContainerComponent],
+  imports: [RouterOutlet, RouterLink, SidebarComponent, TopbarComponent, MobileBottomNavComponent, ToastComponent],
   templateUrl: './app.html',
   styleUrl: './app.css'
 })

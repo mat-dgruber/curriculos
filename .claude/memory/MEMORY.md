@@ -28,4 +28,5 @@
 - [Favorites Are Sacred](feedback-favorites-sacred.md) — Favorited jobs must never be auto-deleted, persist forever
 - [Reject & Auto-Delete](project-reject-auto-delete-matcher.md) — Job exclusion + auto-delete non-favorites + matcher refinement (fully implemented, 120 tests)
 - [Delete Filters Replace](feedback-delete-filters-replace.md) — Smart delete filters REPLACE selection (not add) to prevent accidental full-page deletion
+- [Toast Unification](feedback-toast-unification.md) — Unified dual toast systems into signal-based ToastService with CSS vars, z-index stack, barrel exports
 

@@ -13,7 +13,11 @@ app = FastAPI(title="JobHunter API", version="1.0.0")
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[settings.frontend_url],
+    allow_origins=[
+        settings.frontend_url,
+        "https://hotel-cittari.web.app",
+        "http://localhost:4200",
+    ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

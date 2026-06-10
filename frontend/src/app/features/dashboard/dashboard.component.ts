@@ -1,4 +1,4 @@
-import { Component, inject, OnInit, signal, computed } from '@angular/core';
+import { Component, inject, OnInit, signal, computed, DestroyRef } from '@angular/core';
 import { StatCardComponent } from '../../shared/components/stat-card/stat-card.component';
 import { ScoreBadgeComponent } from '../../shared/components/score-badge/score-badge.component';
 import { TriangleAlertIconComponent } from '../../shared/components/triangle-alert-icon/triangle-alert-icon.component';
@@ -8,14 +8,25 @@ import { SendIconComponent } from '../../shared/components/send-icon/send-icon.c
 import { JobsService } from '../../core/services/jobs.service';
 import { ApplicationsService } from '../../core/services/applications.service';
 import { SchedulerService } from '../../core/services/scheduler.service';
-import { ToastService } from '../../core/services/toast.service';
+import { ToastService } from '../../shared/services/toast.service';
 import { Job } from '../../core/models/job.model';
 import { Application } from '../../core/models/application.model';
 import { RouterLink } from '@angular/router';
 import { provideCharts, withDefaultRegisterables } from 'ng2-charts';
 import { forkJoin } from 'rxjs';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { GslPageHelp } from '../../shared/components/gsl-page-help/gsl-page-help.component';
 
+/**
+ * DashboardComponent - Tela principal do JobHunter
+ *
+ * Exibe métricas agregadas de vagas e candidaturas, status do agendador (scheduler),
+ * gráficos de distribuição por plataforma e frequência semanal, além das 5 vagas mais recentes.
+ *
+ * @Component standalone com providers de gráficos (ng2-charts)
+ * Seletor: app-dashboard
+ * Rota: / (página inicial)
+ */
 @Component({
   selector: 'app-dashboard',
   standalone: true,
@@ -60,7 +71,9 @@ import { GslPageHelp } from '../../shared/components/gsl-page-help/gsl-page-help
         <div class="organic-card p-5 animate-pulse">
           <div class="h-5 bg-dark-border/40 rounded w-1/4 mb-4"></div>
           @for (i of [1, 2, 3]; track i) {
-            <div class="flex items-center justify-between py-3 border-b border-dark-border last:border-0">
+            <div
+              class="flex items-center justify-between py-3 border-b border-dark-border last:border-0"
+            >
               <div class="space-y-2">
                 <div class="h-4 bg-dark-border/40 rounded w-48"></div>
                 <div class="h-3 bg-dark-border/30 rounded w-32"></div>
@@ -81,23 +94,33 @@ import { GslPageHelp } from '../../shared/components/gsl-page-help/gsl-page-help
       } @else {
         <!-- Stats Cards -->
         <div class="grid grid-cols-1 md:grid-cols-3 gap-5 mb-8 relative z-10">
-          <div class="animate-fade-in-up stagger-1"><app-stat-card label="Vagas Encontradas" [value]="stats().totalJobs" suffix="vagas" /></div>
-          <div class="animate-fade-in-up stagger-2"><app-stat-card label="Currículos Enviados" [value]="stats().sentApplications" /></div>
-          <div class="animate-fade-in-up stagger-3"><app-stat-card label="Taxa de Resposta" [value]="stats().responseRate" suffix="%" /></div>
+          <div class="animate-fade-in-up stagger-1">
+            <app-stat-card label="Vagas Encontradas" [value]="stats().totalJobs" suffix="vagas" />
+          </div>
+          <div class="animate-fade-in-up stagger-2">
+            <app-stat-card label="Currículos Enviados" [value]="stats().sentApplications" />
+          </div>
+          <div class="animate-fade-in-up stagger-3">
+            <app-stat-card label="Taxa de Resposta" [value]="stats().responseRate" suffix="%" />
+          </div>
         </div>
 
         <!-- Charts Row -->
         <div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-8 relative z-10">
-          <div class="animate-fade-in-up stagger-4"><app-chart-bar
-            title="Vagas por Plataforma"
-            [data]="platformChartData()"
-            [labels]="platformLabels()"
-          /></div>
-          <div class="animate-fade-in-up stagger-5"><app-chart-bar
-            title="Candidaturas por Semana"
-            [data]="weeklyChartData()"
-            [labels]="weeklyLabels()"
-          /></div>
+          <div class="animate-fade-in-up stagger-4">
+            <app-chart-bar
+              title="Vagas por Plataforma"
+              [data]="platformChartData()"
+              [labels]="platformLabels()"
+            />
+          </div>
+          <div class="animate-fade-in-up stagger-5">
+            <app-chart-bar
+              title="Candidaturas por Semana"
+              [data]="weeklyChartData()"
+              [labels]="weeklyLabels()"
+            />
+          </div>
         </div>
 
         <!-- Resumo -->
@@ -105,70 +128,107 @@ import { GslPageHelp } from '../../shared/components/gsl-page-help/gsl-page-help
           <h2 class="text-lg font-semibold text-white mb-4">Resumo Geral</h2>
           <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
             <!-- Total -->
-            <div class="flex flex-col justify-between p-4 rounded-2xl bg-white/[0.03] border border-dark-border relative overflow-hidden group hover:border-primary/20 transition-all duration-300">
+            <div
+              class="flex flex-col justify-between p-4 rounded-2xl bg-white/[0.03] border border-dark-border relative overflow-hidden group hover:border-primary/20 transition-all duration-300"
+            >
               <div>
                 <p class="text-3xl font-extrabold text-primary mb-1">{{ totalApplications() }}</p>
                 <p class="text-xs font-medium text-text-muted">Total de candidaturas</p>
               </div>
               <div class="w-full bg-white/5 rounded-full h-1.5 mt-4 overflow-hidden">
-                <div class="bg-primary h-full rounded-full transition-all duration-1000 ease-out" style="width: 100%"></div>
+                <div
+                  class="bg-primary h-full rounded-full transition-all duration-1000 ease-out"
+                  style="width: 100%"
+                ></div>
               </div>
             </div>
 
             <!-- Enviadas -->
-            <div class="flex flex-col justify-between p-4 rounded-2xl bg-white/[0.03] border border-dark-border relative overflow-hidden group hover:border-success/20 transition-all duration-300">
+            <div
+              class="flex flex-col justify-between p-4 rounded-2xl bg-white/[0.03] border border-dark-border relative overflow-hidden group hover:border-success/20 transition-all duration-300"
+            >
               <div>
                 <div class="flex items-baseline justify-between">
                   <p class="text-3xl font-extrabold text-success mb-1">{{ sentApplications() }}</p>
-                  <span class="text-[10px] font-semibold text-success bg-success/10 px-1.5 py-0.5 rounded-md">{{ sentPercentage() }}%</span>
+                  <span
+                    class="text-[10px] font-semibold text-success bg-success/10 px-1.5 py-0.5 rounded-md"
+                    >{{ sentPercentage() }}%</span
+                  >
                 </div>
                 <p class="text-xs font-medium text-text-muted">Enviadas com sucesso</p>
               </div>
               <div class="w-full bg-white/5 rounded-full h-1.5 mt-4 overflow-hidden">
-                <div class="bg-success h-full rounded-full transition-all duration-1000 ease-out" [style.width.%]="sentPercentage()"></div>
+                <div
+                  class="bg-success h-full rounded-full transition-all duration-1000 ease-out"
+                  [style.width.%]="sentPercentage()"
+                ></div>
               </div>
             </div>
 
             <!-- Falharam -->
-            <div class="flex flex-col justify-between p-4 rounded-2xl bg-white/[0.03] border border-dark-border relative overflow-hidden group hover:border-error/20 transition-all duration-300">
+            <div
+              class="flex flex-col justify-between p-4 rounded-2xl bg-white/[0.03] border border-dark-border relative overflow-hidden group hover:border-error/20 transition-all duration-300"
+            >
               <div>
                 <div class="flex items-baseline justify-between">
                   <p class="text-3xl font-extrabold text-error mb-1">{{ failedApplications() }}</p>
-                  <span class="text-[10px] font-semibold text-error bg-error/10 px-1.5 py-0.5 rounded-md">{{ failedPercentage() }}%</span>
+                  <span
+                    class="text-[10px] font-semibold text-error bg-error/10 px-1.5 py-0.5 rounded-md"
+                    >{{ failedPercentage() }}%</span
+                  >
                 </div>
                 <p class="text-xs font-medium text-text-muted">Falharam</p>
               </div>
               <div class="w-full bg-white/5 rounded-full h-1.5 mt-4 overflow-hidden">
-                <div class="bg-error h-full rounded-full transition-all duration-1000 ease-out" [style.width.%]="failedPercentage()"></div>
+                <div
+                  class="bg-error h-full rounded-full transition-all duration-1000 ease-out"
+                  [style.width.%]="failedPercentage()"
+                ></div>
               </div>
             </div>
 
             <!-- Pendentes -->
-            <div class="flex flex-col justify-between p-4 rounded-2xl bg-white/[0.03] border border-dark-border relative overflow-hidden group hover:border-warning/20 transition-all duration-300">
+            <div
+              class="flex flex-col justify-between p-4 rounded-2xl bg-white/[0.03] border border-dark-border relative overflow-hidden group hover:border-warning/20 transition-all duration-300"
+            >
               <div>
                 <div class="flex items-baseline justify-between">
-                  <p class="text-3xl font-extrabold text-warning mb-1">{{ pendingApplications() }}</p>
-                  <span class="text-[10px] font-semibold text-warning bg-warning/10 px-1.5 py-0.5 rounded-md">{{ pendingPercentage() }}%</span>
+                  <p class="text-3xl font-extrabold text-warning mb-1">
+                    {{ pendingApplications() }}
+                  </p>
+                  <span
+                    class="text-[10px] font-semibold text-warning bg-warning/10 px-1.5 py-0.5 rounded-md"
+                    >{{ pendingPercentage() }}%</span
+                  >
                 </div>
                 <p class="text-xs font-medium text-text-muted">Pendentes</p>
               </div>
               <div class="w-full bg-white/5 rounded-full h-1.5 mt-4 overflow-hidden">
-                <div class="bg-warning h-full rounded-full transition-all duration-1000 ease-out" [style.width.%]="pendingPercentage()"></div>
+                <div
+                  class="bg-warning h-full rounded-full transition-all duration-1000 ease-out"
+                  [style.width.%]="pendingPercentage()"
+                ></div>
               </div>
             </div>
           </div>
         </div>
 
         <!-- Scheduler Status -->
-        <div class="organic-card p-5 mb-8 flex flex-col sm:flex-row sm:items-center justify-between gap-4 relative z-10 animate-fade-in-up stagger-4">
+        <div
+          class="organic-card p-5 mb-8 flex flex-col sm:flex-row sm:items-center justify-between gap-4 relative z-10 animate-fade-in-up stagger-4"
+        >
           <div class="flex items-center gap-3 flex-wrap">
             @if (schedulerStatus()?.isRunning) {
-              <div class="flex items-center gap-2 px-3 py-1.5 rounded-full bg-success/10 border border-success/20">
+              <div
+                class="flex items-center gap-2 px-3 py-1.5 rounded-full bg-success/10 border border-success/20"
+              >
                 <span class="w-2 h-2 bg-success rounded-full animate-pulse"></span>
                 <span class="text-xs font-medium text-success">Robô ativo</span>
               </div>
             } @else {
-              <div class="flex items-center gap-2 px-3 py-1.5 rounded-full bg-text-muted/10 border border-text-muted/15">
+              <div
+                class="flex items-center gap-2 px-3 py-1.5 rounded-full bg-text-muted/10 border border-text-muted/15"
+              >
                 <span class="w-2 h-2 bg-text-muted rounded-full"></span>
                 <span class="text-xs font-medium text-text-muted">Robô pausado</span>
               </div>
@@ -205,7 +265,9 @@ import { GslPageHelp } from '../../shared/components/gsl-page-help/gsl-page-help
         <div class="organic-card p-4 md:p-5 relative z-10 animate-fade-in-up stagger-5">
           <div class="flex items-center justify-between mb-4">
             <h2 class="text-base md:text-lg font-semibold text-white">Vagas Recentes</h2>
-            <a routerLink="/jobs" class="text-xs md:text-sm text-primary hover:text-accent transition-colors"
+            <a
+              routerLink="/jobs"
+              class="text-xs md:text-sm text-primary hover:text-accent transition-colors"
               >Ver todas →</a
             >
           </div>
@@ -215,7 +277,9 @@ import { GslPageHelp } from '../../shared/components/gsl-page-help/gsl-page-help
             >
               <div class="min-w-0 flex-1 mr-3">
                 <p class="text-white font-medium text-sm md:text-base truncate">{{ job.title }}</p>
-                <p class="text-xs md:text-sm text-text-muted truncate">{{ job.company }} · {{ job.location }}</p>
+                <p class="text-xs md:text-sm text-text-muted truncate">
+                  {{ job.company }} · {{ job.location }}
+                </p>
               </div>
               <div class="flex items-center gap-2 md:gap-3 shrink-0">
                 <app-score-badge [score]="job.score" />
@@ -237,17 +301,26 @@ export class DashboardComponent implements OnInit {
   private readonly applicationsService = inject(ApplicationsService);
   private readonly schedulerService = inject(SchedulerService);
   private readonly toast = inject(ToastService);
+  private readonly destroyRef = inject(DestroyRef);
 
+  /** Estatísticas gerais do painel (total de vagas, currículos enviados, taxa de resposta) */
   stats = signal({ totalJobs: 0, sentApplications: 0, responseRate: 0 });
+  /** 5 vagas mais recentes para exibição na lista inferior */
   recentJobs = signal<Job[]>([]);
+  /** Todas as vagas carregadas (base para gráficos computados) */
   allJobs = signal<Job[]>([]);
+  /** Todas as candidaturas carregadas (base para gráficos e resumo computados) */
   allApplications = signal<Application[]>([]);
+  /** Status do agendador (signal compartilhado do SchedulerService) */
   schedulerStatus = this.schedulerService.status;
+  /** Estado de carregamento dos dados iniciais */
   loading = signal(true);
+  /** Mensagem de erro se falhar o carregamento */
   error = signal<string | null>(null);
+  /** Flag para desabilitar botões durante toggle do scheduler */
   togglingScheduler = signal(false);
 
-  // -- Chart data: Vagas por Plataforma Dinâmico --
+  /** Labels dos eixos X do gráfico "Vagas por Plataforma" (top 4 + "Outras") */
   platformLabels = computed(() => {
     const jobs = this.allJobs();
     const counts: Record<string, number> = {};
@@ -267,6 +340,7 @@ export class DashboardComponent implements OnInit {
     return sorted.length > 0 ? sorted : ['Nenhuma'];
   });
 
+  /** Dados das barras do gráfico "Vagas por Plataforma" (contagem por label) */
   platformChartData = computed(() => {
     const jobs = this.allJobs();
     const labels = this.platformLabels();
@@ -297,7 +371,7 @@ export class DashboardComponent implements OnInit {
     return data;
   });
 
-  // -- Chart data: Candidaturas por Semana com Fuso Horário Local --
+  /** Labels dos dias da semana (Seg-Sáb) para gráfico semanal */
   weeklyLabels = computed(() => {
     const labels: string[] = [];
     for (let i = 6; i >= 0; i--) {
@@ -308,6 +382,7 @@ export class DashboardComponent implements OnInit {
     return labels;
   });
 
+  /** Contagem de candidaturas por dia (últimos 7 dias) usando fuso horário local */
   weeklyChartData = computed(() => {
     const apps = this.allApplications();
     const counts: number[] = [];
@@ -338,31 +413,45 @@ export class DashboardComponent implements OnInit {
     return counts;
   });
 
-  // -- Resumo stats --
+  /** Total de candidaturas (todas) */
   totalApplications = computed(() => this.allApplications().length);
-  sentApplications = computed(() => this.allApplications().filter((a) => a.status === 'Enviado').length);
-  failedApplications = computed(() => this.allApplications().filter((a) => a.status === 'Falhou').length);
-  pendingApplications = computed(() => this.allApplications().filter((a) => a.status === 'Pendente').length);
+  /** Candidaturas com status "Enviado" */
+  sentApplications = computed(
+    () => this.allApplications().filter((a) => a.status === 'Enviado').length,
+  );
+  /** Candidaturas com status "Falhou" */
+  failedApplications = computed(
+    () => this.allApplications().filter((a) => a.status === 'Falhou').length,
+  );
+  /** Candidaturas com status "Pendente" */
+  pendingApplications = computed(
+    () => this.allApplications().filter((a) => a.status === 'Pendente').length,
+  );
 
+  /** Percentual de enviadas sobre o total */
   sentPercentage = computed(() => {
     const total = this.totalApplications();
     return total > 0 ? Math.round((this.sentApplications() / total) * 100) : 0;
   });
 
+  /** Percentual de falhadas sobre o total */
   failedPercentage = computed(() => {
     const total = this.totalApplications();
     return total > 0 ? Math.round((this.failedApplications() / total) * 100) : 0;
   });
 
+  /** Percentual de pendentes sobre o total */
   pendingPercentage = computed(() => {
     const total = this.totalApplications();
     return total > 0 ? Math.round((this.pendingApplications() / total) * 100) : 0;
   });
 
+  /** Inicializa o componente carregando todos os dados do dashboard */
   ngOnInit(): void {
     this.loadDashboard();
   }
 
+  /** Carrega dados de vagas, candidaturas e status do scheduler em paralelo */
   loadDashboard(): void {
     this.loading.set(true);
     this.error.set(null);
@@ -371,30 +460,33 @@ export class DashboardComponent implements OnInit {
       jobs: this.jobsService.getJobs({ perPage: 200 }),
       applications: this.applicationsService.getApplications({ per_page: 500 }),
       scheduler: this.schedulerService.getStatus(),
-    }).subscribe({
-      next: ({ jobs, applications }) => {
-        // Popula Vagas
-        this.stats.update((s) => ({ ...s, totalJobs: jobs.total }));
-        this.allJobs.set(jobs.items);
-        this.recentJobs.set(jobs.items.slice(0, 5));
+    })
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: ({ jobs, applications }) => {
+          // Popula Vagas
+          this.stats.update((s) => ({ ...s, totalJobs: jobs.total }));
+          this.allJobs.set(jobs.items);
+          this.recentJobs.set(jobs.items.slice(0, 5));
 
-        // Popula Candidaturas
-        this.allApplications.set(applications.items);
-        const sent = applications.items.filter((a) => a.status === 'Enviado').length;
-        const total = applications.total;
-        const rate = total > 0 ? Math.round((sent / total) * 100) : 0;
-        this.stats.update((s) => ({ ...s, sentApplications: sent, responseRate: rate }));
+          // Popula Candidaturas
+          this.allApplications.set(applications.items);
+          const sent = applications.items.filter((a) => a.status === 'Enviado').length;
+          const total = applications.total;
+          const rate = total > 0 ? Math.round((sent / total) * 100) : 0;
+          this.stats.update((s) => ({ ...s, sentApplications: sent, responseRate: rate }));
 
-        this.loading.set(false);
-      },
-      error: () => {
-        this.error.set('Erro ao carregar o dashboard.');
-        this.loading.set(false);
-        this.toast.error('Erro ao carregar dashboard.');
-      },
-    });
+          this.loading.set(false);
+        },
+        error: () => {
+          this.error.set('Erro ao carregar o dashboard.');
+          this.loading.set(false);
+          this.toast.error('Erro ao carregar dashboard.');
+        },
+      });
   }
 
+  /** Alterna o estado do agendador (pausa/ativa) com feedback visual */
   toggleScheduler(): void {
     const status = this.schedulerStatus();
     if (!status) return;
@@ -404,11 +496,11 @@ export class DashboardComponent implements OnInit {
 
     const obs$ = isRunning ? this.schedulerService.pause() : this.schedulerService.resume();
 
-    obs$.subscribe({
+    obs$.pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: () => {
         this.togglingScheduler.set(false);
         this.toast.success(
-          isRunning ? 'Robô de automação pausado.' : 'Robô de automação ativado com sucesso!'
+          isRunning ? 'Robô de automação pausado.' : 'Robô de automação ativado com sucesso!',
         );
       },
       error: () => {
@@ -418,17 +510,21 @@ export class DashboardComponent implements OnInit {
     });
   }
 
+  /** Dispara busca manual de vagas (job 'scan_jobs') */
   triggerScan(): void {
     this.togglingScheduler.set(true);
-    this.schedulerService.triggerJob('scan_jobs').subscribe({
-      next: () => {
-        this.togglingScheduler.set(false);
-        this.toast.success('Varredura de novas vagas iniciada com sucesso em segundo plano!');
-      },
-      error: () => {
-        this.togglingScheduler.set(false);
-        this.toast.error('Erro ao disparar busca de vagas.');
-      },
-    });
+    this.schedulerService
+      .triggerJob('scan_jobs')
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: () => {
+          this.togglingScheduler.set(false);
+          this.toast.success('Varredura de novas vagas iniciada com sucesso em segundo plano!');
+        },
+        error: () => {
+          this.togglingScheduler.set(false);
+          this.toast.error('Erro ao disparar busca de vagas.');
+        },
+      });
   }
 }

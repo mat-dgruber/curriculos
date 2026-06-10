@@ -2,6 +2,7 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { provideHttpClient } from '@angular/common/http';
 import { provideHttpClientTesting } from '@angular/common/http/testing';
 import { provideRouter } from '@angular/router';
+import { signal } from '@angular/core';
 import { DashboardComponent } from './dashboard.component';
 import { JobsService } from '../../core/services/jobs.service';
 import { ApplicationsService } from '../../core/services/applications.service';
@@ -50,6 +51,10 @@ describe('DashboardComponent', () => {
 
   const mockSchedulerService = {
     getStatus: () => of({ isRunning: true, jobs: [], pausedUntil: null }),
+    status: signal({ isRunning: true, jobs: [], pausedUntil: null }),
+    pause: () => of({ message: 'Paused' }),
+    resume: () => of({ message: 'Resumed' }),
+    triggerJob: () => of({ message: 'Triggered' }),
   };
 
   beforeEach(async () => {

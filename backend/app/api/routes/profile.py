@@ -187,9 +187,52 @@ class CVSuggestionsResponse(BaseModel):
     preferred_locations: list[str]
 
 
-DEFAULT_KEYWORDS = ["Python", "Angular", "React", "TypeScript", "Docker", "AWS", "PostgreSQL", "RxJS", "Node.js", "FastAPI"]
-DEFAULT_ROLES = ["Desenvolvedor Fullstack", "Desenvolvedor Frontend", "Desenvolvedor Backend", "Engenheiro de Software", "Tech Lead"]
+DEFAULT_KEYWORDS = ["Excel", "Atendimento", "Gestão", "Comunicação", "Vendas", "Organização", "Prospecção", "Planejamento", "Python", "Inglês"]
+DEFAULT_ROLES = ["Auxiliar Administrativo", "Vendedor", "Analista Financeiro", "Assistente de RH", "Desenvolvedor Fullstack", "Gerente de Projetos"]
 DEFAULT_LOCATIONS = ["Remoto", "São Paulo, SP", "Rio de Janeiro, RJ", "Belo Horizonte, MG", "Curitiba, PR", "Híbrido"]
+
+SUGGESTIONS_CLUSTERS = [
+    {
+        "keys": ["rh", "recursos humanos", "recrutador", "recrutamento", "dp", "departamento pessoal", "talent acquisition", "human resources", "pessoal"],
+        "keywords": ["Recrutamento", "Seleção", "Departamento Pessoal", "Admissão", "Demissão", "Benefícios", "Folha de Pagamento", "Treinamento", "Clima Organizacional", "Endomarketing", "Gupy", "LinkedIn"],
+        "roles": ["Auxiliar de RH", "Assistente de RH", "Analista de RH", "Recrutador", "Analista de Departamento Pessoal", "Business Partner", "Coordenador de RH"]
+    },
+    {
+        "keys": ["financeiro", "finanças", "contas", "faturamento", "tesouraria", "contabilidade", "contábil", "fiscal", "finance", "audit", "planejamento financeiro", "caixa"],
+        "keywords": ["Contas a Pagar", "Contas a Receber", "Fluxo de Caixa", "Conciliação Bancária", "DRE", "Faturamento", "Excel", "Planejamento Financeiro", "Auditoria", "Fisco", "ERP"],
+        "roles": ["Analista Financeiro", "Assistente Financeiro", "Auxiliar Financeiro", "Analista Fiscal", "Analista Contábil", "Gerente Financeiro", "Coordenador Financeiro"]
+    },
+    {
+        "keys": ["adm", "administrativo", "administração", "recepcionista", "secretária", "secretaria", "auxiliar de escritório", "escritorio", "office", "atendimento ao cliente"],
+        "keywords": ["Rotinas Administrativas", "Atendimento ao Cliente", "Excel", "Controle de Arquivos", "Agendamento", "Redação Oficial", "Controle de Estoque", "Organização", "Word"],
+        "roles": ["Auxiliar Administrativo", "Assistente Administrativo", "Recepcionista", "Analista Administrativo", "Secretária", "Office Assistant"]
+    },
+    {
+        "keys": ["vendas", "comercial", "vendedor", "sdr", "inside sales", "compras", "comprador", "negociação", "sales", "loja", "balcão", "atendente"],
+        "keywords": ["Vendas", "Atendimento", "Negociação", "Prospecção", "CRM", "Pós-venda", "Metas", "Funil de Vendas", "Cold Call", "Comercial"],
+        "roles": ["Vendedor", "Consultor de Vendas", "SDR (Sales Development)", "Assistente Comercial", "Gerente Comercial", "Comprador", "Atendente de Loja"]
+    },
+    {
+        "keys": ["marketing", "social media", "publicidade", "propaganda", "designer", "design", "redator", "criação", "growth", "tráfego"],
+        "keywords": ["Redes Sociais", "Tráfego Pago", "SEO", "Copywriting", "Photoshop", "Illustrator", "Branding", "Marketing Digital", "Criação de Conteúdo", "Canva"],
+        "roles": ["Analista de Marketing", "Social Media", "Designer Gráfico", "Assistente de Marketing", "Redator", "UX/UI Designer", "Analista de Growth"]
+    },
+    {
+        "keys": ["suporte", "atendimento", "customer success", "cs", "sac", "helpdesk", "telemarketing", "call center", "suporte técnico"],
+        "keywords": ["Atendimento ao Cliente", "Resolução de Problemas", "SLA", "Helpdesk", "Zendesk", "Comunicação Empática", "Pós-venda", "Feedback", "Telefone"],
+        "roles": ["Analista de Suporte", "Analista de Customer Success", "Atendente de SAC", "Operador de Telemarketing", "Supervisor de Atendimento", "Analista de Suporte Técnico"]
+    },
+    {
+        "keys": ["projeto", "projetos", "project", "product", "produto", "scrum", "agile", "ágil"],
+        "keywords": ["Gestão de Projetos", "Scrum", "Agile", "Jira", "KPIs", "Cronograma", "Roadmap", "Metodologias Ágeis", "Product Backlog", "Trello"],
+        "roles": ["Gerente de Projetos", "Product Owner", "Product Manager", "Scrum Master", "Analista de Projetos", "Coordenador de Projetos"]
+    },
+    {
+        "keys": ["desenvolvedor", "frontend", "backend", "fullstack", "software", "programador", "dev", "tech", "web", "angular", "react", "python", "node", "java", "php", "c#", ".net", "dados", "analista de dados", "infraestrutura", "cloud", "devops"],
+        "keywords": ["Python", "Angular", "React", "TypeScript", "Docker", "AWS", "PostgreSQL", "Node.js", "FastAPI", "Java", "C#", "Git", "SQL"],
+        "roles": ["Desenvolvedor Fullstack", "Desenvolvedor Frontend", "Desenvolvedor Backend", "Engenheiro de Software", "Tech Lead", "Analista de Sistemas"]
+    }
+]
 
 NEARBY_CLUSTERS = {
     "tatuí": ["Tatuí, SP", "Boituva, SP", "Sorocaba, SP", "Itapetininga, SP", "Cerquilho, SP", "Porto Feliz, SP"],
@@ -245,21 +288,100 @@ async def get_cv_suggestions(db: AsyncSession = Depends(get_db)):
 
         text = " ".join(parts)
 
-    # Final fallback if both CV and profile fields are completely empty
-    if not text.strip():
-        return CVSuggestionsResponse(
-            keywords=DEFAULT_KEYWORDS,
-            target_roles=DEFAULT_ROLES,
-            preferred_locations=DEFAULT_LOCATIONS
-        )
-
-    # 4. Perform case-insensitive lexical matching
     import re
     text_lower = text.lower()
+    target_role_lower = (profile.target_role or "").lower()
 
-    # Match keywords
+    # Find the best suggestions cluster
+    matched_cluster = None
+    if target_role_lower:
+        for cluster in SUGGESTIONS_CLUSTERS:
+            if any(key in target_role_lower for key in cluster["keys"]):
+                matched_cluster = cluster
+                break
+
+    if not matched_cluster and text_lower:
+        for cluster in SUGGESTIONS_CLUSTERS:
+            if any(key in text_lower for key in cluster["keys"]):
+                matched_cluster = cluster
+                break
+
+    # Extract specific words from the target role
+    role_words = []
+    if profile.target_role:
+        clean_role_name = re.sub(
+            r'\b(júnior|pleno|sênior|jr|sr|pl|intern|estagiário|estagiario|de|para|com|em|do|da|dos|das|o|a)\b', 
+            '', 
+            profile.target_role, 
+            flags=re.IGNORECASE
+        ).strip()
+        clean_role_name = re.sub(r'\s+', ' ', clean_role_name)
+        role_words = [w.capitalize() for w in clean_role_name.split() if len(w) > 2]
+
+    # Initialize lists
+    keywords = []
+    roles = []
+
+    if matched_cluster:
+        keywords = list(matched_cluster["keywords"])
+        roles = list(matched_cluster["roles"])
+
+        # Inject words from user's target role so it matches their specific job title variations
+        for word in role_words:
+            if word not in keywords:
+                keywords.insert(0, word)
+        if profile.target_role and profile.target_role not in roles:
+            roles.insert(0, profile.target_role)
+    elif profile.target_role:
+        # Dynamic suggestions for completely custom roles
+        role_base = profile.target_role.strip()
+        clean_role = re.sub(r'\b(júnior|pleno|sênior|jr|sr|pl|intern|estagiário|estagiario)\b', '', role_base, flags=re.IGNORECASE).strip()
+        clean_role = re.sub(r'\s+', ' ', clean_role)
+
+        roles = [
+            role_base,
+            f"Analista de {clean_role}" if not clean_role.lower().startswith(("analista", "auxiliar", "assistente", "gerente", "coordenador")) else f"{clean_role} Sênior",
+            f"Assistente de {clean_role}" if not clean_role.lower().startswith(("assistente", "auxiliar", "gerente")) else f"{clean_role} Pleno",
+            f"Consultor de {clean_role}" if not clean_role.lower().startswith(("consultor", "gerente")) else f"{clean_role} Sênior",
+            f"{clean_role} Sênior",
+            f"{clean_role} Pleno",
+            f"{clean_role} Júnior"
+        ]
+
+        keywords = list(role_words)
+
+        dynamic_industry_keywords = {
+            "profess": ["Ensino", "Didática", "Aulas", "Metodologia", "Educação", "Planejamento Pedagógico"],
+            "medic": ["Saúde", "Atendimento", "Prontuário", "Clínica", "Enfermagem", "Triagem"],
+            "enfer": ["Saúde", "Atendimento", "Prontuário", "Clínica", "Enfermagem", "Triagem", "Cuidado"],
+            "advog": ["Jurídico", "Processos", "Petições", "Audiências", "Direito", "Contratos", "Assessoria"],
+            "direit": ["Jurídico", "Processos", "Petições", "Audiências", "Direito", "Contratos", "Assessoria"],
+            "motor": ["Logística", "Transporte", "Rotas", "Carga", "Trânsito", "Manutenção Preventiva"],
+            "profission": ["Atendimento", "Organização", "Comunicação", "Excel", "Gestão"],
+            "nutri": ["Nutrição", "Dieta", "Avaliação Nutricional", "Cardápios", "Saúde", "Atendimento"],
+            "psic": ["Psicologia", "Terapia", "Avaliação Psicológica", "Clínica", "Recrutamento", "Saúde Mental"],
+            "cozinh": ["Gastronomia", "Preparo de Alimentos", "Higiene", "Organização", "Cardápios", "Cozinha"],
+            "chefe": ["Gastronomia", "Preparo de Alimentos", "Higiene", "Organização", "Cardápios", "Cozinha"],
+            "estet": ["Estética", "Atendimento", "Beleza", "Procedimentos", "Cosmetologia"],
+        }
+
+        added_industry_kws = False
+        for key, kws in dynamic_industry_keywords.items():
+            if key in target_role_lower:
+                keywords.extend(kws)
+                added_industry_kws = True
+                break
+
+        if not added_industry_kws:
+            keywords.extend(["Atendimento", "Gestão", "Excel", "Planejamento", "Organização", "Comunicação", "Trabalho em Equipe"])
+    else:
+        # Absolute fallback to general defaults
+        keywords = list(DEFAULT_KEYWORDS)
+        roles = list(DEFAULT_ROLES)
+
+    # Filter/order by matching text (like CV)
     matched_keywords = []
-    for kw in DEFAULT_KEYWORDS:
+    for kw in keywords:
         escaped = re.escape(kw)
         if kw.lower() in ("c#", ".net", "next.js", "node.js"):
             pattern = rf"{escaped}"
@@ -269,19 +391,20 @@ async def get_cv_suggestions(db: AsyncSession = Depends(get_db)):
         if re.search(pattern, text_lower, re.IGNORECASE):
             matched_keywords.append(kw)
 
-    # Smart technology expansions to provide even richer suggestions
-    if "angular" in text_lower:
-        for extra in ["TypeScript", "RxJS", "React", "CSS", "HTML"]:
-            if extra not in matched_keywords:
-                matched_keywords.append(extra)
-    if "python" in text_lower:
-        for extra in ["FastAPI", "Django", "PostgreSQL", "Docker", "SQL"]:
-            if extra not in matched_keywords:
-                matched_keywords.append(extra)
-    if "react" in text_lower:
-        for extra in ["Next.js", "TypeScript", "Tailwind", "Node.js", "JavaScript"]:
-            if extra not in matched_keywords:
-                matched_keywords.append(extra)
+    for kw in keywords:
+        if kw not in matched_keywords:
+            matched_keywords.append(kw)
+    matched_keywords = matched_keywords[:10]
+
+    matched_roles = []
+    for r in roles:
+        if r.lower() in text_lower:
+            matched_roles.append(r)
+
+    for r in roles:
+        if r not in matched_roles:
+            matched_roles.append(r)
+    matched_roles = matched_roles[:5]
 
     # Match locations / modalities
     matched_locations = []
@@ -375,31 +498,6 @@ async def get_cv_suggestions(db: AsyncSession = Depends(get_db)):
         if city_key in text_lower:
             matched_locations.append(city_full)
 
-    # Match target roles
-    matched_roles = []
-    for role in DEFAULT_ROLES:
-        if role.lower() in text_lower:
-            matched_roles.append(role)
-
-    # Apply smart rules
-    if "python" in text_lower or "fastapi" in text_lower or "django" in text_lower or "backend" in text_lower or "node" in text_lower:
-        if "Desenvolvedor Backend" not in matched_roles:
-            matched_roles.append("Desenvolvedor Backend")
-
-    if "angular" in text_lower or "react" in text_lower or "frontend" in text_lower or "typescript" in text_lower:
-        if "Desenvolvedor Frontend" not in matched_roles:
-            matched_roles.append("Desenvolvedor Frontend")
-
-    if ("Desenvolvedor Backend" in matched_roles or "backend" in text_lower) and \
-       ("Desenvolvedor Frontend" in matched_roles or "frontend" in text_lower):
-        if "Desenvolvedor Fullstack" not in matched_roles:
-            matched_roles.append("Desenvolvedor Fullstack")
-
-    # If list is empty, fill with default values
-    if not matched_keywords:
-        matched_keywords = DEFAULT_KEYWORDS[:6]
-    if not matched_roles:
-        matched_roles = DEFAULT_ROLES[:3]
     if not matched_locations:
         matched_locations = DEFAULT_LOCATIONS[:3]
 

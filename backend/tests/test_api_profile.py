@@ -311,3 +311,33 @@ async def test_cv_suggestions_nearby_cities_cluster(client, db):
     assert "Itapetininga, SP" in data["preferred_locations"]
     assert "Híbrido (SP)" in data["preferred_locations"]
     assert "Remoto" in data["preferred_locations"]
+
+
+@pytest.mark.asyncio
+async def test_cv_suggestions_non_it_role(client, db):
+    from app.models.profile import CandidateProfile
+
+    # Create profile with a target role in HR/RH
+    profile = CandidateProfile(
+        id="test-profile-rh",
+        name="RH User",
+        email="rh@test.com",
+        target_role="Auxiliar de RH",
+        keywords=json.dumps([]),
+        target_roles=json.dumps([]),
+        preferred_locations=json.dumps([]),
+        scan_interval_hours=6,
+    )
+    db.add(profile)
+    await db.commit()
+
+    resp = await client.get("/api/v1/profile/cv-suggestions")
+    assert resp.status_code == 200
+    data = resp.json()
+
+    # The suggestions should contain HR/RH related terms
+    assert "Recrutamento" in data["keywords"]
+    assert "Departamento Pessoal" in data["keywords"]
+    assert "Auxiliar de RH" in data["target_roles"]
+    assert "Analista de RH" in data["target_roles"]
+

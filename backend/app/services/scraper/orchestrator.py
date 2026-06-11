@@ -139,12 +139,15 @@ class ScraperOrchestrator:
     async def run_all(self, search_params: dict) -> OrchestratorResult:
         platforms_to_run = [p for p in self._scrapers if self._should_run(p)]
 
-        self.logger.info(f"Running {len(platforms_to_run)} scrapers: {platforms_to_run}")
+        self.logger.info(f"Running {len(platforms_to_run)} scrapers sequentially: {platforms_to_run}")
 
-        results = await asyncio.gather(
-            *(self._run_single(p, search_params) for p in platforms_to_run),
-            return_exceptions=True,
-        )
+        results = []
+        for p in platforms_to_run:
+            try:
+                res = await self._run_single(p, search_params)
+                results.append(res)
+            except Exception as e:
+                results.append(e)
 
         all_jobs: list[ScrapedJob] = []
         platform_results: dict[str, ScraperResult] = {}

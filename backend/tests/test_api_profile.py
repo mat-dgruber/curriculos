@@ -340,4 +340,3 @@ async def test_cv_suggestions_non_it_role(client, db):
     assert "Departamento Pessoal" in data["keywords"]
     assert "Auxiliar de RH" in data["target_roles"]
     assert "Analista de RH" in data["target_roles"]
-

@@ -10,6 +10,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.database import get_db
 from app.models.profile import (
     CandidateProfile,
+    CandidateProfileCreate,
     CandidateProfileRead,
     CandidateProfileUpdate,
 )
@@ -52,6 +53,35 @@ async def get_profile(db: AsyncSession = Depends(get_db)):
     if not profile:
         raise HTTPException(status_code=404, detail="Perfil não encontrado")
     return _profile_to_read(profile)
+
+
+@router.post("/profile", response_model=CandidateProfileRead)
+async def create_profile(
+    body: CandidateProfileCreate, db: AsyncSession = Depends(get_db)
+):
+    result = await db.execute(select(CandidateProfile).limit(1))
+    profile = result.scalar_one_or_none()
+    if profile:
+        raise HTTPException(status_code=400, detail="Perfil já existe")
+
+    new_profile = CandidateProfile(
+        name=body.name,
+        email=body.email,
+        phone=body.phone,
+        location=body.location,
+        target_role=body.target_role,
+        linkedin_url=body.linkedin_url,
+        keywords=json.dumps(body.keywords) if body.keywords else json.dumps([]),
+        target_roles=json.dumps(body.target_roles) if body.target_roles else json.dumps([]),
+        preferred_locations=json.dumps(body.preferred_locations) if body.preferred_locations else json.dumps([]),
+        scan_interval_hours=body.scan_interval_hours,
+        auto_apply=body.auto_apply,
+        auto_delete_days=body.auto_delete_days,
+    )
+    db.add(new_profile)
+    await db.commit()
+    await db.refresh(new_profile)
+    return _profile_to_read(new_profile)
 
 
 @router.put("/profile", response_model=CandidateProfileRead)

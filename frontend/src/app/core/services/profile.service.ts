@@ -11,6 +11,10 @@ export class ProfileService {
     return this.api.get<CandidateProfile>('/api/v1/profile');
   }
 
+  createProfile(data: any): Observable<CandidateProfile> {
+    return this.api.post<CandidateProfile>('/api/v1/profile', data);
+  }
+
   updateProfile(data: CandidateProfileUpdate): Observable<CandidateProfile> {
     return this.api.put<CandidateProfile>('/api/v1/profile', data);
   }

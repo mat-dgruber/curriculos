@@ -71,6 +71,107 @@ import { GslPageHelp } from '../../shared/components/gsl-page-help/gsl-page-help
           <p class="text-error font-medium mb-1">{{ error() }}</p>
           <button class="btn-primary text-sm mt-3" (click)="loadProfile()">Tentar novamente</button>
         </div>
+      } @else if (noProfile()) {
+        <div class="max-w-2xl mx-auto bg-dark-surface border border-dark-border rounded-2xl p-6 md:p-8 animate-fade-in-up">
+          <div class="text-center mb-6">
+            <div class="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-4 border border-primary/20">
+              <app-user-icon [size]="32" [strokeWidth]="1.5" class="text-primary" />
+            </div>
+            <h2 class="text-2xl font-serif font-bold text-white mb-2">Criar Perfil Profissional</h2>
+            <p class="text-text-muted text-sm max-w-md mx-auto">
+              Nenhum perfil profissional foi encontrado. Preencha os campos abaixo para criar o seu perfil e iniciar a automação.
+            </p>
+          </div>
+
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+            <div>
+              <label class="block text-xs font-medium text-text-muted mb-1.5 uppercase tracking-wider">
+                Nome completo <span class="text-error">*</span>
+              </label>
+              <input
+                type="text"
+                class="input-field w-full"
+                placeholder="Seu nome completo"
+                [ngModel]="createForm().name"
+                (ngModelChange)="updateCreateFormField('name', $event)"
+              />
+            </div>
+            <div>
+              <label class="block text-xs font-medium text-text-muted mb-1.5 uppercase tracking-wider">
+                E-mail <span class="text-error">*</span>
+              </label>
+              <input
+                type="email"
+                class="input-field w-full"
+                placeholder="seu.email@exemplo.com"
+                [ngModel]="createForm().email"
+                (ngModelChange)="updateCreateFormField('email', $event)"
+              />
+            </div>
+            <div>
+              <label class="block text-xs font-medium text-text-muted mb-1.5 uppercase tracking-wider">
+                Telefone
+              </label>
+              <input
+                type="tel"
+                class="input-field w-full"
+                placeholder="+55 11 99999-0000"
+                [ngModel]="createForm().phone"
+                (ngModelChange)="updateCreateFormField('phone', $event)"
+              />
+            </div>
+            <div>
+              <label class="block text-xs font-medium text-text-muted mb-1.5 uppercase tracking-wider">
+                Localização
+              </label>
+              <input
+                type="text"
+                class="input-field w-full"
+                placeholder="São Paulo, SP"
+                [ngModel]="createForm().location"
+                (ngModelChange)="updateCreateFormField('location', $event)"
+              />
+            </div>
+            <div>
+              <label class="block text-xs font-medium text-text-muted mb-1.5 uppercase tracking-wider">
+                Cargo alvo
+              </label>
+              <input
+                type="text"
+                class="input-field w-full"
+                placeholder="Ex: Desenvolvedor Fullstack"
+                [ngModel]="createForm().targetRole"
+                (ngModelChange)="updateCreateFormField('targetRole', $event)"
+              />
+            </div>
+            <div>
+              <label class="block text-xs font-medium text-text-muted mb-1.5 uppercase tracking-wider">
+                LinkedIn
+              </label>
+              <input
+                type="url"
+                class="input-field w-full"
+                placeholder="https://linkedin.com/in/seuusuario"
+                [ngModel]="createForm().linkedinUrl"
+                (ngModelChange)="updateCreateFormField('linkedinUrl', $event)"
+              />
+            </div>
+          </div>
+
+          <div class="flex justify-end gap-3">
+            <button
+              class="btn-primary w-full md:w-auto"
+              (click)="createProfile()"
+              [disabled]="saving() || !createForm().name.trim() || !createForm().email.trim()"
+            >
+              @if (saving()) {
+                Criando...
+              } @else {
+                Criar Perfil
+              }
+            </button>
+          </div>
+        </div>
       } @else {
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-5">
           <!-- ═══ Coluna principal (2/3) ═══ -->
@@ -576,6 +677,15 @@ export class ProfileComponent implements OnInit {
   saving = signal(false);
   saved = signal(false);
   error = signal<string | null>(null);
+  noProfile = signal(false);
+  createForm = signal({
+    name: '',
+    email: '',
+    phone: '',
+    location: '',
+    targetRole: '',
+    linkedinUrl: ''
+  });
 
   // Settings (ex-settings component)
   keywords = signal<string[]>([]);
@@ -635,6 +745,7 @@ export class ProfileComponent implements OnInit {
   loadProfile(): void {
     this.loading.set(true);
     this.error.set(null);
+    this.noProfile.set(false);
     this.profileService
       .getProfile()
       .pipe(takeUntilDestroyed(this.destroyRef))
@@ -650,10 +761,50 @@ export class ProfileComponent implements OnInit {
           this.loading.set(false);
           this.loadSuggestions();
         },
-        error: () => {
-          this.error.set('Erro ao carregar perfil.');
+        error: (err: any) => {
           this.loading.set(false);
-          this.toast.error('Erro ao carregar perfil.');
+          if (err?.status === 404) {
+            this.noProfile.set(true);
+          } else {
+            this.error.set('Erro ao carregar perfil.');
+            this.toast.error('Erro ao carregar perfil.');
+          }
+        },
+      });
+  }
+
+  updateCreateFormField(field: string, value: string): void {
+    this.createForm.update((form) => ({ ...form, [field]: value }));
+  }
+
+  createProfile(): void {
+    const data = this.createForm();
+    if (!data.name.trim() || !data.email.trim()) {
+      this.toast.error('Nome e E-mail são obrigatórios.');
+      return;
+    }
+
+    this.saving.set(true);
+    this.profileService
+      .createProfile(data)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (profile) => {
+          this.saving.set(false);
+          this.noProfile.set(false);
+          this.profileData.set(profile);
+          this.keywords.set(profile.keywords || []);
+          this.targetRoles.set(profile.targetRoles || []);
+          this.preferredLocations.set(profile.preferredLocations || []);
+          this.scanInterval.set(profile.scanIntervalHours);
+          this.autoApply.set(profile.autoApply);
+          this.autoDeleteDays.set(profile.autoDeleteDays ?? 30);
+          this.toast.success('Perfil criado com sucesso!');
+          this.loadSuggestions();
+        },
+        error: () => {
+          this.saving.set(false);
+          this.toast.error('Erro ao criar perfil.');
         },
       });
   }

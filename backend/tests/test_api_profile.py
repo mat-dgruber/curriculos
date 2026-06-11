@@ -12,6 +12,41 @@ async def test_get_profile_not_found(client):
 
 
 @pytest.mark.asyncio
+async def test_create_profile(client, db):
+    # Create profile
+    payload = {
+        "name": "Novo Perfil",
+        "email": "novo@perfil.com",
+        "phone": "+55 11 99999-9999",
+        "location": "São Paulo, SP",
+        "targetRole": "Engenheiro de Software",
+        "linkedinUrl": "https://linkedin.com/in/novoperfil",
+        "keywords": ["python", "angular"],
+        "targetRoles": ["Desenvolvedor Backend"],
+        "preferredLocations": ["Remoto"],
+        "scanIntervalHours": 6,
+        "autoApply": False,
+        "autoDeleteDays": 30,
+    }
+    resp = await client.post("/api/v1/profile", json=payload)
+    assert resp.status_code == 200
+    data = resp.json()
+    assert data["name"] == "Novo Perfil"
+    assert data["email"] == "novo@perfil.com"
+    assert data["keywords"] == ["python", "angular"]
+    assert data["targetRoles"] == ["Desenvolvedor Backend"]
+
+    # Re-retrieve profile - should be 200 now
+    resp = await client.get("/api/v1/profile")
+    assert resp.status_code == 200
+    assert resp.json()["name"] == "Novo Perfil"
+
+    # Try creating again - should fail with 400 (profile already exists)
+    resp = await client.post("/api/v1/profile", json=payload)
+    assert resp.status_code == 400
+
+
+@pytest.mark.asyncio
 async def test_update_profile_not_found(client):
     resp = await client.put(
         "/api/v1/profile",

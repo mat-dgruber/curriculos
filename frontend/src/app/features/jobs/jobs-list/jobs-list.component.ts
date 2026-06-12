@@ -992,6 +992,14 @@ export class JobsListComponent implements OnInit, OnDestroy {
         this.loadJobs();
       });
     this.loadJobs();
+    
+    // Resume polling if a scan is already running
+    this.jobsService.getScanStatus().subscribe((status) => {
+      if (status && status.status === 'running') {
+        this.scanning.set(true);
+        this.pollScanStatus();
+      }
+    });
   }
 
   ngOnDestroy(): void {

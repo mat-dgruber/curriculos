@@ -28,6 +28,13 @@ async def init_db():
     Cria as tabelas no banco de dados se elas não existirem de forma automatizada no startup.
     Também adiciona de forma autogestora colunas recém-adicionadas para atualização suave.
     """
+    import os
+    if settings.database_url.startswith("sqlite"):
+        db_path = settings.database_url.split("///")[-1]
+        db_dir = os.path.dirname(db_path)
+        if db_dir and not os.path.exists(db_dir):
+            os.makedirs(db_dir, exist_ok=True)
+
     from app.models.application_click import ApplicationClick
     from app.models.rejected_job import RejectedJob  # noqa: F401
     async with engine.begin() as conn:

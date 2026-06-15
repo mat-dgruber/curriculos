@@ -51,3 +51,4 @@ Indice de toda a documentacao do projeto JobHunter.
 |---------|-----------|
 | [`test-manual.md`](test-manual.md) | Documentacao de testes manuais |
 | [`api-vagas.md`](api-vagas.md) | Documentacao da API do Vagas.com |
+| [`deployment-status-reboot.md`](deployment-status-reboot.md) | Status de implantação atual e roteiro de reboot da VM |

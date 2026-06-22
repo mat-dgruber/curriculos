@@ -42,4 +42,17 @@ type: project
 - `curl -i -H 'Origin: https://hotel-cittari.web.app' https://137-131-190-22.sslip.io/api/v1/scheduler/status` → `200 OK` com `access-control-allow-origin: https://hotel-cittari.web.app`, scheduler rodando (`isRunning: true`), próxima varredura 2026-06-23T02:03:18 UTC.
 - ⚠️ Pendente para esta task: monitorar `docker stats` por 24h e validar auto-restart via `restart: unless-stopped`.
 
+**Patches de código aplicados (mesmo dia, após mitigar infra):**
+- `scheduler_service.trigger_job()` (commit `37966d0`): rejeita scan manual concorrente quando `job_statuses[job_id].is_running` for true; adquire lock antes de criar a task (evita race entre dois cliques rápidos criando dois Playwrights).
+- `enrichment_service` (commit `37966d0`): fecha/reabre Playwright a cada 5 vagas (`ENRICH_BATCH_SIZE = 5`), `gc.collect()` entre batches, `db.commit()` por batch (reduz janela de perda e o heap do Chromium).
+- `scheduler_service` (commit `ec56ae5`): helper `_release_job_lock(job_id)` consolida release do `is_running=False` + `gc.collect()` best-effort em finally de `_scan_job_wrapper`, `_recurring_send_wrapper`, `_auto_delete_wrapper` — CPython só dispara cyclic-GC em gen-2 quando threshold é atingido; em 956 MiB isso retém Playwright pages entre ticks.
+- 122 testes passam (`pytest tests/`) com as mudanças.
+- VM rodando o código novo: `docker-compose restart` (mesma imagem, sem rebuild) + container em `74.89 MiB / 700 MiB` (10.70%), health 200.
+
+**Cron preventivo instalado na VM (`/home/ubuntu/scripts/`):**
+- `jobhunter_mem_monitor.sh`: a cada 5 min, snapshot de `docker stats jobhunter` para `/var/log/jobhunter-monitor.log`; alerta prefixado com `ALERTA:` se pct >= 85%.
+- `jobhunter_restart.sh`: às 04:00 UTC, `docker restart jobhunter` + valida health 8s depois; escreve no mesmo log.
+- Ambos `@reboot` (cron @reboot + interval fixos).
+- Vai dar OOM menos trágico: se container vazar ~500 MB durante varredura, reset diário libera Chromium heap.
+
 **SSH:** `/Users/matheus.diniz_1/Documents/ssh-key-2026-06-02.key` ubuntu@137.131.190.22.

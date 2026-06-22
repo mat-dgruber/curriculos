@@ -18,24 +18,40 @@ def send_email(subject: str, body: str) -> bool:
         logger.warning("No notification email configured.")
         return False
 
+    import asyncio
     try:
-        msg = MIMEMultipart()
-        msg["From"] = settings.smtp_user
-        msg["To"] = settings.notification_email
-        msg["Subject"] = f"[JobHunter] {subject}"
+        loop = asyncio.get_running_loop()
+    except RuntimeError:
+        loop = None
 
-        msg.attach(MIMEText(body, "html"))
+    def _send():
+        try:
+            msg = MIMEMultipart()
+            msg["From"] = settings.smtp_user
+            msg["To"] = settings.notification_email
+            msg["Subject"] = f"[JobHunter] {subject}"
 
-        with smtplib.SMTP(settings.smtp_host, settings.smtp_port) as server:
-            server.starttls()
-            server.login(settings.smtp_user, settings.smtp_password)
-            server.send_message(msg)
+            msg.attach(MIMEText(body, "html"))
 
-        logger.info(f"Email sent: {subject}")
+            with smtplib.SMTP(settings.smtp_host, settings.smtp_port) as server:
+                server.starttls()
+                server.login(settings.smtp_user, settings.smtp_password)
+                server.send_message(msg)
+
+            logger.info(f"Email sent: {subject}")
+            return True
+        except Exception as e:
+            logger.error(f"Failed to send email: {e}")
+            return False
+
+    if loop and loop.is_running():
+        # Como send_email é síncrono (def em vez de async def), fazemos a chamada
+        # sem bloquear o event loop atual agendando a thread.
+        # Note que se a rota não aguarda o retorno, to_thread é perfeito.
+        loop.create_task(asyncio.to_thread(_send))
         return True
-    except Exception as e:
-        logger.error(f"Failed to send email: {e}")
-        return False
+    else:
+        return _send()
 
 
 def notify_new_jobs(count: int, platform_summary: dict) -> None:

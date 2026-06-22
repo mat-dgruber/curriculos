@@ -78,7 +78,7 @@ class LinkedInScraper(PlaywrightScraper):
     async def _enrich_descriptions(self, jobs: list[ScrapedJob]):
         """Navega na página de detalhe de cada vaga para extrair a descrição."""
         enriched = 0
-        for job in jobs[:15]:
+        for job in jobs[:5]:
             try:
                 await self._safe_goto(job.url, timeout=20000)
                 await self._random_delay(2, 3)

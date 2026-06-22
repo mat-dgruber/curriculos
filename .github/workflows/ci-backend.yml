@@ -1,0 +1,39 @@
+name: backend-ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+defaults:
+  run:
+    working-directory: backend
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    # Playwright precisa de browsers; pulamos nesse stage (executado local).
+    services: {}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.14"
+          cache: pip
+          cache-dependency-path: backend/uv.lock
+      - name: Install uv
+        run: pip install uv
+      - name: Install deps
+        run: uv sync --frozen --no-dev
+      - name: Install dev deps
+        run: uv sync --frozen
+      - name: Lint (ruff)
+        run: |
+          uv pip install ruff
+          ruff check app tests
+      - name: Test
+        env:
+          DATABASE_URL: sqlite+aiosqlite:///./tmp_test.db
+        run: |
+          uv run pytest tests -q --tb=short

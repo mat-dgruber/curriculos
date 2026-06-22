@@ -288,21 +288,39 @@ async def get_scheduler_status() -> dict:
 
 
 async def trigger_job(job_id: str) -> bool:
-    """Manually trigger a specific job."""
+    """Manually trigger a specific job.
+
+    Rejects if the same job is already running to prevent concurrent
+    Playwright/Chromium instances on memory-constrained VMs (Oracle 1 GiB).
+    """
     job = scheduler.get_job(job_id)
     if not job:
         return False
 
+    # Guard: refuse concurrent execution for the same job.
+    # We set the flag here BEFORE scheduling the task because the task
+    # only flips it to True after first iteration; without this, two
+    # manual clicks in quick succession would both fire Playwright.
+    if job_id in job_statuses and job_statuses[job_id].get("is_running"):
+        logger.warning(
+            "Refusing to trigger '%s' manually — already running", job_id
+        )
+        return False
+
+    if job_id in ("scan_jobs", "recurring_send", "auto_delete"):
+        job_statuses[job_id]["is_running"] = True
+
+    import asyncio
     if job_id == "scan_jobs":
-        import asyncio
         asyncio.create_task(_scan_job_wrapper())
     elif job_id == "recurring_send":
-        import asyncio
         asyncio.create_task(_recurring_send_wrapper())
     elif job_id == "auto_delete":
-        import asyncio
         asyncio.create_task(_auto_delete_wrapper())
     else:
+        # unknown job_id — undo flag we just set
+        if job_id in job_statuses:
+            job_statuses[job_id]["is_running"] = False
         return False
 
     return True

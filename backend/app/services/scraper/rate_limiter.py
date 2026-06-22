@@ -9,18 +9,26 @@ logger = logging.getLogger(__name__)
 
 # Arquivo persiste entre reinícios do processo
 _STATE_FILE = Path(settings.cv_storage_path).parent / "scraper_rate_state.json"
+_state_cache: dict | None = None
 
 
 def _load_state() -> dict:
+    global _state_cache
+    if _state_cache is not None:
+        return _state_cache
     try:
         if _STATE_FILE.exists():
-            return json.loads(_STATE_FILE.read_text())
+            _state_cache = json.loads(_STATE_FILE.read_text())
+            return _state_cache
     except Exception:
         pass
-    return {}
+    _state_cache = {}
+    return _state_cache
 
 
 def _save_state(state: dict):
+    global _state_cache
+    _state_cache = state
     try:
         _STATE_FILE.parent.mkdir(parents=True, exist_ok=True)
         _STATE_FILE.write_text(json.dumps(state, default=str))

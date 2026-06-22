@@ -1,0 +1,24 @@
+version: "3.8"
+
+services:
+  backend:
+    build: .
+    container_name: jobhunter
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./data:/app/data
+      - ./storage:/app/storage
+      - ./backups:/app/backups
+    env_file: .env
+    restart: unless-stopped
+    # Hardening de memória para VM 1 GB (Oracle Always Free ARM)
+    # Reserva maior para evitar OOM em picos, limite duro para o kernel conseguir matar limpo.
+    mem_reservation: 500m
+    mem_limit: 700m
+    pids_limit: 200
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"

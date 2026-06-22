@@ -77,10 +77,18 @@ class PlaywrightScraper(ABC):
         return self
 
     async def __aexit__(self, exc_type, exc_val, exc_tb):
+        if self.page:
+            try:
+                await self.page.close()
+            except Exception:
+                pass
+            self.page = None
         if self.browser:
             await self.browser.close()
+            self.browser = None
         if self._pw:
             await self._pw.stop()
+            self._pw = None
 
     @abstractmethod
     async def scrape(self, search_params: dict) -> list[ScrapedJob]:

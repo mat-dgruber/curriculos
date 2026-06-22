@@ -32,3 +32,6 @@
 - [VM Container Crash & Memory Tuning](project-vm-production-incident.md) — 956 MiB RAM real, aplicado swap 2GB, mem_limit=700m, slow_mo=0, scheduler guard. Doc infra desatualizada.
 - [Playwright slow_mo em prod](feedback-playwright-slowmo.md) — slow_mo=100 em prod é fonte #1 de OOM; sempre 0 em produção, debug local só
 - [Consolidated perf-tuning report](reference-perf-tuning-2026-06-22.md) — Relatório único após incidente; ponteiro pra incidents/ + scripts/ + patches
+- [Empty AskUserQuestion = default recommended](feedback-empty-askuser-default-recommendation.md) — Sem labels na resposta = aceitar opção Recomendada em vez de re-perguntar
+- [Patches as docs when editing blocked](feedback-patch-as-doc-when-editing-blocked.md) — Tooling bloqueia augmentação? Entregar doc com snippets + paths como end state
+- [VM .env credenciais expostas 2026-06-22](project-vm-env-credentials-exposure.md) — SMTP_PASSWORD + SECRET_KEY vazaram em payload; rotacionar antes de próximas sessões

@@ -100,7 +100,6 @@ async def _auto_delete_wrapper():
             profile = result.scalar_one_or_none()
             days = profile.auto_delete_days if profile else 30
 
-        async with async_session() as db:
             result = await run_auto_delete(db, days)
             job_statuses["auto_delete"]["last_status"] = "success"
             logger.info(f"Auto-delete completed: {result}")

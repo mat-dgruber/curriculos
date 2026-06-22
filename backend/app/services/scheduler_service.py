@@ -22,6 +22,22 @@ is_paused = False
 paused_until: datetime | None = None
 
 
+def _release_job_lock(job_id: str) -> None:
+    """Reset running flag and free retained heap.
+
+    Jobs keep references to async DB sessions, Playwright pages, and
+    payload objects in their locals. Without an explicit gc.collect()
+    after the lock is released, CPython holds onto them in gen-2 until
+    the next full collection — on 1 GiB VMs that pushes us towards OOM.
+    """
+    job_statuses[job_id]["is_running"] = False
+    try:
+        import gc
+        gc.collect()
+    except Exception:  # gc.collect is best-effort hygiene, never raise
+        pass
+
+
 async def _scan_job_wrapper():
     """Wrapper for scan job that tracks status."""
     if is_paused and paused_until and datetime.utcnow() < paused_until:
@@ -40,7 +56,7 @@ async def _scan_job_wrapper():
         job_statuses["scan_jobs"]["last_status"] = "error"
         logger.error(f"Scan failed: {e}")
     finally:
-        job_statuses["scan_jobs"]["is_running"] = False
+        _release_job_lock("scan_jobs")
 
 
 async def _recurring_send_wrapper():
@@ -56,12 +72,12 @@ async def _recurring_send_wrapper():
         from app.services.recurring_service import run_recurring_sends
         result = await run_recurring_sends()
         job_statuses["recurring_send"]["last_status"] = "success"
-        logger.info(f"Recurring send completed: {result}")
+        logger.info(f"Send completed: {result}")
     except Exception as e:
         job_statuses["recurring_send"]["last_status"] = "error"
         logger.error(f"Recurring send failed: {e}")
     finally:
-        job_statuses["recurring_send"]["is_running"] = False
+        _release_job_lock("recurring_send")
 
 
 async def _auto_delete_wrapper():
@@ -92,7 +108,7 @@ async def _auto_delete_wrapper():
         job_statuses["auto_delete"]["last_status"] = "error"
         logger.error(f"Auto-delete failed: {e}")
     finally:
-        job_statuses["auto_delete"]["is_running"] = False
+        _release_job_lock("auto_delete")
 
 
 async def start_scheduler():
@@ -288,21 +304,39 @@ async def get_scheduler_status() -> dict:
 
 
 async def trigger_job(job_id: str) -> bool:
-    """Manually trigger a specific job."""
+    """Manually trigger a specific job.
+
+    Rejects if the same job is already running to prevent concurrent
+    Playwright/Chromium instances on memory-constrained VMs (Oracle 1 GiB).
+    """
     job = scheduler.get_job(job_id)
     if not job:
         return False
 
+    # Guard: refuse concurrent execution for the same job.
+    # We set the flag here BEFORE scheduling the task because the task
+    # only flips it to True after first iteration; without this, two
+    # manual clicks in quick succession would both fire Playwright.
+    if job_id in job_statuses and job_statuses[job_id].get("is_running"):
+        logger.warning(
+            "Refusing to trigger '%s' manually — already running", job_id
+        )
+        return False
+
+    if job_id in ("scan_jobs", "recurring_send", "auto_delete"):
+        job_statuses[job_id]["is_running"] = True
+
+    import asyncio
     if job_id == "scan_jobs":
-        import asyncio
         asyncio.create_task(_scan_job_wrapper())
     elif job_id == "recurring_send":
-        import asyncio
         asyncio.create_task(_recurring_send_wrapper())
     elif job_id == "auto_delete":
-        import asyncio
         asyncio.create_task(_auto_delete_wrapper())
     else:
+        # unknown job_id — undo flag we just set
+        if job_id in job_statuses:
+            job_statuses[job_id]["is_running"] = False
         return False
 
     return True

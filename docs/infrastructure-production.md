@@ -30,15 +30,20 @@
 
 ### 1.2 VM Oracle Cloud — Especificacoes
 
-| Recurso | Valor | Limite Always Free |
-|---|---|---|
-| Shape | VM.Standard.A1.Flex | — |
-| OCPU | 2 | 4 |
-| RAM | 8 GB | 24 GB |
-| Boot Volume | 50 GB | 200 GB |
-| Imagem | Ubuntu 22.04 (aarch64) | — |
-| Regiao | sa-saopaulo-1 (recomendado) | — |
-| Saida de rede | 10 TB/mes | 10 TB/mes |
+| Recurso | Valor (alocado) | Alocado / max na conta | Limite Always Free |
+|---|---|---|---|
+| Shape | VM.Standard.A1.Flex | — | — |
+| OCPU | 1 | **1 / 4** | 4 |
+| RAM | 956 MiB (~1 GiB) | **956 MiB / 24 GiB** | 24 GiB |
+| Swap (file-based) | 2 GiB | — | — |
+| Boot Volume | 47 GB | — | 200 GB |
+| Imagem | Ubuntu 22.04 (aarch64) | — | — |
+| Regiao | sa-saopaulo-1 (recomendado) | — | — |
+| Saida de rede | 10 TB/mes | — | 10 TB/mes |
+
+> **Estado real (jun/2026)**: apenas 1 OCPU e 956 MiB estāo alocados (a categoria "alocado" do OCI indica apenas 1 vCPU e ~1 GB; o restante da cota Always Free de 4 OCPU/24 GB RAM estāo disponíveis mas nao provisionados). Swap de 2 GiB adicionado via `/swapfile` para absorver picos do Chromium durante varreduras.
+
+> **Memória é o gargalo principal**: scrapers que rodam Playwright/Chromium podem consumir 100-150 MB de RSS por navegador aberto. Por isso a politica atual (`mem_limit: 700m`, `PLAYWRIGHT_SLOW_MO=0`, scrapers sequenciais) é obrigatória — vide secao 7 (Incidentes) abaixo.
 
 ### 1.3 Portas e Rede
 
@@ -1475,16 +1480,27 @@ free -h
 # 1. Limitar memoria do container (no docker-compose.yml)
 services:
   backend:
-    mem_limit: 4g
-    memswap_limit: 4g
+    mem_reservation: 500m   # garantia soft (kernel evita evict)
+    mem_limit: 700m         # hard cap (kernel OOM-killa limpo, restart: unless-stopped volta)
+    memswap_limit: 1g       # cap total RAM+swap
+    pids_limit: 200
 
-# 2. Reduzir Playwright footprint
+# 2. Reduzir Playwright footprint (em prod)
 # No .env:
-PLAYWRIGHT_SLOW_MO=200  # Mais delay = menos RAM simultanea
+PLAYWRIGHT_SLOW_MO=0       # sem pausa artificial entre acoes (em dev: 100)
 
-# 3. Verificar se Playwright esta leakando memoria
-# Reiniciar periodicamente via crontab:
-0 */12 * * * docker restart jobhunter
+# 3. SWAP 2 GB no host (Oracle VM padrao vem sem swap)
+sudo fallocate -l 2G /swapfile && sudo chmod 600 /swapfile && sudo mkswap /swapfile && sudo swapon /swapfile
+echo '/swapfile none swap sw 0 0' | sudo tee -a /etc/fstab
+cat | sudo tee /etc/sysctl.d/99-jobhunter-tuning.conf <<EOF
+vm.swappiness=10
+vm.overcommit_memory=1
+vm.vfs_cache_pressure=50
+EOF
+sudo sysctl --system
+
+# 4. Reiniciar preventivamente (em vez de esperar o OOM):
+0 */6 * * * docker restart jobhunter
 ```
 
 ### 8.5 SSL Expirado

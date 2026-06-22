@@ -29,4 +29,6 @@
 - [Reject & Auto-Delete](project-reject-auto-delete-matcher.md) — Job exclusion + auto-delete non-favorites + matcher refinement (fully implemented, 120 tests)
 - [Delete Filters Replace](feedback-delete-filters-replace.md) — Smart delete filters REPLACE selection (not add) to prevent accidental full-page deletion
 - [Toast Unification](feedback-toast-unification.md) — Unified dual toast systems into signal-based ToastService with CSS vars, z-index stack, barrel exports
-
+- [VM Container Crash & Memory Tuning](project-vm-production-incident.md) — 956 MiB RAM real, aplicado swap 2GB, mem_limit=700m, slow_mo=0, scheduler guard. Doc infra desatualizada.
+- [Playwright slow_mo em prod](feedback-playwright-slowmo.md) — slow_mo=100 em prod é fonte #1 de OOM; sempre 0 em produção, debug local só
+- [Consolidated perf-tuning report](reference-perf-tuning-2026-06-22.md) — Relatório único após incidente; ponteiro pra incidents/ + scripts/ + patches

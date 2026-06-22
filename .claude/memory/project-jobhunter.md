@@ -104,7 +104,9 @@ JobHunter is evolving from a **personal-use** automated job application system i
 - ✅ Light mode: CSS variables + overrides in styles.css, global button classes, service worker disabled in dev
 - ✅ Component standardization: InputComponent + ButtonComponent at shared/components/. CSS base classes (.input-field, .btn-primary, .btn-secondary) in styles.css with theme-aware variables.
 
-**Tests:** Backend **120 pytest tests** passing. Frontend build succeeds with no errors.
+**Tests:** Backend **122 pytest tests** passing. Frontend build succeeds with no errors.
+
+**Memory hardening (2026-06-22):** Detalhes completos em `project-vm-production-incident.md` — container `mem_limit: 700m` + `mem_reservation: 500m` + `pids_limit: 200`, `PLAYWRIGHT_SLOW_MO=0` em prod, swap 2 GB no host (vm.swappiness=10). Patches aplicados: `enrichment_service` em batches de 5 vagas (fecha/reabre Playwright, `gc.collect()` entre batches, commit por batch). `scheduler_service.trigger_job` rejeita scan manual concorrente e adquire lock antes de criar task. Helper `_release_job_lock(job_id)` substitui `is_running=False` nos 3 wrappers e adiciona gc.collect() best-effort. Cron `@reboot + */5 * * * * monitor + 0 4 * * * restart diário` em `/home/ubuntu/scripts/`, log `/var/log/jobhunter-monitor.log`.
 
 **Home server PostgreSQL (2026-06-01):**
 - Complete guide at docs/home-server-guide.md (10 phases, ~2.5h implementation)

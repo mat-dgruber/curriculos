@@ -78,46 +78,64 @@ async def enrich_missing_descriptions(limit: int = 50) -> dict:
         if not playwright_jobs:
             return {"enriched": 0, "failed": 0, "skipped": skipped, "total_missing": len(jobs)}
 
-        # Usa um único browser para todas as plataformas Playwright
+        # Usa um único browser para todas as plataformas Playwright.
+        # Para conter o heap de Chromium em VMs de 1 GiB, fecha e reabre o
+        # browser a cada ENRICH_BATCH_SIZE vagas — cada contexto vazado pode
+        # reter 30-80 MB; o GC do Playwright é lento.
+        ENRICH_BATCH_SIZE = 5
+
         scraper = PlaywrightScraper(
             headless=settings.playwright_headless,
             slow_mo=settings.playwright_slow_mo,
         )
 
         try:
-            async with scraper:
-                for job in playwright_jobs:
-                    try:
-                        await scraper._safe_goto(job.url, timeout=20000)
-                        await scraper._random_delay(1, 2)
+            total = len(playwright_jobs)
+            batch_start = 0
+            while batch_start < total:
+                batch_end = min(batch_start + ENRICH_BATCH_SIZE, total)
+                batch = playwright_jobs[batch_start:batch_end]
+                logger.debug(
+                    "Enrichment batch %d-%d of %d", batch_start, batch_end, total
+                )
+                async with scraper:
+                    for job in batch:
+                        try:
+                            await scraper._safe_goto(job.url, timeout=20000)
+                            await scraper._random_delay(1, 2)
 
-                        selectors = PLATFORM_SELECTORS.get(job.platform, [])
-                        desc = ""
+                            selectors = PLATFORM_SELECTORS.get(job.platform, [])
+                            desc = ""
 
-                        for sel in selectors:
-                            el = await scraper.page.query_selector(sel)
-                            if el:
-                                desc = (await el.inner_text()).strip()
-                                if desc and len(desc) > 20:
-                                    break
+                            for sel in selectors:
+                                el = await scraper.page.query_selector(sel)
+                                if el:
+                                    desc = (await el.inner_text()).strip()
+                                    if desc and len(desc) > 20:
+                                        break
 
-                        if desc:
-                            job.description = desc[:1000]
-                            job.updated_at = datetime.utcnow()
-                            db.add(job)
-                            enriched += 1
-                            logger.info(f"Enriched: {job.title} ({job.platform})")
-                        else:
+                            if desc:
+                                job.description = desc[:1000]
+                                job.updated_at = datetime.utcnow()
+                                db.add(job)
+                                enriched += 1
+                                logger.info(f"Enriched: {job.title} ({job.platform})")
+                            else:
+                                failed += 1
+                                logger.debug(f"No description found: {job.url}")
+
+                            await scraper._random_delay(1, 2)
+
+                        except Exception as e:
                             failed += 1
-                            logger.debug(f"No description found: {job.url}")
-
-                        await scraper._random_delay(1, 2)
-
-                    except Exception as e:
-                        failed += 1
-                        logger.debug(f"Enrich failed for {job.url}: {e}")
+                            logger.debug(f"Enrich failed for {job.url}: {e}")
 
                 await db.commit()
+                batch_start = batch_end
+
+                # Libera memoria residual entre batches (fastapi-side)
+                import gc
+                gc.collect()
 
         except Exception as e:
             logger.error(f"Enrichment browser error: {e}")

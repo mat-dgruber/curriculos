@@ -165,7 +165,7 @@ async def reject_by_filter(
         conditions.append(Job.found_at < cutoff)
 
     if payload.non_favorites_only:
-        conditions.append(Job.is_favorite == False)
+        conditions.append(~Job.is_favorite)
 
     if conditions:
         query = query.where(or_(*conditions))

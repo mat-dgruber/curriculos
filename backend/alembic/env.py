@@ -11,7 +11,6 @@ from alembic import context
 from app.core.database import Base
 from app.core.config import settings
 
-from app.models import Job, Application, FixedCompany, CandidateProfile
 
 config = context.config
 if config.config_file_name is not None:

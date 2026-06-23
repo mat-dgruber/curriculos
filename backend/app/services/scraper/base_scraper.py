@@ -1,7 +1,6 @@
 import logging
 import random
 from abc import ABC, abstractmethod
-from datetime import datetime
 
 import httpx
 from playwright.async_api import async_playwright, Browser, Page, TimeoutError as PlaywrightTimeout

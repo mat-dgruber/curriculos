@@ -1,5 +1,4 @@
 import logging
-import asyncio
 from app.services.automation.base_applicator import BaseApplicator, ApplicationResult
 
 logger = logging.getLogger(__name__)

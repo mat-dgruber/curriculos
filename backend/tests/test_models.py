@@ -2,10 +2,10 @@
 import pytest
 from pydantic import ValidationError
 
-from app.models.job import JobCreate, JobRead, JobUpdate, JobListResponse
-from app.models.application import ApplicationCreate, ApplicationStatusUpdate, ApplicationRead
-from app.models.company import FixedCompanyCreate, FixedCompanyRead, FixedCompanyUpdate
-from app.models.profile import CandidateProfileCreate, CandidateProfileRead, CandidateProfileUpdate
+from app.models.job import JobCreate, JobRead
+from app.models.application import ApplicationCreate, ApplicationStatusUpdate
+from app.models.company import FixedCompanyCreate
+from app.models.profile import CandidateProfileCreate
 
 
 class TestJobCreate:

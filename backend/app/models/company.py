@@ -1,6 +1,7 @@
 from datetime import datetime
 from uuid import uuid4
 
+from pydantic import Field
 from sqlalchemy import String, Integer, Text, DateTime, Boolean, Index
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -30,7 +31,7 @@ class FixedCompany(Base):
         DateTime, nullable=False, default=datetime.utcnow, onupdate=datetime.utcnow
     )
 
-    applications: Mapped[list["Application"]] = relationship(
+    applications: Mapped[list["Application"]] = relationship(  # noqa: F821
         back_populates="fixed_company"
     )
 
@@ -39,10 +40,6 @@ class FixedCompany(Base):
         Index("ix_fixed_companies_is_active", "is_active"),
         Index("ix_fixed_companies_next_send_at", "next_send_at"),
     )
-
-
-from pydantic import Field
-
 
 class FixedCompanyCreate(CamelModel):
     name: str = Field(..., max_length=255)

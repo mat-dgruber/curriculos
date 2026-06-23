@@ -49,7 +49,6 @@ async def test_create_company_default_interval(client):
 @pytest.mark.asyncio
 async def test_update_company(client, db):
     from app.models.company import FixedCompany
-    from datetime import datetime
 
     company = FixedCompany(
         id="update-company-1",

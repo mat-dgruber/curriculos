@@ -2,7 +2,6 @@ import logging
 from datetime import datetime
 
 from sqlalchemy import select
-from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import async_session
 from app.core.config import settings
@@ -53,7 +52,7 @@ async def enrich_missing_descriptions(limit: int = 50) -> dict:
     async with async_session() as db:
         result = await db.execute(
             select(Job).where(
-                (Job.description == None) | (Job.description == "")
+                (Job.description.is_(None)) | (Job.description == "")
             ).limit(limit)
         )
         jobs = result.scalars().all()

@@ -1,6 +1,7 @@
 from datetime import datetime
 from uuid import uuid4
 
+from pydantic import Field
 from sqlalchemy import String, Text, DateTime, Boolean, ForeignKey, Index
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -34,8 +35,8 @@ class Application(Base):
         DateTime, nullable=False, default=datetime.utcnow, onupdate=datetime.utcnow
     )
 
-    job: Mapped["Job"] = relationship(back_populates="applications")
-    fixed_company: Mapped["FixedCompany | None"] = relationship(
+    job: Mapped["Job"] = relationship(back_populates="applications")  # noqa: F821
+    fixed_company: Mapped["FixedCompany | None"] = relationship(  # noqa: F821
         back_populates="applications"
     )
 
@@ -45,10 +46,6 @@ class Application(Base):
         Index("ix_applications_job_id", "job_id"),
         Index("ix_applications_is_recurring", "is_recurring"),
     )
-
-
-from pydantic import Field
-
 
 class ApplicationCreate(CamelModel):
     job_id: str = Field(..., max_length=36)

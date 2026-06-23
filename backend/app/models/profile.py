@@ -2,6 +2,7 @@ from datetime import datetime
 from uuid import uuid4
 import json
 
+from pydantic import Field
 from sqlalchemy import String, Integer, Text, DateTime, Boolean
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -49,10 +50,6 @@ class CandidateProfile(Base):
 
     def get_preferred_locations_list(self) -> list[str]:
         return json.loads(self.preferred_locations) if self.preferred_locations else []
-
-
-from pydantic import Field
-
 
 class CandidateProfileCreate(CamelModel):
     name: str = Field(..., max_length=255)

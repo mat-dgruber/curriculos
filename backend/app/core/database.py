@@ -35,7 +35,6 @@ async def init_db():
         if db_dir and not os.path.exists(db_dir):
             os.makedirs(db_dir, exist_ok=True)
 
-    from app.models.application_click import ApplicationClick
     from app.models.rejected_job import RejectedJob  # noqa: F401
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)

@@ -203,7 +203,7 @@ async def seed():
 
         await session.commit()
         print("Seed data created successfully!")
-        print(f"  - 1 profile")
+        print("  - 1 profile")
         print(f"  - {len(jobs)} jobs")
         print(f"  - {len(applications)} applications")
         print(f"  - {len(companies)} fixed companies")

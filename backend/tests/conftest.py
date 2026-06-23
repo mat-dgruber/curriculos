@@ -1,4 +1,3 @@
-import asyncio
 import os
 
 # Set test env BEFORE any app imports
@@ -7,7 +6,6 @@ os.environ["ENVIRONMENT"] = "test"
 os.environ.pop("ENVIRONMENT", None)
 os.environ["ENVIRONMENT"] = "development"  # Reset to expected default
 
-import pytest
 import pytest_asyncio
 from httpx import ASGITransport, AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine

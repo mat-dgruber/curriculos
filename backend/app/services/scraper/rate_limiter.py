@@ -1,6 +1,6 @@
 import json
 import logging
-from datetime import datetime, date
+from datetime import date
 from pathlib import Path
 
 from app.core.config import settings

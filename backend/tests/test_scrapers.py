@@ -3,7 +3,6 @@ import pytest
 from unittest.mock import AsyncMock, patch, MagicMock
 from app.services.scraper.jooble_scraper import JoobleScraper
 from app.services.scraper.adzuna_scraper import AdzunaScraper
-from app.services.scraper.base_scraper import ScrapedJob
 
 
 # ─── Jooble Scraper ──────────────────────────────────────────────

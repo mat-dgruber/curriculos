@@ -1,7 +1,7 @@
 import logging
 import os
 from abc import ABC, abstractmethod
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from datetime import datetime
 
 from playwright.async_api import async_playwright, Browser, Page, TimeoutError as PlaywrightTimeout

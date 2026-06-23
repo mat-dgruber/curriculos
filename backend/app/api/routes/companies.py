@@ -157,7 +157,7 @@ async def get_last_screenshot(company_id: str, db: AsyncSession = Depends(get_db
         select(Application)
         .where(
             Application.fixed_company_id == company_id,
-            Application.screenshot_path != None,
+            Application.screenshot_path.is_not(None),
         )
         .order_by(Application.created_at.desc())
         .limit(1)

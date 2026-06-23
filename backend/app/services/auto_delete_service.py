@@ -17,7 +17,7 @@ async def run_auto_delete(db: AsyncSession, auto_delete_days: int) -> dict:
 
     cutoff = datetime.utcnow() - timedelta(days=auto_delete_days)
     result = await db.execute(
-        select(Job).where(Job.is_favorite == False, Job.found_at < cutoff)
+        select(Job).where(~Job.is_favorite, Job.found_at < cutoff)
     )
     old_jobs = result.scalars().all()
 
@@ -61,7 +61,7 @@ async def preview_auto_delete(db: AsyncSession, auto_delete_days: int) -> dict:
 
     cutoff = datetime.utcnow() - timedelta(days=auto_delete_days)
     result = await db.execute(
-        select(Job).where(Job.is_favorite == False, Job.found_at < cutoff)
+        select(Job).where(~Job.is_favorite, Job.found_at < cutoff)
     )
     jobs = result.scalars().all()
 

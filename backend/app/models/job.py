@@ -1,6 +1,7 @@
 from datetime import datetime
 from uuid import uuid4
 
+from pydantic import Field
 from sqlalchemy import String, Integer, Text, DateTime, Index, Boolean
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -35,7 +36,7 @@ class Job(Base):
         DateTime, nullable=False, default=datetime.utcnow, onupdate=datetime.utcnow
     )
 
-    applications: Mapped[list["Application"]] = relationship(
+    applications: Mapped[list["Application"]] = relationship(  # noqa: F821
         back_populates="job", cascade="all, delete-orphan"
     )
 
@@ -46,9 +47,6 @@ class Job(Base):
         Index("ix_jobs_found_at", "found_at"),
         Index("ix_jobs_platform_status", "platform", "status"),
     )
-
-
-from pydantic import Field
 
 
 class JobCreate(CamelModel):

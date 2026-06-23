@@ -1,4 +1,3 @@
-import json
 import logging
 from datetime import datetime, timedelta
 
@@ -35,7 +34,7 @@ async def run_recurring_sends() -> dict:
         now = datetime.utcnow()
         result = await db.execute(
             select(FixedCompany).where(
-                FixedCompany.is_active == True,
+                FixedCompany.is_active,
                 FixedCompany.status != "Respondeu",
             )
         )

@@ -15,7 +15,7 @@ from app.services.scraper.base_scraper import HttpScraper, ScrapedJob
 
 logger = logging.getLogger(__name__)
 
-GUPY_PORTAL_SEARCH = "https://portal.gupy.io/job/{term}"
+GUPY_PORTAL_SEARCH = "https://portal.gupy.io/job-search/term={term}"
 
 
 class GupyPortalScraper(HttpScraper):

@@ -1,5 +1,7 @@
 import json
 import logging
+import re
+import unicodedata
 from datetime import datetime
 
 from sqlalchemy import select
@@ -12,6 +14,27 @@ from app.services.scraper.orchestrator import ScraperOrchestrator
 from app.services.matcher import match_jobs
 
 logger = logging.getLogger(__name__)
+
+
+def _canonical_url(url: str) -> str:
+    """Strip tracking query params from URL to get stable identifier."""
+    if not url:
+        return url
+    # Remove query string and fragment (LinkedIn adds ?position=N&pa=... per keyword)
+    base = re.split(r'[?#]', url)[0].rstrip('/')
+    return base
+
+
+def _job_fingerprint(title: str, company: str) -> str:
+    """Normalize title+company for fuzzy dedup (case/accent insensitive)."""
+    def norm(s: str) -> str:
+        s = s.lower().strip()
+        # Remove accents
+        s = unicodedata.normalize('NFD', s)
+        s = ''.join(c for c in s if unicodedata.category(c) != 'Mn')
+        # Collapse whitespace
+        return re.sub(r'\s+', ' ', s)
+    return f"{norm(title)}|{norm(company)}"
 
 MIN_SCORE = 20
 
@@ -56,18 +79,33 @@ async def run_scan() -> dict:
         # Filter by minimum score
         scored = [(j, s) for j, s in scored if s >= MIN_SCORE]
 
-        # Get existing URLs (from jobs table AND rejected_jobs table)
-        existing_urls_result = await db.execute(select(Job.url))
-        existing_urls = {row[0] for row in existing_urls_result.all()}
+        # Get existing canonical URLs + fingerprints from DB
+        existing_urls_result = await db.execute(select(Job.url, Job.title, Job.company))
+        existing_rows = existing_urls_result.all()
+        excluded_canonical_urls: set[str] = {_canonical_url(row[0]) for row in existing_rows}
+        excluded_fingerprints: set[str] = {_job_fingerprint(row[1], row[2]) for row in existing_rows}
 
         rejected_urls_result = await db.execute(select(RejectedJob.url))
-        rejected_urls = {row[0] for row in rejected_urls_result.all()}
+        rejected_canonical_urls = {_canonical_url(row[0]) for row in rejected_urls_result.all()}
+        excluded_canonical_urls |= rejected_canonical_urls
 
-        excluded_urls = existing_urls | rejected_urls
+        # In-memory set to dedup within this batch
+        batch_canonical_urls: set[str] = set()
+        batch_fingerprints: set[str] = set()
 
         new_count = 0
+        skipped_dup = 0
         for scraped_job, score in scored:
-            if scraped_job.url in excluded_urls:
+            canonical = _canonical_url(scraped_job.url)
+            fingerprint = _job_fingerprint(scraped_job.title, scraped_job.company)
+
+            # Skip if already in DB (by canonical URL or title+company)
+            if canonical in excluded_canonical_urls or fingerprint in excluded_fingerprints:
+                skipped_dup += 1
+                continue
+            # Skip if already queued in this batch
+            if canonical in batch_canonical_urls or fingerprint in batch_fingerprints:
+                skipped_dup += 1
                 continue
 
             job = Job(
@@ -84,15 +122,19 @@ async def run_scan() -> dict:
                 found_at=datetime.utcnow(),
             )
             db.add(job)
-            excluded_urls.add(scraped_job.url)
+            batch_canonical_urls.add(canonical)
+            batch_fingerprints.add(fingerprint)
             new_count += 1
 
+        if skipped_dup:
+            logger.info(f"Scan: skipped {skipped_dup} duplicate jobs (URL or title+company match)")
         await db.commit()
 
         scan_summary = {
             "new_jobs": new_count,
             "total_scraped": scan_result.total_scraped,
             "unique_scored": len(scored),
+            "duplicates_skipped": skipped_dup,
             "platforms": scan_result.summary["platforms"],
         }
         logger.info(f"Scan complete: {scan_summary}")

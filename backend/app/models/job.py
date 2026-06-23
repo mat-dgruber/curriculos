@@ -53,7 +53,7 @@ class JobCreate(CamelModel):
     title: str = Field(..., max_length=255)
     company: str = Field(..., max_length=255)
     location: str = Field(..., max_length=255)
-    platform: str = Field(..., pattern=r"^(linkedin|gupy|vagas|jooble|adzuna|remotive|infojobs|catho)$")
+    platform: str = Field(..., pattern=r"^(linkedin|gupy|gupy_portal|vagas|arbeitnow|adzuna|remotive|infojobs)$")
     url: str = Field(..., max_length=1024)
     description: str | None = None
     requirements: str | None = None
@@ -83,7 +83,7 @@ class JobUpdate(CamelModel):
     title: str | None = Field(None, max_length=255)
     company: str | None = Field(None, max_length=255)
     location: str | None = Field(None, max_length=255)
-    platform: str | None = Field(None, pattern=r"^(linkedin|gupy|vagas|jooble|adzuna|remotive|infojobs|catho)$")
+    platform: str | None = Field(None, pattern=r"^(linkedin|gupy|gupy_portal|vagas|arbeitnow|adzuna|remotive|infojobs)$")
     url: str | None = Field(None, max_length=1024)
     description: str | None = None
     requirements: str | None = None

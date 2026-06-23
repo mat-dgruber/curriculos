@@ -61,35 +61,29 @@ class ScraperOrchestrator:
         self._register_defaults()
 
     def _register_defaults(self):
-        from app.services.scraper.gupy_scraper import GupyScraper
+        from app.services.scraper.gupy_portal_scraper import GupyPortalScraper
         from app.services.scraper.linkedin_scraper import LinkedInScraper
         from app.services.scraper.vagas_scraper import VagasScraper
-        from app.services.scraper.jooble_scraper import JoobleScraper
+        from app.services.scraper.arbeitnow_scraper import ArbeitnowScraper
         from app.services.scraper.adzuna_scraper import AdzunaScraper
         from app.services.scraper.remotive_scraper import RemotiveScraper
         from app.services.scraper.infojobs_scraper import InfoJobsScraper
-        from app.services.scraper.catho_scraper import CathoScraper
 
         self._scrapers = {
-            "gupy": GupyScraper,
+            "gupy": GupyPortalScraper,
             "linkedin": LinkedInScraper,
             "vagas": VagasScraper,
-            "jooble": JoobleScraper,
+            "arbeitnow": ArbeitnowScraper,
             "adzuna": AdzunaScraper,
             "remotive": RemotiveScraper,
             "infojobs": InfoJobsScraper,
-            "catho": CathoScraper,
         }
 
     def _build_scraper(self, platform: str):
         cls = self._scrapers[platform]
 
-        if platform == "jooble":
-            return cls(api_key=settings.jooble_api_key)
-        elif platform == "adzuna":
+        if platform == "adzuna":
             return cls(app_id=settings.adzuna_app_id, app_key=settings.adzuna_app_key)
-        elif platform in ("gupy", "remotive"):
-            return cls()
         else:
             return cls(headless=settings.playwright_headless, slow_mo=settings.playwright_slow_mo)
 

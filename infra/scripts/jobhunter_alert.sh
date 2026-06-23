@@ -10,15 +10,23 @@ if [ ! -f "$LOG" ]; then
   exit 0
 fi
 
-last_n=$(tail -n $N_CONSEC "$LOG" | grep -oE 'pct=[0-9.]+' | tail -1 | cut -d= -f2)
-if [ -z "$last_n" ]; then
+# Extrai a lista de pct dos últimos N snapshots (uma linha por sample).
+samples=$(tail -n $N_CONSEC "$LOG" | grep -oE 'pct=[0-9.]+' | cut -d= -f2)
+if [ -z "$samples" ]; then
   exit 0
 fi
 
-# bc nem sempre está disponível; aceitar erro silencioso
-above=$(echo "$last_n >= $PCT_THRESHOLD" | bc -l 2>/dev/null || echo 0)
-if [ "$above" = "1" ] && [ -n "$WEBHOOK_URL" ]; then
+# Conta quantos snapshots existem de fato (≤ N_CONSEC).
+sample_count=$(echo "$samples" | wc -l | tr -d ' ')
+if [ "$sample_count" -lt "$N_CONSEC" ]; then
+  exit 0
+fi
+
+# Exige que TODOS os últimos N estejam >= threshold.
+above=$(echo "$samples" | awk -v t="$PCT_THRESHOLD" '{ c += ($1+0 >= t) } END { print c+0 }')
+if [ "$above" = "$N_CONSEC" ] && [ -n "$WEBHOOK_URL" ]; then
+  max=$(echo "$samples" | sort -g | tail -1)
   curl -fsS -X POST -H "Content-Type: application/json" \
-    -d "{\"content\":\"jobhunter mem pct=$last_n >= $PCT_THRESHOLD\"}" \
+    -d "{\"content\":\"jobhunter mem pct>=$PCT_THRESHOLD (max=$max) por $N_CONSEC snapshots\"}" \
     "$WEBHOOK_URL" || true
 fi

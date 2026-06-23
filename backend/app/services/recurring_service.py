@@ -110,12 +110,12 @@ async def run_recurring_sends() -> dict:
 
                 if result.success:
                     sent += 1
-                    notification_service.notify_recurring_send(
+                    await notification_service.notify_recurring_send(
                         company.name, company.total_sent, True
                     )
                 else:
                     failed += 1
-                    notification_service.notify_recurring_send(
+                    await notification_service.notify_recurring_send(
                         company.name, company.total_sent, False
                     )
 
@@ -207,11 +207,11 @@ async def run_single_company_send(company_id: str, db: AsyncSession) -> dict:
         company.next_send_at = datetime.utcnow() + timedelta(days=company.interval_days)
 
         if result.success:
-            notification_service.notify_recurring_send(
+            await notification_service.notify_recurring_send(
                 company.name, company.total_sent, True
             )
         else:
-            notification_service.notify_recurring_send(
+            await notification_service.notify_recurring_send(
                 company.name, company.total_sent, False
             )
 

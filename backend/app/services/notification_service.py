@@ -8,7 +8,7 @@ from app.core.config import settings
 logger = logging.getLogger(__name__)
 
 
-def send_email(subject: str, body: str) -> bool:
+async def send_email(subject: str, body: str) -> bool:
     """Send an email notification. Returns True if successful."""
     if not settings.smtp_user or not settings.smtp_password:
         logger.warning("SMTP not configured. Email not sent.")
@@ -45,16 +45,15 @@ def send_email(subject: str, body: str) -> bool:
             return False
 
     if loop and loop.is_running():
-        # Como send_email é síncrono (def em vez de async def), fazemos a chamada
-        # sem bloquear o event loop atual agendando a thread.
-        # Note que se a rota não aguarda o retorno, to_thread é perfeito.
-        loop.create_task(asyncio.to_thread(_send))
-        return True
+        # Offload SMTP I/O (sync) to a worker thread so the event loop
+        # isn't blocked. Await the future to preserve delivery True/False
+        # semantics for callers that rely on the return value.
+        return await asyncio.to_thread(_send)
     else:
         return _send()
 
 
-def notify_new_jobs(count: int, platform_summary: dict) -> None:
+async def notify_new_jobs(count: int, platform_summary: dict) -> None:
     """Send notification about new jobs found."""
     platform_names = {
         "linkedin": "LinkedIn",
@@ -79,20 +78,20 @@ def notify_new_jobs(count: int, platform_summary: dict) -> None:
     </ul>
     <p>Acesse o painel para verificar as vagas.</p>
     """
-    send_email(f"{count} novas vagas encontradas", body)
+    await send_email(f"{count} novas vagas encontradas", body)
 
 
-def notify_application_success(job_title: str, company: str, platform: str) -> None:
+async def notify_application_success(job_title: str, company: str, platform: str) -> None:
     """Send notification about successful application."""
     body = f"""
     <h2>Currículo enviado com sucesso!</h2>
     <p>Seu currículo foi enviado para <strong>{company}</strong> para a vaga de <strong>{job_title}</strong>.</p>
     <p>Plataforma: {platform}</p>
     """
-    send_email(f"Currículo enviado para {company}", body)
+    await send_email(f"Currículo enviado para {company}", body)
 
 
-def notify_application_failure(job_title: str, company: str, error: str) -> None:
+async def notify_application_failure(job_title: str, company: str, error: str) -> None:
     """Send notification about failed application."""
     body = f"""
     <h2>Falha no envio do currículo</h2>
@@ -100,10 +99,10 @@ def notify_application_failure(job_title: str, company: str, error: str) -> None
     <p><strong>Motivo:</strong> {error}</p>
     <p>Acesse o painel para tentar novamente manualmente.</p>
     """
-    send_email(f"Falha ao enviar para {company}", body)
+    await send_email(f"Falha ao enviar para {company}", body)
 
 
-def notify_recurring_send(company_name: str, total_sent: int, success: bool) -> None:
+async def notify_recurring_send(company_name: str, total_sent: int, success: bool) -> None:
     """Send notification about recurring send result."""
     if success:
         body = f"""
@@ -111,11 +110,11 @@ def notify_recurring_send(company_name: str, total_sent: int, success: bool) -> 
         <p>Envio mensal realizado para <strong>{company_name}</strong>.</p>
         <p>Total de envios: {total_sent}</p>
         """
-        send_email(f"Envio recorrente: {company_name}", body)
+        await send_email(f"Envio recorrente: {company_name}", body)
     else:
         body = f"""
         <h2>Falha no envio recorrente</h2>
         <p>O envio mensal para <strong>{company_name}</strong> falhou.</p>
         <p>Acesse o painel para verificar.</p>
         """
-        send_email(f"Falha no envio recorrente: {company_name}", body)
+        await send_email(f"Falha no envio recorrente: {company_name}", body)

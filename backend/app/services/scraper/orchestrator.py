@@ -81,11 +81,14 @@ class ScraperOrchestrator:
 
     def _build_scraper(self, platform: str):
         cls = self._scrapers[platform]
+        from app.services.scraper.base_scraper import PlaywrightScraper
 
         if platform == "adzuna":
             return cls(app_id=settings.adzuna_app_id, app_key=settings.adzuna_app_key)
-        else:
+        elif issubclass(cls, PlaywrightScraper):
             return cls(headless=settings.playwright_headless, slow_mo=settings.playwright_slow_mo)
+        else:
+            return cls()
 
     def _should_run(self, platform: str) -> bool:
         if platform not in self._scrapers:

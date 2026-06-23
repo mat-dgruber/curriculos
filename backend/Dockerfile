@@ -8,8 +8,8 @@ RUN pip install --no-cache-dir uv==0.6.2
 # Copy dependency manifest first for better layer caching
 COPY pyproject.toml uv.lock* ./
 
-# Install all deps (including dev for uvicorn/hot-reload)
-RUN uv sync --frozen
+# Install all deps (síncrono, sem --frozen)
+RUN uv sync
 
 # Copy source
 COPY app ./app

@@ -20,9 +20,20 @@ class ArbeitnowScraper(HttpScraper):
 
     async def scrape(self, search_params: dict) -> list[ScrapedJob]:
         jobs: list[ScrapedJob] = []
+        target_roles = search_params.get("title", [])
         keywords = search_params.get("keywords", [])
 
-        search_terms = keywords[:3] if keywords else ["desenvolvedor"]
+        # Use target roles as primary search terms so Arbeitnow finds relevant PT/BR jobs
+        search_terms = target_roles[:3] if target_roles else keywords[:3] or ["desenvolvedor"]
+
+        # Build relevance filter: accept job if title/desc contains any role or keyword
+        role_kw_lower = [r.lower() for r in (target_roles + keywords)]
+
+        def _is_relevant(title: str, description: str) -> bool:
+            """Pre-filter: accept only if any target role/keyword appears in title or description."""
+            t = title.lower()
+            d = description.lower()
+            return any(rk in t or rk in d for rk in role_kw_lower)
 
         for term in search_terms:
             try:
@@ -45,13 +56,17 @@ class ArbeitnowScraper(HttpScraper):
                         company = item.get("company_name", "")
                         if not title or not company:
                             continue
+                        description = item.get("description", "")
+                        # Pre-filter: skip obviously irrelevant jobs (EU/tech not matching our profile)
+                        if role_kw_lower and not _is_relevant(title, description):
+                            continue
                         tags = item.get("tags", []) or []
                         jobs.append(
                             ScrapedJob(
                                 title=title,
                                 company=company,
                                 location=item.get("location", "") or "Remote",
-                                description=item.get("description", ""),
+                                description=description,
                                 url=item.get("url", ""),
                                 platform="arbeitnow",
                                 salary_range=None,

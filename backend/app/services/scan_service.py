@@ -57,9 +57,10 @@ async def run_scan() -> dict:
         preferred_locations = profile.get_preferred_locations_list()
 
         search_params = {
-            "keywords": keywords,
-            "title": target_roles,
-            "location": preferred_locations,
+            "keywords": keywords,                            # for description matching in matcher
+            "title": target_roles,                           # for scraper search terms (what to search for)
+            "location": preferred_locations,                 # full list for matching
+            "location_str": preferred_locations[0] if preferred_locations else "Brasil",  # primary location string for URL builders
         }
 
         orchestrator = ScraperOrchestrator()

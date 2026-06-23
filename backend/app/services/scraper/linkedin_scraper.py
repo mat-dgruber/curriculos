@@ -15,17 +15,22 @@ class LinkedInScraper(PlaywrightScraper):
 
     async def scrape(self, search_params: dict) -> list[ScrapedJob]:
         jobs: list[ScrapedJob] = []
+        # Use target roles as primary search terms (more specific/relevant than raw keywords)
+        target_roles = search_params.get("title", [])
         keywords = search_params.get("keywords", [])
-        location = search_params.get("location", "Brasil")
+        # location_str is the primary location string (e.g. "Sorocaba, SP"), not the full list
+        location = search_params.get("location_str", "Brasil")
 
-        search_terms = keywords[:2] if keywords else ["desenvolvedor"]
+        # Search by role names + "Brasil" to get broad national coverage
+        search_terms = target_roles[:3] if target_roles else keywords[:2] or ["desenvolvedor"]
 
         for term in search_terms:
             try:
+                import urllib.parse
                 url = (
                     f"{LINKEDIN_SEARCH_URL}"
-                    f"?keywords={term}"
-                    f"&location={location}"
+                    f"?keywords={urllib.parse.quote(term)}"
+                    f"&location={urllib.parse.quote(location)}"
                     f"&f_TPR=r604800"
                     f"&sortBy=DD"
                 )

@@ -44,7 +44,7 @@ async def test_arbeitnow_returns_jobs():
     with patch("app.services.scraper.base_scraper.httpx.AsyncClient", return_value=mock_client):
         scraper = ArbeitnowScraper()
         async with scraper:
-            jobs = await scraper.scrape({"keywords": ["angular"]})
+            jobs = await scraper.scrape({"title": ["Angular", "Python"], "keywords": ["angular", "python"]})
 
     assert len(jobs) >= 2
     assert any(j.title == "Senior Angular Developer" for j in jobs)

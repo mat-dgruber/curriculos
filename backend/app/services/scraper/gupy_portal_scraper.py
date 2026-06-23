@@ -30,9 +30,11 @@ class GupyPortalScraper(PlaywrightScraper):
 
     async def scrape(self, search_params: dict) -> list[ScrapedJob]:
         jobs: list[ScrapedJob] = []
+        target_roles = search_params.get("title", [])
         keywords = search_params.get("keywords", [])
 
-        search_terms = keywords[:2] if keywords else ["desenvolvedor"]
+        # Prefer target role names as search terms (e.g. "Assistente de RH")
+        search_terms = target_roles[:2] if target_roles else keywords[:2] or ["desenvolvedor"]
 
         for term in search_terms:
             try:

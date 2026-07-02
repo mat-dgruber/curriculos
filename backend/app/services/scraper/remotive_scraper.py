@@ -31,13 +31,15 @@ class RemotiveScraper(HttpScraper):
             self.logger.warning("Remotive: daily rate limit reached, skipping")
             return []
 
+        target_roles = search_params.get("title", [])
         keywords = search_params.get("keywords", [])
-        search = " ".join(keywords[:3]) if keywords else "developer"
+
+        search_terms = (target_roles + keywords)[:3] if (target_roles or keywords) else ["developer"]
+        search = " ".join(search_terms)
 
         params = {"search": search, "limit": 50}
 
-        resp = await self._client.get(REMOTIVE_API_URL, params=params)
-        resp.raise_for_status()
+        resp = await self.get_with_retry(REMOTIVE_API_URL, params=params)
 
         self._request_counts[today] = count_today + 1
 

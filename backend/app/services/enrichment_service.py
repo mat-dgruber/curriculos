@@ -1,4 +1,6 @@
+import asyncio
 import logging
+import random
 from datetime import datetime
 
 from sqlalchemy import select
@@ -47,7 +49,11 @@ async def enrich_missing_descriptions(limit: int = 50) -> dict:
     Busca vagas sem descrição e tenta extrair da página de detalhe.
     Retorna resumo: {enriched: int, failed: int, skipped: int}.
     """
-    from app.services.scraper.base_scraper import PlaywrightScraper
+    from app.services.scraper.base_scraper import ScraplingScraper
+
+    class ConcreteScraplingScraper(ScraplingScraper):
+        async def scrape(self, search_params: dict):
+            return []
 
     async with async_session() as db:
         result = await db.execute(
@@ -77,15 +83,11 @@ async def enrich_missing_descriptions(limit: int = 50) -> dict:
         if not playwright_jobs:
             return {"enriched": 0, "failed": 0, "skipped": skipped, "total_missing": len(jobs)}
 
-        # Usa um único browser para todas as plataformas Playwright.
-        # Para conter o heap de Chromium em VMs de 1 GiB, fecha e reabre o
-        # browser a cada ENRICH_BATCH_SIZE vagas — cada contexto vazado pode
-        # reter 30-80 MB; o GC do Playwright é lento.
         ENRICH_BATCH_SIZE = 5
 
-        scraper = PlaywrightScraper(
+        scraper = ConcreteScraplingScraper(
+            use_stealth=True,
             headless=settings.playwright_headless,
-            slow_mo=settings.playwright_slow_mo,
         )
 
         try:
@@ -100,16 +102,16 @@ async def enrich_missing_descriptions(limit: int = 50) -> dict:
                 async with scraper:
                     for job in batch:
                         try:
-                            await scraper._safe_goto(job.url, timeout=20000)
-                            await scraper._random_delay(1, 2)
+                            response = await scraper._fetch(job.url, timeout=20000)
+                            await asyncio.sleep(random.uniform(1, 2))
 
                             selectors = PLATFORM_SELECTORS.get(job.platform, [])
                             desc = ""
 
                             for sel in selectors:
-                                el = await scraper.page.query_selector(sel)
-                                if el:
-                                    desc = (await el.inner_text()).strip()
+                                desc_el = response.css(sel)
+                                if desc_el:
+                                    desc = desc_el.get_all_text().strip()
                                     if desc and len(desc) > 20:
                                         break
 
@@ -123,11 +125,12 @@ async def enrich_missing_descriptions(limit: int = 50) -> dict:
                                 failed += 1
                                 logger.debug(f"No description found: {job.url}")
 
-                            await scraper._random_delay(1, 2)
+                            await asyncio.sleep(random.uniform(1, 2))
 
                         except Exception as e:
                             failed += 1
                             logger.debug(f"Enrich failed for {job.url}: {e}")
+
 
                 await db.commit()
                 batch_start = batch_end

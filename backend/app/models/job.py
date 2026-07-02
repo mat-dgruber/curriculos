@@ -1,12 +1,18 @@
 from datetime import datetime
 from uuid import uuid4
 
+from typing import TYPE_CHECKING
+
 from pydantic import Field
 from sqlalchemy import String, Integer, Text, DateTime, Index, Boolean
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core.database import Base
 from app.core.schema import CamelModel
+
+if TYPE_CHECKING:
+    from app.models.application import Application
+
 
 
 class Job(Base):
@@ -53,7 +59,10 @@ class JobCreate(CamelModel):
     title: str = Field(..., max_length=255)
     company: str = Field(..., max_length=255)
     location: str = Field(..., max_length=255)
-    platform: str = Field(..., pattern=r"^(linkedin|gupy|gupy_portal|vagas|arbeitnow|adzuna|remotive|infojobs)$")
+    platform: str = Field(
+        ...,
+        pattern=r"^(linkedin|gupy|gupy_portal|vagas|arbeitnow|adzuna|remotive|infojobs)$",
+    )
     url: str = Field(..., max_length=1024)
     description: str | None = None
     requirements: str | None = None
@@ -83,7 +92,10 @@ class JobUpdate(CamelModel):
     title: str | None = Field(None, max_length=255)
     company: str | None = Field(None, max_length=255)
     location: str | None = Field(None, max_length=255)
-    platform: str | None = Field(None, pattern=r"^(linkedin|gupy|gupy_portal|vagas|arbeitnow|adzuna|remotive|infojobs)$")
+    platform: str | None = Field(
+        None,
+        pattern=r"^(linkedin|gupy|gupy_portal|vagas|arbeitnow|adzuna|remotive|infojobs)$",
+    )
     url: str | None = Field(None, max_length=1024)
     description: str | None = None
     requirements: str | None = None

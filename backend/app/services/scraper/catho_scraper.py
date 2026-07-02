@@ -1,135 +1,156 @@
-import logging
-import asyncio
+"""Catho scraper (Scrapling)."""
 
-from app.services.scraper.base_scraper import PlaywrightScraper, ScrapedJob
+import asyncio
+import logging
+import random
+
+from app.services.scraper.base_scraper import ScraplingScraper, ScrapedJob
 
 logger = logging.getLogger(__name__)
 
 CATHO_BASE_URL = "https://www.catho.com.br"
 
 
-class CathoScraper(PlaywrightScraper):
-    """Scraper for Catho.com.br (Playwright, no API).
-
-    Catho tem proteção anti-bot. Seletores defensivos com fallbacks.
-    """
+class CathoScraper(ScraplingScraper):
+    """Scraper for Catho.com.br using Scrapling."""
 
     platform = "catho"
 
     async def scrape(self, search_params: dict) -> list[ScrapedJob]:
         jobs: list[ScrapedJob] = []
+        target_roles = search_params.get("title", [])
         keywords = search_params.get("keywords", [])
-        location = search_params.get("location", "")
+        location = search_params.get("location_str", "")
 
-        search_terms = keywords[:2] if keywords else ["desenvolvedor"]
+        search_terms = (
+            target_roles[:2] if target_roles else keywords[:2] or ["desenvolvedor"]
+        )
+
+        async def scroll_action(page):
+            for _ in range(3):
+                await page.evaluate("window.scrollBy(0, 800)")
+                await asyncio.sleep(1)
 
         for term in search_terms:
             try:
-                slug = term.replace(" ", "+")
+                slug = term.lower().replace(" ", "-")
                 url = f"{CATHO_BASE_URL}/vagas/{slug}"
                 if location:
-                    url += f"?localizacao={location}"
+                    import urllib.parse
 
-                await self._safe_goto(url)
-                await self._random_delay(3, 5)
+                    url += f"?localizacao={urllib.parse.quote(location)}"
 
-                page_text = await self.page.inner_text("body")
+                response = await self._fetch(
+                    url,
+                    wait_selector='[data-qa="card-vaga"], [class*="card"], [class*="vaga"], article',
+                    wait_selector_state="attached",
+                    page_action=scroll_action,
+                    timeout=25000,
+                )
+
+                # Check for block
+                page_text = response.get_all_text()
                 if "Operação Inválida" in page_text or len(page_text) < 500:
                     logger.warning("Catho: page blocked or empty, skipping")
                     break
 
-                await self._scroll_page()
-                await self._random_delay(1, 2)
-
-                cards = await self.page.query_selector_all(
+                # Extract job cards
+                cards = response.css(
                     '[data-qa="card-vaga"], [class*="card"], [class*="vaga"], article'
                 )
-
                 if not cards:
-                    cards = await self.page.query_selector_all('a[href*="/vagas/"]')
+                    cards = response.css('a[href*="/vagas/"]')
 
                 for card in cards[:20]:
                     try:
                         title = ""
-                        for sel in ['[data-qa="cargo"]', 'h2', 'h3', '[class*="title"]']:
-                            el = await card.query_selector(sel)
-                            if el:
-                                title = (await el.inner_text()).strip()
+                        for sel in [
+                            '[data-qa="cargo"]',
+                            "h2",
+                            "h3",
+                            '[class*="title"]',
+                        ]:
+                            title_el = card.css(sel)
+                            if title_el:
+                                title = title_el.get_all_text().strip()
                                 if title:
                                     break
 
                         company = ""
-                        for sel in ['[data-qa="empresa"]', '[class*="company"]', '[class*="empresa"]']:
-                            el = await card.query_selector(sel)
-                            if el:
-                                company = (await el.inner_text()).strip()
+                        for sel in [
+                            '[data-qa="empresa"]',
+                            '[class*="company"]',
+                            '[class*="empresa"]',
+                        ]:
+                            company_el = card.css(sel)
+                            if company_el:
+                                company = company_el.get_all_text().strip()
                                 if company:
                                     break
 
                         loc = ""
-                        for sel in ['[data-qa="localizacao"]', '[class*="location"]', '[class*="localizacao"]']:
-                            el = await card.query_selector(sel)
-                            if el:
-                                loc = (await el.inner_text()).strip()
+                        for sel in [
+                            '[data-qa="localizacao"]',
+                            '[class*="location"]',
+                            '[class*="localizacao"]',
+                        ]:
+                            loc_el = card.css(sel)
+                            if loc_el:
+                                loc = loc_el.get_all_text().strip()
                                 if loc:
                                     break
 
                         href = ""
-                        link_el = await card.query_selector("a[href]")
+                        link_el = card.css("a[href]")
                         if link_el:
-                            href = await link_el.get_attribute("href") or ""
+                            href = link_el.attrib.get("href") or ""
                         if href and not href.startswith("http"):
                             href = f"{CATHO_BASE_URL}{href}"
 
                         if title and company:
-                            jobs.append(ScrapedJob(
-                                title=title,
-                                company=company,
-                                location=loc,
-                                description="",
-                                url=href or url,
-                                platform="catho",
-                            ))
+                            jobs.append(
+                                ScrapedJob(
+                                    title=title,
+                                    company=company,
+                                    location=loc,
+                                    description="",
+                                    url=href or url,
+                                    platform="catho",
+                                )
+                            )
                     except Exception as e:
                         logger.debug(f"Error parsing Catho card: {e}")
                         continue
 
-                await self._random_delay(2, 4)
+                await asyncio.sleep(random.uniform(2, 4))
 
             except Exception as e:
                 logger.warning(f"Catho scrape error for '{term}': {e}")
                 continue
 
-        # Enrichment: busca descrição nas páginas de detalhe
+        # Enrichment
         await self._enrich_descriptions(jobs)
 
         logger.info(f"Catho: found {len(jobs)} jobs")
         return jobs
 
     async def _enrich_descriptions(self, jobs: list[ScrapedJob]):
-        """Navega na página de detalhe de cada vaga para extrair a descrição."""
+        """Navigate to job details and enrich descriptions."""
         enriched = 0
         for job in jobs[:15]:
             try:
-                await self._safe_goto(job.url, timeout=20000)
-                await self._random_delay(1, 2)
-
-                desc_el = await self.page.query_selector(
+                response = await self._fetch(job.url, timeout=20000)
+                desc_el = response.css(
                     '[class*="description"], [class*="descricao"], [data-qa="description"], .job-description'
                 )
                 if desc_el:
-                    desc = (await desc_el.inner_text()).strip()
+                    desc = desc_el.get_all_text().strip()
                     if desc:
                         job.description = desc[:1000]
                         enriched += 1
 
-                await self._random_delay(1, 2)
+                await asyncio.sleep(random.uniform(1, 2))
             except Exception as e:
                 logger.debug(f"Catho enrich failed for {job.url}: {e}")
 
         logger.info(f"Catho: enriched {enriched}/{len(jobs)} descriptions")
-
-    async def _scroll_page(self):
-        for _ in range(3):
-            await self.page.evaluate("window.scrollBy(0, 800)")
-            await asyncio.sleep(1)

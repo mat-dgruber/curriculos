@@ -3,11 +3,17 @@ import random
 from abc import ABC, abstractmethod
 
 import httpx
-from playwright.async_api import async_playwright, Browser, Page, TimeoutError as PlaywrightTimeout
+from playwright.async_api import (
+    async_playwright,
+    Browser,
+    Page,
+    TimeoutError as PlaywrightTimeout,
+)
 
 
 class ScrapedJob:
     """Job data extracted from a platform."""
+
     def __init__(
         self,
         title: str,
@@ -27,6 +33,9 @@ class ScrapedJob:
         self.platform = platform
         self.salary_range = salary_range
         self.requirements = requirements or []
+
+
+import asyncio
 
 
 class HttpScraper(ABC):
@@ -49,97 +58,94 @@ class HttpScraper(ABC):
             self._client = None
 
     @abstractmethod
-    async def scrape(self, search_params: dict) -> list[ScrapedJob]:
-        ...
+    async def scrape(self, search_params: dict) -> list[ScrapedJob]: ...
+
+    async def get_with_retry(self, url: str, **kwargs) -> httpx.Response:
+        """Fetch using client.get with retry logic and exponential backoff."""
+        retries = 3
+        backoff = 2
+        for attempt in range(retries):
+            try:
+                resp = await self._client.get(url, **kwargs)
+                resp.raise_for_status()
+                return resp
+            except Exception as e:
+                self.logger.warning(
+                    f"HTTP GET failed (attempt {attempt+1}/{retries}) for {url}: {e}"
+                )
+                if attempt == retries - 1:
+                    raise
+                await asyncio.sleep(backoff**attempt + random.uniform(0.5, 1.5))
 
 
-class PlaywrightScraper(ABC):
-    """Base for scrapers needing a real browser."""
+class ScraplingScraper(ABC):
+    """Base for scrapers using the Scrapling framework."""
 
     platform: str = ""
     enabled: bool = True
 
-    def __init__(self, headless: bool = True, slow_mo: int = 100):
+    def __init__(self, use_stealth: bool = True, headless: bool = True):
+        self.use_stealth = use_stealth
         self.headless = headless
-        self.slow_mo = slow_mo
         self.logger = logging.getLogger(self.__class__.__name__)
-        self.browser: Browser | None = None
-        self.page: Page | None = None
+        self.session = None
 
     async def __aenter__(self):
-        self._pw = await async_playwright().start()
-        self.browser = await self._pw.chromium.launch(
-            headless=self.headless,
-            slow_mo=self.slow_mo,
-        )
-        self.page = await self.browser.new_page()
+        from scrapling.fetchers import AsyncStealthySession, AsyncDynamicSession
+        from app.core.config import settings
+
+        session_cls = AsyncStealthySession if self.use_stealth else AsyncDynamicSession
+
+        kwargs = {"headless": self.headless}
+        if settings.scraper_proxy:
+            kwargs["proxy"] = settings.scraper_proxy
+
+        self.session = session_cls(**kwargs)
+        await self.session.__aenter__()
         return self
 
     async def __aexit__(self, exc_type, exc_val, exc_tb):
-        if self.page:
-            try:
-                await self.page.close()
-            except Exception:
-                pass
-            self.page = None
-        if self.browser:
-            await self.browser.close()
-            self.browser = None
-        if self._pw:
-            await self._pw.stop()
-            self._pw = None
+        if self.session:
+            await self.session.__aexit__(exc_type, exc_val, exc_tb)
+            self.session = None
 
     @abstractmethod
-    async def scrape(self, search_params: dict) -> list[ScrapedJob]:
-        ...
+    async def scrape(self, search_params: dict) -> list[ScrapedJob]: ...
 
-    async def _safe_goto(self, url: str, timeout: int = 30000):
-        try:
-            await self.page.goto(url, timeout=timeout, wait_until="domcontentloaded")
-        except PlaywrightTimeout:
-            self.logger.warning(f"Timeout navigating to {url}")
-            raise
-        except Exception as e:
-            self.logger.error(f"Error navigating to {url}: {e}")
-            raise
+    async def _fetch(self, url: str, **kwargs):
+        """Fetch page dynamically using the current Scrapling session with retries."""
+        if not self.session:
+            raise RuntimeError(
+                "Scrapling session not started. Use 'async with' context manager."
+            )
+        options = {
+            "network_idle": True,
+            "timeout": 30000,
+        }
+        options.update(kwargs)
 
-    async def _random_delay(self, min_sec: float = 1.0, max_sec: float = 3.0):
-        delay = random.uniform(min_sec, max_sec)
-        await self.page.wait_for_timeout(int(delay * 1000))
+        retries = 3
+        backoff = 2
+        last_exception = None
+        for attempt in range(retries):
+            try:
+                self.logger.debug(f"Fetching {url} (attempt {attempt+1}/{retries})")
+                return await self.session.fetch(url, **options)
+            except Exception as e:
+                last_exception = e
+                self.logger.warning(
+                    f"Fetch failed (attempt {attempt+1}/{retries}) for {url}: {e}"
+                )
+                if attempt < retries - 1:
+                    await asyncio.sleep(backoff**attempt + random.uniform(0.5, 1.5))
 
-    async def _safe_click(self, selector: str, timeout: int = 10000):
-        try:
-            await self.page.click(selector, timeout=timeout)
-        except PlaywrightTimeout:
-            self.logger.warning(f"Timeout clicking {selector}")
-            raise
-
-    async def _safe_fill(self, selector: str, value: str, timeout: int = 10000):
-        try:
-            await self.page.fill(selector, value, timeout=timeout)
-        except PlaywrightTimeout:
-            self.logger.warning(f"Timeout filling {selector}")
-            raise
-
-    async def _safe_query_text(self, selector: str, default: str = "") -> str:
-        try:
-            el = await self.page.query_selector(selector)
-            if el:
-                return (await el.inner_text()).strip()
-        except Exception:
-            pass
-        return default
-
-    async def _safe_query_attr(self, selector: str, attr: str, default: str = "") -> str:
-        try:
-            el = await self.page.query_selector(selector)
-            if el:
-                val = await el.get_attribute(attr)
-                return val.strip() if val else default
-        except Exception:
-            pass
-        return default
+        if last_exception is not None:
+            raise last_exception
+        raise RuntimeError(
+            "Fetch failed: session returned empty or failed to initialize."
+        )
 
 
-# Backward compatibility alias
-BaseScraper = PlaywrightScraper
+# Backward compatibility aliases
+PlaywrightScraper = ScraplingScraper
+BaseScraper = ScraplingScraper

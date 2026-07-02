@@ -1,16 +1,19 @@
-import logging
-import asyncio
-from bs4 import BeautifulSoup
+"""Vagas.com.br scraper (Scrapling)."""
 
-from app.services.scraper.base_scraper import PlaywrightScraper, ScrapedJob
+import asyncio
+import logging
+import random
+import urllib.parse
+
+from app.services.scraper.base_scraper import ScraplingScraper, ScrapedJob
 
 logger = logging.getLogger(__name__)
 
-VAGAS_URL = "https://www.vagas.com.br/vagas-de"
+VAGAS_SEARCH_URL = "https://www.vagas.com.br/vagas"
 
 
-class VagasScraper(PlaywrightScraper):
-    """Scraper for Vagas.com.br job listings."""
+class VagasScraper(ScraplingScraper):
+    """Scraper for Vagas.com.br job listings using Scrapling."""
 
     platform = "vagas"
 
@@ -20,54 +23,88 @@ class VagasScraper(PlaywrightScraper):
         keywords = search_params.get("keywords", [])
         location = search_params.get("location_str", "")
 
-        search_terms = target_roles[:2] if target_roles else keywords[:2] or ["desenvolvedor"]
+        search_terms = (
+            target_roles[:2] if target_roles else keywords[:2] or ["desenvolvedor"]
+        )
+
+        async def scroll_action(page):
+            for _ in range(3):
+                await page.evaluate("window.scrollBy(0, 800)")
+                await asyncio.sleep(1)
 
         for term in search_terms:
             try:
-                slug = term.lower().replace(" ", "-").replace("+", "%2B")
-                url = f"{VAGAS_URL}/{slug}"
-                if location:
-                    url += f"?localizacao={location}"
+                slug = term.lower().replace(" ", "-")
+                url = f"https://www.vagas.com.br/vagas-de-{slug}"
 
-                await self._safe_goto(url)
-                await self._random_delay(2, 4)
+                response = await self._fetch(
+                    url,
+                    wait_selector="li.vaga, .vaga, article, [class*='vaga']",
+                    wait_selector_state="attached",
+                    page_action=scroll_action,
+                    timeout=10000,
+                )
 
-                await self._scroll_page()
-                await self._random_delay(1, 2)
+                page_text = response.get_all_text()
+                if any(x in page_text.lower() for x in ["captcha", "cloudflare", "blocked", "distil"]):
+                    logger.warning(f"Vagas.com: potentially blocked by security for '{term}'")
+                    continue
 
-                content = await self.page.content()
-                soup = BeautifulSoup(content, "lxml")
+                cards = []
+                for sel in ["li.vaga", ".vaga", "article", "[class*='vaga']"]:
+                    cards = response.css(sel)
+                    if cards:
+                        break
 
-                cards = soup.select("li.vaga")
+                logger.info(f"Vagas.com '{term}': found {len(cards)} raw cards")
 
                 for card in cards[:20]:
                     try:
-                        title_el = card.select_one("h2.cargo a")
-                        company_el = card.select_one("span.emprVaga")
-                        location_el = card.select_one("span.vaga-local")
+                        title = ""
+                        link = ""
+                        for sel in ["h2.cargo a", "h3 a", "a.vaga-link", "h2 a", "a"]:
+                            title_el = card.css(sel)
+                            if title_el:
+                                title = title_el.get_all_text().strip()
+                                link = title_el.attrib.get("href", "")
+                                if title:
+                                    break
 
-                        title = title_el.get_text(strip=True) if title_el else ""
-                        company = company_el.get_text(strip=True) if company_el else ""
-                        loc = location_el.get_text(strip=True) if location_el else ""
-                        link = title_el.get("href", "") if title_el else ""
+                        company = ""
+                        for sel in ["span.emprVaga", ".empresa", ".emprVaga", "span.nome-empresa"]:
+                            company_el = card.css(sel)
+                            if company_el:
+                                company = company_el.get_all_text().strip()
+                                if company:
+                                    break
+
+                        loc = ""
+                        for sel in ["span.vaga-local", ".local", ".vaga-local", "span.localizacao"]:
+                            location_el = card.css(sel)
+                            if location_el:
+                                loc = location_el.get_all_text().strip()
+                                if loc:
+                                    break
 
                         if link and not link.startswith("http"):
                             link = f"https://www.vagas.com.br{link}"
 
                         if title and company:
-                            jobs.append(ScrapedJob(
-                                title=title,
-                                company=company,
-                                location=loc,
-                                description="",
-                                url=link,
-                                platform="vagas",
-                            ))
+                            jobs.append(
+                                ScrapedJob(
+                                    title=title,
+                                    company=company,
+                                    location=loc,
+                                    description="",
+                                    url=link,
+                                    platform="vagas",
+                                )
+                            )
                     except Exception as e:
                         logger.debug(f"Error parsing Vagas.com card: {e}")
                         continue
 
-                await self._random_delay(2, 4)
+                await asyncio.sleep(random.uniform(2, 4))
 
             except Exception as e:
                 logger.warning(f"Vagas.com scrape error for '{term}': {e}")
@@ -84,25 +121,18 @@ class VagasScraper(PlaywrightScraper):
         enriched = 0
         for job in jobs[:15]:
             try:
-                await self._safe_goto(job.url, timeout=20000)
-                await self._random_delay(1, 2)
-
-                desc_el = await self.page.query_selector(
+                response = await self._fetch(job.url, timeout=20000)
+                desc_el = response.css(
                     ".job-description, .descricao-vaga, [class*='description'], [class*='descricao']"
                 )
                 if desc_el:
-                    desc = (await desc_el.inner_text()).strip()
+                    desc = desc_el.get_all_text().strip()
                     if desc:
                         job.description = desc[:1000]
                         enriched += 1
 
-                await self._random_delay(1, 2)
+                await asyncio.sleep(random.uniform(1, 2))
             except Exception as e:
                 logger.debug(f"Vagas.com enrich failed for {job.url}: {e}")
 
         logger.info(f"Vagas.com: enriched {enriched}/{len(jobs)} descriptions")
-
-    async def _scroll_page(self):
-        for _ in range(3):
-            await self.page.evaluate("window.scrollBy(0, 800)")
-            await asyncio.sleep(1)

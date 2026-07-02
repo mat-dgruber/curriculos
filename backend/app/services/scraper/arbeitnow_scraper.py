@@ -38,13 +38,12 @@ class ArbeitnowScraper(HttpScraper):
         for term in search_terms:
             try:
                 page = 1
-                while page <= 2:
+                while page <= 3:
                     params = {
                         "search": term,
                         "page": page,
                     }
-                    resp = await self._client.get(ARBEITNOW_API_URL, params=params)
-                    resp.raise_for_status()
+                    resp = await self.get_with_retry(ARBEITNOW_API_URL, params=params)
                     data = resp.json()
 
                     results = data.get("data", []) or data.get("jobs", [])

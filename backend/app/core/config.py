@@ -22,6 +22,7 @@ class Settings(BaseSettings):
     jooble_api_key: str = ""
     adzuna_app_id: str = ""
     adzuna_app_key: str = ""
+    scraper_proxy: str = ""
 
     # Plataformas habilitadas (comma-separated, vazio = todas)
     enabled_scrapers: str = ""

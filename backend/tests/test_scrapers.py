@@ -1,4 +1,5 @@
 """Testes unitários para os scrapers de vagas."""
+
 import pytest
 from unittest.mock import AsyncMock, patch, MagicMock
 from app.services.scraper.arbeitnow_scraper import ArbeitnowScraper
@@ -41,10 +42,14 @@ async def test_arbeitnow_returns_jobs():
     mock_client.get.return_value = mock_response
     mock_client.aclose = AsyncMock()
 
-    with patch("app.services.scraper.base_scraper.httpx.AsyncClient", return_value=mock_client):
+    with patch(
+        "app.services.scraper.base_scraper.httpx.AsyncClient", return_value=mock_client
+    ):
         scraper = ArbeitnowScraper()
         async with scraper:
-            jobs = await scraper.scrape({"title": ["Angular", "Python"], "keywords": ["angular", "python"]})
+            jobs = await scraper.scrape(
+                {"title": ["Angular", "Python"], "keywords": ["angular", "python"]}
+            )
 
     assert len(jobs) >= 2
     assert any(j.title == "Senior Angular Developer" for j in jobs)
@@ -64,7 +69,9 @@ async def test_arbeitnow_returns_empty_on_no_results():
     mock_client.get.return_value = mock_response
     mock_client.aclose = AsyncMock()
 
-    with patch("app.services.scraper.base_scraper.httpx.AsyncClient", return_value=mock_client):
+    with patch(
+        "app.services.scraper.base_scraper.httpx.AsyncClient", return_value=mock_client
+    ):
         scraper = ArbeitnowScraper()
         async with scraper:
             jobs = await scraper.scrape({"keywords": ["quantum computing"]})
@@ -79,7 +86,9 @@ async def test_arbeitnow_handles_api_error():
     mock_client.get.side_effect = Exception("Connection error")
     mock_client.aclose = AsyncMock()
 
-    with patch("app.services.scraper.base_scraper.httpx.AsyncClient", return_value=mock_client):
+    with patch(
+        "app.services.scraper.base_scraper.httpx.AsyncClient", return_value=mock_client
+    ):
         scraper = ArbeitnowScraper()
         async with scraper:
             jobs = await scraper.scrape({"keywords": ["python"]})
@@ -87,113 +96,60 @@ async def test_arbeitnow_handles_api_error():
     assert jobs == []
 
 
-# ─── Gupy Portal Scraper (Playwright) ───────────────────────────
+# ─── Gupy Portal Scraper (Scrapling) ─────────────────────────────
 
 
 @pytest.mark.asyncio
 async def test_gupy_portal_extracts_jobs_from_playwright_dom():
-    """GupyPortalScraper extrai vagas via Playwright DOM JS evaluation."""
-    # Simulate DOM with job links
-    fake_jobs = [
-        {"title": "Dev Angular", "company": "Acme", "location": "São Paulo",
-         "url": "https://portal.gupy.io/job/42"},
-        {"title": "Dev Python", "company": "Beta", "location": "Remoto",
-         "url": "https://portal.gupy.io/job/43"},
-    ]
+    """GupyPortalScraper extrai vagas via Scrapling."""
+    mock_response = MagicMock()
 
-    mock_page = AsyncMock()
-    mock_page.goto = AsyncMock()
-    mock_page.wait_for_selector = AsyncMock()
-    mock_page.evaluate = AsyncMock(side_effect=[
-        None,   # first scrollBy
-        None,   # second scrollBy
-        None,   # third scrollBy
-        fake_jobs,  # _extract_jobs_from_page JS call
-    ])
-    mock_page.close = AsyncMock()
-    mock_page.wait_for_timeout = AsyncMock()
+    mock_link = MagicMock()
+    mock_link.attrib = {"href": "https://portal.gupy.io/job/42"}
+    mock_link.get_all_text.return_value = "Acme\nDev Angular\nSão Paulo"
 
-    mock_browser = AsyncMock()
-    mock_browser.new_page = AsyncMock(return_value=mock_page)
-    mock_browser.close = AsyncMock()
-
-    mock_pw = AsyncMock()
-    mock_pw.chromium.launch = AsyncMock(return_value=mock_browser)
-    mock_pw.stop = AsyncMock()
+    mock_response.css.return_value = [mock_link]
 
     scraper = GupyPortalScraper()
-    scraper._pw = mock_pw
-    scraper.browser = mock_browser
-    scraper.page = mock_page
+    scraper._fetch = AsyncMock(return_value=mock_response)
+
     jobs = await scraper.scrape({"keywords": ["angular"]})
 
-    # Scraper should not crash; it may return 0+ jobs depending on mock side effects
-    assert len(jobs) >= 0
-    # Verify scraper is now a PlaywrightScraper
-    from app.services.scraper.base_scraper import PlaywrightScraper
-    assert isinstance(scraper, PlaywrightScraper)
+    assert len(jobs) == 1
+    assert jobs[0].title == "Dev Angular"
+    assert jobs[0].company == "Acme"
+    assert jobs[0].location == "São Paulo"
+
+    from app.services.scraper.base_scraper import ScraplingScraper
+
+    assert isinstance(scraper, ScraplingScraper)
 
 
 @pytest.mark.asyncio
 async def test_gupy_portal_handles_navigation_error():
     """GupyPortalScraper captura erros de navegação e retorna []."""
-    mock_page = AsyncMock()
-    mock_page.goto = AsyncMock(side_effect=Exception("Navigation timeout"))
-    mock_page.wait_for_selector = AsyncMock()
-    mock_page.evaluate = AsyncMock(return_value=[])
-    mock_page.close = AsyncMock()
-    mock_page.wait_for_timeout = AsyncMock()
-
-    mock_browser = AsyncMock()
-    mock_browser.new_page = AsyncMock(return_value=mock_page)
-    mock_browser.close = AsyncMock()
-
-    mock_pw = AsyncMock()
-    mock_pw.chromium.launch = AsyncMock(return_value=mock_browser)
-    mock_pw.stop = AsyncMock()
-
     scraper = GupyPortalScraper()
-    scraper._pw = mock_pw
-    scraper.browser = mock_browser
-    scraper.page = mock_page
+    scraper._fetch = AsyncMock(side_effect=Exception("Navigation timeout"))
     jobs = await scraper.scrape({"keywords": ["angular"]})
-
     assert jobs == []
 
 
 @pytest.mark.asyncio
 async def test_gupy_portal_deduplicates_jobs():
     """GupyPortalScraper deduplica vagas com mesma URL."""
-    fake_jobs = [
-        {"title": "Dev Angular", "company": "Acme", "location": "SP",
-         "url": "https://portal.gupy.io/job/42"},
-        {"title": "Dev Angular", "company": "Acme", "location": "SP",
-         "url": "https://portal.gupy.io/job/42"},  # duplicate
-    ]
+    mock_response = MagicMock()
 
-    mock_page = AsyncMock()
-    mock_page.goto = AsyncMock()
-    mock_page.wait_for_selector = AsyncMock()
-    # evaluate calls: 3 scrollBy + 1 JS extraction
-    mock_page.evaluate = AsyncMock(side_effect=[None, None, None, fake_jobs])
-    mock_page.close = AsyncMock()
-    mock_page.wait_for_timeout = AsyncMock()
+    mock_link = MagicMock()
+    mock_link.attrib = {"href": "https://portal.gupy.io/job/42"}
+    mock_link.get_all_text.return_value = "Acme\nDev Angular\nSão Paulo"
 
-    mock_browser = AsyncMock()
-    mock_browser.new_page = AsyncMock(return_value=mock_page)
-    mock_browser.close = AsyncMock()
-
-    mock_pw = AsyncMock()
-    mock_pw.chromium.launch = AsyncMock(return_value=mock_browser)
-    mock_pw.stop = AsyncMock()
+    mock_response.css.return_value = [mock_link, mock_link]
 
     scraper = GupyPortalScraper()
-    scraper._pw = mock_pw
-    scraper.browser = mock_browser
-    scraper.page = mock_page
+    scraper._fetch = AsyncMock(return_value=mock_response)
     jobs = await scraper.scrape({"keywords": ["angular"]})
 
-    # Should deduplicate: at most 1 job with that URL
+    assert len(jobs) == 1
     urls = [j.url for j in jobs]
     assert urls.count("https://portal.gupy.io/job/42") <= 1
 
@@ -226,7 +182,9 @@ async def test_adzuna_returns_jobs():
     mock_client.get.return_value = mock_response
     mock_client.aclose = AsyncMock()
 
-    with patch("app.services.scraper.base_scraper.httpx.AsyncClient", return_value=mock_client):
+    with patch(
+        "app.services.scraper.base_scraper.httpx.AsyncClient", return_value=mock_client
+    ):
         scraper = AdzunaScraper(app_id="id", app_key="key")
         async with scraper:
             jobs = await scraper.scrape({"keywords": ["python"]})
@@ -254,7 +212,9 @@ async def test_adzuna_handles_api_error():
     mock_client.get.side_effect = Exception("Network error")
     mock_client.aclose = AsyncMock()
 
-    with patch("app.services.scraper.base_scraper.httpx.AsyncClient", return_value=mock_client):
+    with patch(
+        "app.services.scraper.base_scraper.httpx.AsyncClient", return_value=mock_client
+    ):
         scraper = AdzunaScraper(app_id="id", app_key="key")
         async with scraper:
             jobs = await scraper.scrape({"keywords": ["python"]})

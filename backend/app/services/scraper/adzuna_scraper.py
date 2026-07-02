@@ -21,10 +21,13 @@ class AdzunaScraper(HttpScraper):
 
     async def scrape(self, search_params: dict) -> list[ScrapedJob]:
         jobs: list[ScrapedJob] = []
+        target_roles = search_params.get("title", [])
         keywords = search_params.get("keywords", [])
-        location = search_params.get("location", "")
+        location = search_params.get("location_str", "")
 
-        search_terms = keywords[:3] if keywords else ["desenvolvedor"]
+        search_terms = (
+            target_roles[:2] if target_roles else keywords[:2] or ["desenvolvedor"]
+        )
 
         if not self.app_id or not self.app_key:
             self.logger.warning("Adzuna: app_id/app_key not configured, skipping")
@@ -46,8 +49,7 @@ class AdzunaScraper(HttpScraper):
                     if location:
                         params["where"] = location
 
-                    resp = await self._client.get(url, params=params)
-                    resp.raise_for_status()
+                    resp = await self.get_with_retry(url, params=params)
                     data = resp.json()
 
                     results = data.get("results", [])

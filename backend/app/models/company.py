@@ -1,12 +1,18 @@
 from datetime import datetime
 from uuid import uuid4
 
+from typing import TYPE_CHECKING
+
 from pydantic import Field
 from sqlalchemy import String, Integer, Text, DateTime, Boolean, Index
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core.database import Base
 from app.core.schema import CamelModel
+
+if TYPE_CHECKING:
+    from app.models.application import Application
+
 
 
 class FixedCompany(Base):

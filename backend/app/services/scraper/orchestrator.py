@@ -1,3 +1,4 @@
+import asyncio
 import logging
 from dataclasses import dataclass, field
 from datetime import datetime
@@ -68,6 +69,7 @@ class ScraperOrchestrator:
         from app.services.scraper.adzuna_scraper import AdzunaScraper
         from app.services.scraper.remotive_scraper import RemotiveScraper
         from app.services.scraper.infojobs_scraper import InfoJobsScraper
+        from app.services.scraper.catho_scraper import CathoScraper
 
         self._scrapers = {
             "gupy": GupyPortalScraper,
@@ -77,16 +79,17 @@ class ScraperOrchestrator:
             "adzuna": AdzunaScraper,
             "remotive": RemotiveScraper,
             "infojobs": InfoJobsScraper,
+            "catho": CathoScraper,
         }
 
     def _build_scraper(self, platform: str):
         cls = self._scrapers[platform]
-        from app.services.scraper.base_scraper import PlaywrightScraper
+        from app.services.scraper.base_scraper import ScraplingScraper
 
         if platform == "adzuna":
             return cls(app_id=settings.adzuna_app_id, app_key=settings.adzuna_app_key)
-        elif issubclass(cls, PlaywrightScraper):
-            return cls(headless=settings.playwright_headless, slow_mo=settings.playwright_slow_mo)
+        elif issubclass(cls, ScraplingScraper):
+            return cls(headless=settings.playwright_headless)
         else:
             return cls()
 
@@ -94,12 +97,15 @@ class ScraperOrchestrator:
         if platform not in self._scrapers:
             return False
         if self._enabled_platforms is not None and platform not in self._enabled_platforms:
+            self.logger.info(f"[{platform}] Skipped: not in enabled platforms list")
             return False
         if settings.enabled_scrapers:
             allowed = {s.strip() for s in settings.enabled_scrapers.split(",")}
             if platform not in allowed:
+                self.logger.info(f"[{platform}] Skipped: not in ENABLED_SCRAPERS setting")
                 return False
         if not rate_limiter.can_run(platform):
+            self.logger.info(f"[{platform}] Skipped: rate limit hit or daily limit reached")
             return False
         return True
 
@@ -112,7 +118,8 @@ class ScraperOrchestrator:
 
         try:
             async with scraper:
-                jobs = await scraper.scrape(search_params)
+                # Add a 120-second timeout per scraper to prevent infinite hangs
+                jobs = await asyncio.wait_for(scraper.scrape(search_params), timeout=120.0)
                 elapsed = (datetime.utcnow() - start).total_seconds()
                 rate_limiter.record_run(platform)
                 self.logger.info(f"[{platform}] {len(jobs)} jobs in {elapsed:.1f}s")

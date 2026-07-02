@@ -1,30 +1,24 @@
-"""Gupy portal scraper (Playwright).
+"""Gupy portal scraper (Scrapling).
 
 The Gupy portal (https://portal.gupy.io/) is a fully client-side React/Next.js app.
 Job listings are fetched via XHR after page load — the initial __NEXT_DATA__ no longer
-contains job data (dehydratedState.queries is empty). We use Playwright to let the JS
-execute and wait for job cards to appear in the DOM.
+contains job data (dehydratedState.queries is empty). We use Scrapling's AsyncStealthySession
+to fetch, wait, and parse job cards.
 """
 
 import asyncio
 import logging
+import random
 
-from app.services.scraper.base_scraper import PlaywrightScraper, ScrapedJob
+from app.services.scraper.base_scraper import ScraplingScraper, ScrapedJob
 
 logger = logging.getLogger(__name__)
 
 GUPY_PORTAL_SEARCH = "https://portal.gupy.io/job-search/term={term}"
 
-# Job card selectors – Gupy uses styled-components with generated class names,
-# so we target structural/data attributes that are stable.
-JOB_CARD_SELECTOR = "[data-testid='job-card'], [class*='JobCard'], a[href*='/job/']"
-TITLE_SELECTOR = "[data-testid='job-card-title'], [class*='JobTitle'], h2, h3"
-COMPANY_SELECTOR = "[data-testid='job-card-company'], [class*='CompanyName'], [class*='company']"
-LOCATION_SELECTOR = "[data-testid='job-card-location'], [class*='Location'], [class*='location']"
 
-
-class GupyPortalScraper(PlaywrightScraper):
-    """Scrape Gupy jobs from the public portal using Playwright (JS-rendered SPA)."""
+class GupyPortalScraper(ScraplingScraper):
+    """Scrape Gupy jobs from the public portal using Scrapling."""
 
     platform = "gupy_portal"
 
@@ -34,22 +28,32 @@ class GupyPortalScraper(PlaywrightScraper):
         keywords = search_params.get("keywords", [])
 
         # Prefer target role names as search terms (e.g. "Assistente de RH")
-        search_terms = target_roles[:2] if target_roles else keywords[:2] or ["desenvolvedor"]
+        search_terms = (
+            target_roles[:2] if target_roles else keywords[:2] or ["desenvolvedor"]
+        )
+
+        async def scroll_action(page):
+            for _ in range(3):
+                await page.evaluate("window.scrollBy(0, 600)")
+                await asyncio.sleep(random.uniform(0.8, 1.5))
 
         for term in search_terms:
             try:
                 url = GUPY_PORTAL_SEARCH.format(term=term.replace(" ", "%20"))
-                await self._safe_goto(url, timeout=30000)
 
-                # Wait for job cards to load (XHR-driven content)
-                await self._wait_for_jobs()
+                response = await self._fetch(
+                    url,
+                    wait_selector="a[href*='/job/']",
+                    wait_selector_state="attached",
+                    page_action=scroll_action,
+                    timeout=30000,
+                )
 
-                # Extract job cards via JS evaluation
-                term_jobs = await self._extract_jobs_from_page(url)
+                term_jobs = self._extract_jobs(response)
                 jobs.extend(term_jobs)
                 logger.info(f"Gupy portal: '{term}' -> {len(term_jobs)} jobs")
 
-                await self._random_delay(2, 4)
+                await asyncio.sleep(random.uniform(2, 4))
 
             except Exception as e:
                 logger.warning(f"Gupy portal scrape error for '{term}': {e}")
@@ -66,98 +70,89 @@ class GupyPortalScraper(PlaywrightScraper):
         logger.info(f"Gupy portal: found {len(unique_jobs)} unique jobs total")
         return unique_jobs
 
-    async def _wait_for_jobs(self):
-        """Wait for the job list to appear on the page."""
-        try:
-            # Wait up to 15s for any job content to load
-            await self.page.wait_for_selector(
-                "a[href*='/job/'], [data-testid*='job'], [class*='job-card'], [class*='JobCard'], "
-                "[class*='VacancyCard'], [class*='vacancy']",
-                timeout=15000,
-                state="attached",
-            )
-        except Exception:
-            # Fallback: just wait a bit for XHR to complete
-            await asyncio.sleep(4)
-
-        # Scroll to trigger lazy loading
-        for _ in range(3):
-            await self.page.evaluate("window.scrollBy(0, 600)")
-            await asyncio.sleep(1)
-
-    async def _extract_jobs_from_page(self, page_url: str) -> list[ScrapedJob]:
-        """Extract job data from the rendered DOM."""
+    def _extract_jobs(self, response) -> list[ScrapedJob]:
+        """Extract job data from Scrapling Response object."""
         jobs: list[ScrapedJob] = []
 
-        try:
-            # Try structured extraction via JS
-            raw = await self.page.evaluate("""() => {
-                const results = [];
-
-                // Strategy 1: anchor tags with /job/ in href
-                const jobLinks = document.querySelectorAll('a[href*="/job/"]');
-                jobLinks.forEach(link => {
-                    const href = link.href || '';
-                    if (!href || results.some(r => r.url === href)) return;
-
-                    // Walk up to find the card container
-                    let card = link;
-                    for (let i = 0; i < 6; i++) {
-                        if (!card.parentElement) break;
-                        card = card.parentElement;
-                        const text = card.innerText || '';
-                        if (text.length > 20) break;
-                    }
-
-                    const cardText = (card && card.innerText) ? card.innerText.trim() : link.innerText.trim();
-                    const lines = cardText.split('\\n').map(l => l.trim()).filter(l => l.length > 0);
-
-                    const title = lines[0] || link.innerText.trim();
-                    const company = lines[1] || '';
-                    const location = lines[2] || '';
-
-                    if (title && title.length > 2) {
-                        results.push({ title, company, location, url: href });
-                    }
-                });
-
-                // Strategy 2: any element with job-like data attributes
-                const dataEls = document.querySelectorAll('[data-job-id], [data-id][data-title]');
-                dataEls.forEach(el => {
-                    const title = el.getAttribute('data-title') || '';
-                    const company = el.getAttribute('data-company') || '';
-                    const url = el.getAttribute('data-url') || el.querySelector('a')?.href || '';
-                    if (title && url && !results.some(r => r.url === url)) {
-                        results.push({ title, company, location: '', url });
-                    }
-                });
-
-                return results.slice(0, 25);
-            }""")
-
-            for item in (raw or []):
-                title = (item.get("title") or "").strip()
-                company = (item.get("company") or "").strip()
-                location = (item.get("location") or "").strip()
-                url = (item.get("url") or "").strip()
-
-                if not title or not url:
+        # Strategy 1: anchor tags with /job/ in href
+        job_links = response.css('a[href*="/job/"]', adaptive=True)
+        for link in job_links:
+            try:
+                href = link.attrib.get("href")
+                if not href:
                     continue
+                if not href.startswith("http"):
+                    href = f"https://portal.gupy.io{href}"
 
                 # Skip nav/footer links that happen to contain "/job/"
-                if any(skip in url for skip in ["/job-search", "/jobs?", "javascript:"]):
+                if any(
+                    skip in href for skip in ["/job-search", "/jobs?", "javascript:"]
+                ):
                     continue
 
-                jobs.append(ScrapedJob(
-                    title=title,
-                    company=company or "Gupy",
-                    location=location or "Brasil",
-                    description="",
-                    url=url,
-                    platform="gupy",
-                ))
+                text = link.get_all_text().strip()
+                lines = [line.strip() for line in text.split("\n") if line.strip()]
 
-        except Exception as e:
-            logger.warning(f"Gupy portal JS extraction failed: {e}")
+                # Check lines structure
+                if not lines or len(lines) < 2:
+                    continue
+
+                # Gupy card text layout: Line 0 is typically Company Name, Line 1 is Job Title
+                company = lines[0]
+                title = lines[1] if len(lines) > 1 else lines[0]
+
+                if (
+                    "VENHA" in company.upper()
+                    or "CARREIRA" in company.upper()
+                    or "Badge" in company
+                ):
+                    # If line 0 is a promotional badge, shift down
+                    if len(lines) >= 3:
+                        company = lines[1]
+                        title = lines[2]
+
+                # Clean title and company
+                title = title.strip()
+                company = company.strip()
+
+                # Location is usually line 2 or 3
+                location = "Brasil"
+                for line in lines[2:5]:
+                    if any(
+                        loc_indicator in line.lower()
+                        for loc_indicator in [
+                            "remote",
+                            "remoto",
+                            "híbrido",
+                            "hybrid",
+                            "on-site",
+                            "presencial",
+                            "são paulo",
+                            "rio",
+                            "mg",
+                            "pr",
+                            "rs",
+                            "sc",
+                            "df",
+                            "es",
+                        ]
+                    ):
+                        location = line.strip()
+                        break
+
+                if title and href:
+                    jobs.append(
+                        ScrapedJob(
+                            title=title,
+                            company=company or "Gupy",
+                            location=location,
+                            description="",
+                            url=href,
+                            platform="gupy",
+                        )
+                    )
+            except Exception as e:
+                logger.warning(f"Error parsing job link: {e}")
+                continue
 
         return jobs

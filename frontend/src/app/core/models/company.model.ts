@@ -1,7 +1,8 @@
 export interface FixedCompany {
   id: string;
   name: string;
-  applicationUrl: string;
+  applicationUrl: string | null;
+  email: string | null;
   status: 'Ativo' | 'Pausado' | 'Respondeu';
   isActive: boolean;
   intervalDays: number;
@@ -23,14 +24,16 @@ export interface FixedCompanyListResponse {
 
 export interface FixedCompanyCreate {
   name: string;
-  applicationUrl: string;
+  applicationUrl?: string | null;
+  email?: string | null;
   intervalDays?: number;
   notes?: string;
 }
 
 export interface FixedCompanyUpdate {
   name?: string;
-  applicationUrl?: string;
+  applicationUrl?: string | null;
+  email?: string | null;
   intervalDays?: number;
   notes?: string;
 }

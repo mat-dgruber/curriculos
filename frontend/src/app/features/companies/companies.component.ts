@@ -102,6 +102,23 @@ import { GslPageHelp } from '../../shared/components/gsl-page-help/gsl-page-help
 
               <div class="flex flex-col">
                 <label class="text-xs text-text-muted mb-1 pl-1 font-medium"
+                  >E-mail de Contato (opcional se houver URL)</label
+                >
+                <input
+                  type="email"
+                  placeholder="recrutamento@empresa.com"
+                  class="input-field"
+                  [class.!border-error/50]="formSubmitted() && formEmailError()"
+                  [ngModel]="formEmail()"
+                  (ngModelChange)="formEmail.set($event)"
+                />
+                @if (formSubmitted() && formEmailError()) {
+                  <span class="text-[11px] text-error mt-1 pl-1">{{ formEmailError() }}</span>
+                }
+              </div>
+
+              <div class="flex flex-col">
+                <label class="text-xs text-text-muted mb-1 pl-1 font-medium"
                   >Intervalo de Reenvio (dias)</label
                 >
                 <input
@@ -311,9 +328,15 @@ import { GslPageHelp } from '../../shared/components/gsl-page-help/gsl-page-help
                     </div>
                   </div>
 
-                  <p class="text-xs text-text-muted mb-3 truncate" [title]="company.applicationUrl">
-                    {{ company.applicationUrl }}
-                  </p>
+                  @if (company.applicationUrl) {
+                    <p class="text-xs text-text-muted mb-3 truncate" [title]="company.applicationUrl">
+                      {{ company.applicationUrl }}
+                    </p>
+                  } @else if (company.email) {
+                    <p class="text-xs text-text-muted mb-3 truncate" [title]="company.email">
+                      ✉️ {{ company.email }}
+                    </p>
+                  }
 
                   @if (company.notes) {
                     <p
@@ -505,6 +528,7 @@ export class CompaniesComponent implements OnInit {
 
   formName = signal('');
   formUrl = signal('');
+  formEmail = signal('');
   formInterval = signal(30);
   formNotes = signal('');
 
@@ -533,13 +557,33 @@ export class CompaniesComponent implements OnInit {
 
   formUrlError = computed(() => {
     const url = this.formUrl().trim();
-    if (!url) return 'A URL do formulário é obrigatória.';
+    if (!url) {
+      if (!this.formEmail().trim()) {
+        return 'Informe uma URL de formulário ou um e-mail de contato.';
+      }
+      return null;
+    }
     try {
       new URL(url);
       return null;
     } catch (_) {
       return 'A URL informada não é válida (deve conter http:// ou https://).';
     }
+  });
+
+  formEmailError = computed(() => {
+    const emailStr = this.formEmail().trim();
+    if (!emailStr) {
+      if (!this.formUrl().trim()) {
+        return 'Informe uma URL de formulário ou um e-mail de contato.';
+      }
+      return null;
+    }
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(emailStr)) {
+      return 'O e-mail informado não é válido.';
+    }
+    return null;
   });
 
   formIntervalError = computed(() => {
@@ -550,7 +594,7 @@ export class CompaniesComponent implements OnInit {
   });
 
   isFormValid = computed(() => {
-    return !this.formNameError() && !this.formUrlError() && !this.formIntervalError();
+    return !this.formNameError() && !this.formUrlError() && !this.formEmailError() && !this.formIntervalError();
   });
 
   ngOnInit(): void {
@@ -588,7 +632,8 @@ export class CompaniesComponent implements OnInit {
   editCompany(company: FixedCompany): void {
     this.editingCompany.set(company);
     this.formName.set(company.name);
-    this.formUrl.set(company.applicationUrl);
+    this.formUrl.set(company.applicationUrl || '');
+    this.formEmail.set(company.email || '');
     this.formInterval.set(company.intervalDays);
     this.formNotes.set(company.notes || '');
     this.showForm.set(true);
@@ -599,6 +644,7 @@ export class CompaniesComponent implements OnInit {
     this.editingCompany.set(null);
     this.formName.set('');
     this.formUrl.set('');
+    this.formEmail.set('');
     this.formInterval.set(30);
     this.formNotes.set('');
     this.showForm.set(false);
@@ -630,7 +676,8 @@ export class CompaniesComponent implements OnInit {
     if (editing) {
       const data = {
         name: this.formName().trim(),
-        applicationUrl: this.formUrl().trim(),
+        applicationUrl: this.formUrl().trim() || null,
+        email: this.formEmail().trim() || null,
         intervalDays: this.formInterval(),
         notes: this.formNotes().trim() || undefined,
       };
@@ -652,7 +699,8 @@ export class CompaniesComponent implements OnInit {
     } else {
       const data: FixedCompanyCreate = {
         name: this.formName().trim(),
-        applicationUrl: this.formUrl().trim(),
+        applicationUrl: this.formUrl().trim() || null,
+        email: this.formEmail().trim() || null,
         intervalDays: this.formInterval(),
         notes: this.formNotes().trim() || undefined,
       };
@@ -714,7 +762,8 @@ export class CompaniesComponent implements OnInit {
       });
   }
 
-  getPlatform(url: string): string {
+  getPlatform(url: string | null): string {
+    if (!url) return 'E-mail';
     const lowerUrl = url.toLowerCase();
     if (
       lowerUrl.includes('gupy.io') ||
@@ -736,6 +785,8 @@ export class CompaniesComponent implements OnInit {
         return 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20';
       case 'Lever':
         return 'bg-indigo-500/10 text-indigo-400 border border-indigo-500/20';
+      case 'E-mail':
+        return 'bg-amber-500/10 text-amber-400 border border-amber-500/20';
       default:
         return 'bg-zinc-500/10 text-zinc-400 border border-zinc-500/20';
     }

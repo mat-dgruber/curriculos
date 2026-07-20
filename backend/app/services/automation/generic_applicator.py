@@ -45,6 +45,7 @@ class GenericApplicator(BaseApplicator):
         try:
             await self._safe_goto(job_url)
             await self._random_delay(2, 4)
+            await self._take_screenshot(f"generic_{company_name}", step_name="1_loaded")
 
             filled_fields = 0
 
@@ -115,7 +116,7 @@ class GenericApplicator(BaseApplicator):
                     logger.warning(f"CV upload failed on generic form: {e}")
 
             if filled_fields == 0:
-                screenshot = await self._take_screenshot(f"generic_{company_name}", success=False)
+                screenshot = await self._take_screenshot(f"generic_{company_name}", success=False, step_name="failed_detection")
                 return ApplicationResult(
                     success=False,
                     status="Falhou",
@@ -125,7 +126,7 @@ class GenericApplicator(BaseApplicator):
                 )
 
             # Screenshot before submit
-            await self._take_screenshot(f"generic_{company_name}", success=True)
+            await self._take_screenshot(f"generic_{company_name}", success=True, step_name="2_filled")
 
             # Try submit
             submit_selectors = [
@@ -149,7 +150,7 @@ class GenericApplicator(BaseApplicator):
 
             if submitted:
                 await self._random_delay(2, 3)
-                screenshot = await self._take_screenshot(f"generic_{company_name}_confirm", success=True)
+                screenshot = await self._take_screenshot(f"generic_{company_name}", success=True, step_name="3_submitted")
                 return ApplicationResult(
                     success=True,
                     status="Enviado",
@@ -157,7 +158,7 @@ class GenericApplicator(BaseApplicator):
                     platform="generic",
                 )
             else:
-                screenshot = await self._take_screenshot(f"generic_{company_name}", success=False)
+                screenshot = await self._take_screenshot(f"generic_{company_name}", success=False, step_name="failed_submit_btn")
                 return ApplicationResult(
                     success=False,
                     status="Falhou",
@@ -167,7 +168,7 @@ class GenericApplicator(BaseApplicator):
                 )
 
         except Exception as e:
-            screenshot = await self._take_screenshot(f"generic_{company_name}", success=False)
+            screenshot = await self._take_screenshot(f"generic_{company_name}", success=False, step_name="exception_occurred")
             logger.error(f"Generic apply failed: {e}")
             return ApplicationResult(
                 success=False,

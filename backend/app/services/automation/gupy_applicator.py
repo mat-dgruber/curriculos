@@ -11,6 +11,7 @@ class GupyApplicator(BaseApplicator):
         try:
             await self._safe_goto(job_url)
             await self._random_delay(2, 4)
+            await self._take_screenshot(f"gupy_{company_name}", step_name="1_loaded")
 
             # Try to find and click apply button
             apply_selectors = [
@@ -30,7 +31,7 @@ class GupyApplicator(BaseApplicator):
                     continue
 
             if not clicked:
-                screenshot = await self._take_screenshot(f"gupy_{company_name}", success=False)
+                screenshot = await self._take_screenshot(f"gupy_{company_name}", success=False, step_name="failed_apply_btn")
                 return ApplicationResult(
                     success=False,
                     status="Falhou",
@@ -40,6 +41,7 @@ class GupyApplicator(BaseApplicator):
                 )
 
             await self._random_delay(1, 2)
+            await self._take_screenshot(f"gupy_{company_name}", step_name="2_opened_form")
 
             # Fill form fields if available
             fields = {
@@ -67,7 +69,7 @@ class GupyApplicator(BaseApplicator):
                     logger.warning(f"CV upload failed: {e}")
 
             # Screenshot before submit
-            await self._take_screenshot(f"gupy_{company_name}", success=True)
+            await self._take_screenshot(f"gupy_{company_name}", success=True, step_name="3_ready_to_submit")
 
             # Try submit
             submit_selectors = [
@@ -88,7 +90,7 @@ class GupyApplicator(BaseApplicator):
 
             if submitted:
                 await self._random_delay(2, 3)
-                screenshot = await self._take_screenshot(f"gupy_{company_name}_confirm", success=True)
+                screenshot = await self._take_screenshot(f"gupy_{company_name}", success=True, step_name="4_submitted")
                 return ApplicationResult(
                     success=True,
                     status="Enviado",
@@ -96,7 +98,7 @@ class GupyApplicator(BaseApplicator):
                     platform="gupy",
                 )
             else:
-                screenshot = await self._take_screenshot(f"gupy_{company_name}", success=False)
+                screenshot = await self._take_screenshot(f"gupy_{company_name}", success=False, step_name="failed_submit_btn")
                 return ApplicationResult(
                     success=False,
                     status="Falhou",
@@ -106,7 +108,7 @@ class GupyApplicator(BaseApplicator):
                 )
 
         except Exception as e:
-            screenshot = await self._take_screenshot(f"gupy_{company_name}", success=False)
+            screenshot = await self._take_screenshot(f"gupy_{company_name}", success=False, step_name="exception_occurred")
             logger.error(f"Gupy apply failed: {e}")
             return ApplicationResult(
                 success=False,

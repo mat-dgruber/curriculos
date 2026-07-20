@@ -55,11 +55,16 @@ class BaseApplicator(ABC):
         """Apply to a job. Must be implemented by subclasses."""
         ...
 
-    async def _take_screenshot(self, label: str, success: bool = True) -> str:
+    async def _take_screenshot(self, label: str, success: bool = True, step_name: str | None = None) -> str:
         """Take screenshot and return path."""
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
         status = "success" if success else "fail"
-        filename = f"{label}_{status}_{timestamp}.png"
+        
+        if step_name:
+            filename = f"{label}_step_{step_name}_{status}_{timestamp}.png"
+        else:
+            filename = f"{label}_{status}_{timestamp}.png"
+            
         path = os.path.join(self.screenshots_path, filename)
 
         os.makedirs(self.screenshots_path, exist_ok=True)

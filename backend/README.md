@@ -1,3 +1,101 @@
+**ubuntu@vnic-jobhunter**:**~**$ **  **sudo systemctl reload nginx
+
+**ubuntu@vnic-jobhunter**:**~**$ **  **sudo netstat -tlpn | grep :443
+
+**sudo: netstat: command not found**
+
+**ubuntu@vnic-jobhunter**:**~**$ sudo ss -tlpn | grep :443
+
+**LISTEN 0**      **511**          **0.0.0.0****:443**        **0.0.0.0:***    **users:(("nginx",pid=565197,fd=6),("nginx",pid=565196,fd=6),("nginx",pid=237169,fd=6))**
+
+**ubuntu@vnic-jobhunter**:**~**$ sudo nginx -t
+
+**nginx: the configuration file /etc/nginx/nginx.conf syntax is ok**
+
+**nginx: configuration file /etc/nginx/nginx.conf test is successful**
+
+**ubuntu@vnic-jobhunter**:**~**$ sudo grep -r "ssl_certificate" /etc/nginx/sites-enabled/
+
+**ubuntu@vnic-jobhunter**:**~**$** **
+
+**ubuntu@vnic-jobhunter**:**~**$ sudo grep -r "ssl_certificate" /etc/nginx/
+
+**/etc/nginx/snippets/snakeoil.conf:ssl_certificate /etc/ssl/certs/ssl-cert-snakeoil.pem;**
+
+**/etc/nginx/snippets/snakeoil.conf:ssl_certificate_key /etc/ssl/private/ssl-cert-snakeoil.key;**
+
+**/etc/nginx/sites-available/backend:**    **ssl_certificate /etc/letsencrypt/live/137-131-190-22.sslip.io/fullchain.pem; # managed by Certbot**
+
+**/etc/nginx/sites-available/backend:**    **ssl_certificate_key /etc/letsencrypt/live/137-131-190-22.sslip.io/privkey.pem; # managed by Certbot**
+
+**ubuntu@vnic-jobhunter**:**~**$** **
+
+**ubuntu@vnic-jobhunter**:**~**$ ls -la /etc/nginx/sites-enabled/
+
+**total 8**
+
+**drwxr-xr-x 2 root root 4096 Jul**  **8 18:00 ****.**
+
+**drwxr-xr-x 8 root root 4096 Jun 23 06:37 ****..**
+
+**lrwxrwxrwx 1 root root **  **34 Jul**  **8 18:00 ****backend** -> /etc/nginx/sites-available/backend
+
+**lrwxrwxrwx 1 root root **  **34 Jun 11 21:05 ****default** -> /etc/nginx/sites-available/default
+
+**ubuntu@vnic-jobhunter**:**~**$ sudo grep -r "443" /etc/nginx/sites-enabled/
+
+**ubuntu@vnic-jobhunter**:**~**$ cat /etc/nginx/sites-available/backend
+
+**server {**
+
+**        **server_name 137-131-190-22.sslip.io;
+
+---
+
+**        **location / {
+
+**            **proxy_pass http://127.0.0.1:8000;
+
+**            **proxy_set_header Host $host;
+
+**            **proxy_set_header X-Real-IP $remote_addr;
+
+**            **proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+
+**            **proxy_set_header X-Forwarded-Proto $scheme;
+
+**        **}
+
+---
+
+**    **listen 443 ssl; # managed by Certbot
+
+**    **ssl_certificate /etc/letsencrypt/live/137-131-190-22.sslip.io/fullchain.pem; # managed by Certbot
+
+**    **ssl_certificate_key /etc/letsencrypt/live/137-131-190-22.sslip.io/privkey.pem; # managed by Certbot
+
+**    **include /etc/letsencrypt/options-ssl-nginx.conf; # managed by Certbot
+
+**    **ssl_dhparam /etc/letsencrypt/ssl-dhparams.pem; # managed by Certbot
+
+**}**
+
+**server {**
+
+**    **if ($host = 137-131-190-22.sslip.io) {
+
+**        **return 301 https://$host$request_uri;
+
+**    **} # managed by Certbot
+
+**        **listen 80;
+
+**        **server_name 137-131-190-22.sslip.io;
+
+**    **return 404; # managed by Certbot
+
+**}****ubuntu@vnic-jobhunter**:**~**$** **
+
 # JobHunter Backend
 
 API REST para automacao de busca e candidatura a vagas de emprego. Scrape automatizado de
@@ -8,20 +106,20 @@ do candidato, envio recorrente de curriculos para empresas fixas, e notificacoes
 
 ## Stack
 
-| Componente | Tecnologia |
-|---|---|
-| Runtime | Python 3.14 |
-| Framework | FastAPI |
-| ORM | SQLAlchemy 2.x (async) |
-| Database | SQLite via aiosqlite |
-| Migrations | Alembic |
-| Validacao | Pydantic v2 + pydantic-settings |
-| Agendamento | APScheduler (AsyncIO) |
-| Browser Automation | Playwright |
-| HTTP Client | httpx |
-| Parsing | BeautifulSoup4 + lxml |
-| Testes | pytest + pytest-asyncio |
-| Deploy | Docker + Oracle Cloud Always Free |
+| Componente         | Tecnologia                        |
+| ------------------ | --------------------------------- |
+| Runtime            | Python 3.14                       |
+| Framework          | FastAPI                           |
+| ORM                | SQLAlchemy 2.x (async)            |
+| Database           | SQLite via aiosqlite              |
+| Migrations         | Alembic                           |
+| Validacao          | Pydantic v2 + pydantic-settings   |
+| Agendamento        | APScheduler (AsyncIO)             |
+| Browser Automation | Playwright                        |
+| HTTP Client        | httpx                             |
+| Parsing            | BeautifulSoup4 + lxml             |
+| Testes             | pytest + pytest-asyncio           |
+| Deploy             | Docker + Oracle Cloud Always Free |
 
 ---
 
@@ -141,65 +239,66 @@ Todas as rotas estao sob o prefixo `/api/v1`.
 
 ### Jobs (Vagas)
 
-| Metodo | Rota | Descricao |
-|---|---|---|
-| `GET` | `/api/v1/jobs` | Listar vagas (paginado, com filtros) |
-| `POST` | `/api/v1/jobs` | Criar vaga manualmente |
-| `GET` | `/api/v1/jobs/{id}` | Detalhe de uma vaga |
-| `POST` | `/api/v1/jobs/scan` | Disparar varredura em background |
+| Metodo   | Rota                  | Descricao                            |
+| -------- | --------------------- | ------------------------------------ |
+| `GET`  | `/api/v1/jobs`      | Listar vagas (paginado, com filtros) |
+| `POST` | `/api/v1/jobs`      | Criar vaga manualmente               |
+| `GET`  | `/api/v1/jobs/{id}` | Detalhe de uma vaga                  |
+| `POST` | `/api/v1/jobs/scan` | Disparar varredura em background     |
 
 **Query params para `GET /jobs`:**
 `search`, `min_score`, `platform`, `status`, `page`, `per_page`
 
 ### Applications (Candidaturas)
 
-| Metodo | Rota | Descricao |
-|---|---|---|
-| `GET` | `/api/v1/applications` | Listar candidaturas (paginado) |
-| `POST` | `/api/v1/applications` | Criar candidatura (vincula a um job) |
-| `PUT` | `/api/v1/applications/{id}/status` | Atualizar status |
+| Metodo   | Rota                                 | Descricao                            |
+| -------- | ------------------------------------ | ------------------------------------ |
+| `GET`  | `/api/v1/applications`             | Listar candidaturas (paginado)       |
+| `POST` | `/api/v1/applications`             | Criar candidatura (vincula a um job) |
+| `PUT`  | `/api/v1/applications/{id}/status` | Atualizar status                     |
 
 **Query params para `GET /applications`:**
 `status`, `date_from`, `date_to`, `page`, `per_page`
 
 **Transicoes de status validas:**
+
 - Pendente -> Enviado, Falhou, Arquivado
 - Enviado -> Arquivado
 - Falhou -> Pendente, Arquivado
 
 ### Companies (Empresas Fixas)
 
-| Metodo | Rota | Descricao |
-|---|---|---|
-| `GET` | `/api/v1/companies` | Listar empresas fixas |
-| `POST` | `/api/v1/companies` | Criar empresa fixa |
-| `PUT` | `/api/v1/companies/{id}` | Atualizar empresa |
-| `DELETE` | `/api/v1/companies/{id}` | Remover empresa |
-| `PUT` | `/api/v1/companies/{id}/toggle` | Ativar/desativar envio recorrente |
+| Metodo     | Rota                              | Descricao                         |
+| ---------- | --------------------------------- | --------------------------------- |
+| `GET`    | `/api/v1/companies`             | Listar empresas fixas             |
+| `POST`   | `/api/v1/companies`             | Criar empresa fixa                |
+| `PUT`    | `/api/v1/companies/{id}`        | Atualizar empresa                 |
+| `DELETE` | `/api/v1/companies/{id}`        | Remover empresa                   |
+| `PUT`    | `/api/v1/companies/{id}/toggle` | Ativar/desativar envio recorrente |
 
 ### Profile (Perfil do Candidato)
 
-| Metodo | Rota | Descricao |
-|---|---|---|
-| `GET` | `/api/v1/profile` | Obter perfil |
-| `PUT` | `/api/v1/profile` | Atualizar perfil |
+| Metodo   | Rota                   | Descricao                 |
+| -------- | ---------------------- | ------------------------- |
+| `GET`  | `/api/v1/profile`    | Obter perfil              |
+| `PUT`  | `/api/v1/profile`    | Atualizar perfil          |
 | `POST` | `/api/v1/profile/cv` | Upload de curriculo (PDF) |
 
 ### Scheduler (Agendador)
 
-| Metodo | Rota | Descricao |
-|---|---|---|
-| `GET` | `/api/v1/scheduler/status` | Status do agendador e jobs |
-| `POST` | `/api/v1/scheduler/trigger/{job_id}` | Disparar job manualmente |
-| `PUT` | `/api/v1/scheduler/pause` | Pausar agendador |
-| `DELETE` | `/api/v1/scheduler/pause` | Retomar agendador |
+| Metodo     | Rota                                   | Descricao                  |
+| ---------- | -------------------------------------- | -------------------------- |
+| `GET`    | `/api/v1/scheduler/status`           | Status do agendador e jobs |
+| `POST`   | `/api/v1/scheduler/trigger/{job_id}` | Disparar job manualmente   |
+| `PUT`    | `/api/v1/scheduler/pause`            | Pausar agendador           |
+| `DELETE` | `/api/v1/scheduler/pause`            | Retomar agendador          |
 
 **Jobs disponiveis para trigger:** `scan_jobs`, `recurring_send`
 
 ### Health Check
 
-| Metodo | Rota | Descricao |
-|---|---|---|
+| Metodo  | Rota        | Descricao                       |
+| ------- | ----------- | ------------------------------- |
 | `GET` | `/health` | Verificacao de saude do servico |
 
 ---
@@ -208,71 +307,71 @@ Todas as rotas estao sob o prefixo `/api/v1`.
 
 ### Job (Vaga)
 
-| Campo | Tipo | Descricao |
-|---|---|---|
-| `id` | `str` (UUID) | Identificador unico |
-| `title` | `str` | Titulo da vaga |
-| `company` | `str` | Nome da empresa |
-| `location` | `str` | Localizacao |
-| `platform` | `str` | Plataforma de origem (`linkedin`, `gupy`, `vagas`) |
-| `url` | `str` | Link da vaga |
-| `description` | `str?` | Descricao da vaga |
-| `requirements` | `str?` | Requisitos |
-| `salary_range` | `str?` | Faixa salarial |
-| `score` | `int` | Score de compatibilidade (0-100) |
-| `status` | `str` | Status (`Nova`, `Visualizada`, `Candidatou`) |
-| `found_at` | `datetime` | Data que a vaga foi encontrada |
-| `created_at` | `datetime` | Data de criacao no sistema |
-| `updated_at` | `datetime` | Ultima atualizacao |
+| Campo            | Tipo           | Descricao                                                |
+| ---------------- | -------------- | -------------------------------------------------------- |
+| `id`           | `str` (UUID) | Identificador unico                                      |
+| `title`        | `str`        | Titulo da vaga                                           |
+| `company`      | `str`        | Nome da empresa                                          |
+| `location`     | `str`        | Localizacao                                              |
+| `platform`     | `str`        | Plataforma de origem (`linkedin`, `gupy`, `vagas`) |
+| `url`          | `str`        | Link da vaga                                             |
+| `description`  | `str?`       | Descricao da vaga                                        |
+| `requirements` | `str?`       | Requisitos                                               |
+| `salary_range` | `str?`       | Faixa salarial                                           |
+| `score`        | `int`        | Score de compatibilidade (0-100)                         |
+| `status`       | `str`        | Status (`Nova`, `Visualizada`, `Candidatou`)       |
+| `found_at`     | `datetime`   | Data que a vaga foi encontrada                           |
+| `created_at`   | `datetime`   | Data de criacao no sistema                               |
+| `updated_at`   | `datetime`   | Ultima atualizacao                                       |
 
 ### Application (Candidatura)
 
-| Campo | Tipo | Descricao |
-|---|---|---|
-| `id` | `str` (UUID) | Identificador unico |
-| `job_id` | `str` | FK para a vaga |
-| `company_name` | `str` | Nome da empresa |
-| `status` | `str` | `Pendente`, `Enviado`, `Falhou`, `Arquivado` |
-| `sent_at` | `datetime?` | Data/hora do envio |
-| `is_recurring` | `bool` | Se e envio recorrente |
-| `screenshot_path` | `str?` | Caminho do screenshot do envio |
-| `error_message` | `str?` | Mensagem de erro (se falhou) |
-| `notes` | `str?` | Notas do usuario |
-| `fixed_company_id` | `str?` | FK para empresa fixa (se recorrente) |
+| Campo                | Tipo           | Descricao                                            |
+| -------------------- | -------------- | ---------------------------------------------------- |
+| `id`               | `str` (UUID) | Identificador unico                                  |
+| `job_id`           | `str`        | FK para a vaga                                       |
+| `company_name`     | `str`        | Nome da empresa                                      |
+| `status`           | `str`        | `Pendente`, `Enviado`, `Falhou`, `Arquivado` |
+| `sent_at`          | `datetime?`  | Data/hora do envio                                   |
+| `is_recurring`     | `bool`       | Se e envio recorrente                                |
+| `screenshot_path`  | `str?`       | Caminho do screenshot do envio                       |
+| `error_message`    | `str?`       | Mensagem de erro (se falhou)                         |
+| `notes`            | `str?`       | Notas do usuario                                     |
+| `fixed_company_id` | `str?`       | FK para empresa fixa (se recorrente)                 |
 
 ### FixedCompany (Empresa Fixa)
 
-| Campo | Tipo | Descricao |
-|---|---|---|
-| `id` | `str` (UUID) | Identificador unico |
-| `name` | `str` | Nome da empresa |
-| `application_url` | `str` | URL para candidatura |
-| `status` | `str` | `Ativo`, `Pausado`, `Respondeu` |
-| `is_active` | `bool` | Se o envio recorrente esta ativo |
-| `interval_days` | `int` | Intervalo entre envios (7-90 dias) |
-| `last_sent_at` | `datetime?` | Data do ultimo envio |
-| `next_send_at` | `datetime?` | Data do proximo envio |
-| `total_sent` | `int` | Total de envios realizados |
-| `notes` | `str?` | Notas |
+| Campo               | Tipo           | Descricao                             |
+| ------------------- | -------------- | ------------------------------------- |
+| `id`              | `str` (UUID) | Identificador unico                   |
+| `name`            | `str`        | Nome da empresa                       |
+| `application_url` | `str`        | URL para candidatura                  |
+| `status`          | `str`        | `Ativo`, `Pausado`, `Respondeu` |
+| `is_active`       | `bool`       | Se o envio recorrente esta ativo      |
+| `interval_days`   | `int`        | Intervalo entre envios (7-90 dias)    |
+| `last_sent_at`    | `datetime?`  | Data do ultimo envio                  |
+| `next_send_at`    | `datetime?`  | Data do proximo envio                 |
+| `total_sent`      | `int`        | Total de envios realizados            |
+| `notes`           | `str?`       | Notas                                 |
 
 ### CandidateProfile (Perfil do Candidato)
 
-| Campo | Tipo | Descricao |
-|---|---|---|
-| `id` | `str` (UUID) | Identificador unico |
-| `name` | `str` | Nome completo |
-| `email` | `str` | Email |
-| `phone` | `str?` | Telefone |
-| `location` | `str?` | Localizacao desejada |
-| `target_role` | `str?` | Cargo-alvo principal |
-| `linkedin_url` | `str?` | URL do LinkedIn |
-| `cv_filename` | `str?` | Nome do arquivo do CV |
-| `cv_uploaded_at` | `datetime?` | Data do upload do CV |
-| `keywords` | `list[str]` | Palavras-chave para matching |
-| `target_roles` | `list[str]` | Cargos-alvo |
-| `preferred_locations` | `list[str]` | Localizacoes preferidas |
-| `scan_interval_hours` | `int` | Intervalo de varredura (1-24h) |
-| `auto_apply` | `bool` | Se auto-apply esta habilitado |
+| Campo                   | Tipo           | Descricao                      |
+| ----------------------- | -------------- | ------------------------------ |
+| `id`                  | `str` (UUID) | Identificador unico            |
+| `name`                | `str`        | Nome completo                  |
+| `email`               | `str`        | Email                          |
+| `phone`               | `str?`       | Telefone                       |
+| `location`            | `str?`       | Localizacao desejada           |
+| `target_role`         | `str?`       | Cargo-alvo principal           |
+| `linkedin_url`        | `str?`       | URL do LinkedIn                |
+| `cv_filename`         | `str?`       | Nome do arquivo do CV          |
+| `cv_uploaded_at`      | `datetime?`  | Data do upload do CV           |
+| `keywords`            | `list[str]`  | Palavras-chave para matching   |
+| `target_roles`        | `list[str]`  | Cargos-alvo                    |
+| `preferred_locations` | `list[str]`  | Localizacoes preferidas        |
+| `scan_interval_hours` | `int`        | Intervalo de varredura (1-24h) |
+| `auto_apply`          | `bool`       | Se auto-apply esta habilitado  |
 
 **Nota:** Os campos `keywords`, `target_roles` e `preferred_locations` sao
 armazenados como JSON no SQLite e convertidos para `list[str]` na API via
@@ -283,40 +382,51 @@ metodos auxiliares no modelo.
 ## Servicos
 
 ### ScanService (`scan_service.py`)
+
 Orquestra todo o fluxo de varredura:
+
 1. Le o perfil do candidato para extrair keywords, cargos-alvo e localizacoes
 2. Executa os scrapers (Gupy, LinkedIn, Vagas) em sequencia com tratamento de erro
 3. Passa os resultados pelo Matcher para scoring de compatibilidade
 4. Deduplica por URL e persiste apenas vagas novas no banco
 
 ### Matcher (`matcher.py`)
+
 Calcula score de compatibilidade (0-100) com a seguinte ponderacao:
+
 - **40 pontos** — Cargo-alvo encontrado no titulo da vaga
 - **30 pontos** — Keywords encontradas na descricao/titulo (6 por keyword, max 5)
 - **20 pontos** — Localizacao compativel
 - **10 pontos** — Bonus por plataforma confiavel (LinkedIn, Gupy)
 
 ### SchedulerService (`scheduler_service.py`)
+
 Gerencia o APScheduler com dois jobs:
+
 - **scan_jobs** — Varredura periodica a cada N horas (configuravel)
 - **recurring_send** — Envio recorrente no dia do mes (padrao: dia 1, 10h)
 
 Suporta pause/resume com tracking de status de cada job.
 
 ### RecurringService (`recurring_service.py`)
+
 Envia curriculos automaticamente para empresas fixas ativas que estao com
 `next_send_at` vencido. Seleciona o applicator correto (Gupy ou Generic)
 baseado na URL da empresa.
 
 ### NotificationService (`notification_service.py`)
+
 Envia emails de notificacao via SMTP (TLS):
+
 - Novas vagas encontradas (resumo por plataforma)
 - Candidatura enviada com sucesso
 - Falha no envio de candidatura
 - Resultado de envio recorrente
 
 ### Scrapers (`scraper/`)
+
 Modulo de scraping com Playwright (headless Chromium):
+
 - **LinkedInScraper** — Vagas do LinkedIn
 - **GupyScraper** — Vagas da Gupy
 - **VagasScraper** — Vagas do Vagas.com
@@ -324,7 +434,9 @@ Modulo de scraping com Playwright (headless Chromium):
 Todos implementam a interface `BaseScraper` com o metodo `scrape()`.
 
 ### Automation (`automation/`)
+
 Modulo de auto-apply com Playwright:
+
 - **GenericApplicator** — Preenche formularios genericos de candidatura
 - **GupyApplicator** — Auto-apply especifico para a plataforma Gupy
 
@@ -334,23 +446,23 @@ Modulo de auto-apply com Playwright:
 
 Crie o arquivo `.env` na raiz do `backend/` com as seguintes variaveis:
 
-| Variavel | Padrao | Descricao |
-|---|---|---|
-| `DATABASE_URL` | `sqlite+aiosqlite:///./jobhunter.db` | URL de conexao do banco |
-| `ENVIRONMENT` | `development` | Ambiente (`development` / `production`) |
-| `FRONTEND_URL` | `http://localhost:4200` | URL do frontend (CORS) |
-| `SECRET_KEY` | `dev-secret-key-change-in-production` | Chave secreta |
-| `CV_STORAGE_PATH` | `./storage/cv` | Diretorio de armazenamento de CVs |
-| `SCREENSHOTS_PATH` | `./storage/screenshots` | Diretorio de screenshots de envio |
-| `SCAN_INTERVAL_HOURS` | `6` | Intervalo entre varreduras (horas) |
-| `RECURRING_SEND_DAY` | `1` | Dia do mes para envio recorrente |
-| `PLAYWRIGHT_HEADLESS` | `true` | Rodar Playwright em modo headless |
-| `PLAYWRIGHT_SLOW_MO` | `100` | Delay entre acoes do Playwright (ms) |
-| `SMTP_HOST` | `smtp.gmail.com` | Host do servidor SMTP |
-| `SMTP_PORT` | `587` | Porta do SMTP |
-| `SMTP_USER` | _(vazio)_ | Usuario SMTP |
-| `SMTP_PASSWORD` | _(vazio)_ | Senha SMTP |
-| `NOTIFICATION_EMAIL` | _(vazio)_ | Email para receber notificacoes |
+| Variavel                | Padrao                                  | Descricao                                   |
+| ----------------------- | --------------------------------------- | ------------------------------------------- |
+| `DATABASE_URL`        | `sqlite+aiosqlite:///./jobhunter.db`  | URL de conexao do banco                     |
+| `ENVIRONMENT`         | `development`                         | Ambiente (`development` / `production`) |
+| `FRONTEND_URL`        | `http://localhost:4200`               | URL do frontend (CORS)                      |
+| `SECRET_KEY`          | `dev-secret-key-change-in-production` | Chave secreta                               |
+| `CV_STORAGE_PATH`     | `./storage/cv`                        | Diretorio de armazenamento de CVs           |
+| `SCREENSHOTS_PATH`    | `./storage/screenshots`               | Diretorio de screenshots de envio           |
+| `SCAN_INTERVAL_HOURS` | `6`                                   | Intervalo entre varreduras (horas)          |
+| `RECURRING_SEND_DAY`  | `1`                                   | Dia do mes para envio recorrente            |
+| `PLAYWRIGHT_HEADLESS` | `true`                                | Rodar Playwright em modo headless           |
+| `PLAYWRIGHT_SLOW_MO`  | `100`                                 | Delay entre acoes do Playwright (ms)        |
+| `SMTP_HOST`           | `smtp.gmail.com`                      | Host do servidor SMTP                       |
+| `SMTP_PORT`           | `587`                                 | Porta do SMTP                               |
+| `SMTP_USER`           | _(vazio)_                             | Usuario SMTP                                |
+| `SMTP_PASSWORD`       | _(vazio)_                             | Senha SMTP                                  |
+| `NOTIFICATION_EMAIL`  | _(vazio)_                             | Email para receber notificacoes             |
 
 **Exemplo minimo de `.env`:**
 
@@ -386,16 +498,16 @@ uv run pytest --cov=app --cov-report=term-missing
 
 A suite possui 79 testes cobrindo:
 
-| Arquivo | Cobre |
-|---|---|
-| `test_api_jobs.py` | Endpoints de vagas (listagem, criacao, detalhe, scan) |
+| Arquivo                      | Cobre                                                   |
+| ---------------------------- | ------------------------------------------------------- |
+| `test_api_jobs.py`         | Endpoints de vagas (listagem, criacao, detalhe, scan)   |
 | `test_api_applications.py` | Endpoints de candidaturas (CRUD + transicoes de status) |
-| `test_api_companies.py` | Endpoints de empresas fixas (CRUD + toggle) |
-| `test_api_profile.py` | Endpoints de perfil (GET, PUT, upload CV) |
-| `test_api_scheduler.py` | Endpoints do agendador (status, trigger, pause/resume) |
-| `test_models.py` | Modelos SQLAlchemy + schemas Pydantic |
-| `test_matcher.py` | Logica de scoring de compatibilidade |
-| `test_config.py` | Configuracao e variaveis de ambiente |
+| `test_api_companies.py`    | Endpoints de empresas fixas (CRUD + toggle)             |
+| `test_api_profile.py`      | Endpoints de perfil (GET, PUT, upload CV)               |
+| `test_api_scheduler.py`    | Endpoints do agendador (status, trigger, pause/resume)  |
+| `test_models.py`           | Modelos SQLAlchemy + schemas Pydantic                   |
+| `test_matcher.py`          | Logica de scoring de compatibilidade                    |
+| `test_config.py`           | Configuracao e variaveis de ambiente                    |
 
 Os testes usam SQLite em memoria para isolamento, com fixtures para engine,
 sessao e client HTTP (via `httpx.AsyncClient` + `ASGITransport`).

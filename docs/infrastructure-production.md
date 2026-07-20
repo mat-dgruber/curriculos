@@ -1228,14 +1228,11 @@ find /home/ubuntu/jobhunter/backend/storage/screenshots/ -name "*.png" -mtime +9
 ### SSH e Acesso
 
 ```bash
-# Conectar na VM
-ssh ubuntu@<VM_IP>
-
-# Conectar com chave especifica
-ssh -i ~/.ssh/minha_chave ubuntu@<VM_IP>
+# Conectar na VM (producao)
+ssh -i /Users/matheus.diniz_1/Documents/ssh-key-2026-06-02.key ubuntu@137.131.190.22
 
 # Executar comando remoto sem entrar
-ssh ubuntu@<VM_IP> "docker ps"
+ssh -i /Users/matheus.diniz_1/Documents/ssh-key-2026-06-02.key ubuntu@137.131.190.22 "docker ps"
 ```
 
 ### Docker

@@ -3,7 +3,7 @@ from uuid import uuid4
 
 from typing import TYPE_CHECKING
 
-from pydantic import Field
+from pydantic import Field, model_validator
 from sqlalchemy import String, Integer, Text, DateTime, Boolean, Index
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -22,7 +22,8 @@ class FixedCompany(Base):
         String(36), primary_key=True, default=lambda: str(uuid4())
     )
     name: Mapped[str] = mapped_column(String(255), nullable=False)
-    application_url: Mapped[str] = mapped_column(String(1024), nullable=False)
+    application_url: Mapped[str | None] = mapped_column(String(1024), nullable=True)
+    email: Mapped[str | None] = mapped_column(String(255), nullable=True)
     status: Mapped[str] = mapped_column(String(20), nullable=False, default="Ativo")
     is_active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
     interval_days: Mapped[int] = mapped_column(Integer, nullable=False, default=30)
@@ -49,15 +50,23 @@ class FixedCompany(Base):
 
 class FixedCompanyCreate(CamelModel):
     name: str = Field(..., max_length=255)
-    application_url: str = Field(..., max_length=1024)
+    application_url: str | None = Field(None, max_length=1024)
+    email: str | None = Field(None, max_length=255)
     interval_days: int = Field(30, ge=7, le=90)
     notes: str | None = None
+
+    @model_validator(mode="after")
+    def validate_url_or_email(self) -> "FixedCompanyCreate":
+        if not self.application_url and not self.email:
+            raise ValueError("Deve ser fornecido pelo menos a URL de candidatura ou o e-mail de contato.")
+        return self
 
 
 class FixedCompanyRead(CamelModel):
     id: str
     name: str
-    application_url: str
+    application_url: str | None
+    email: str | None
     status: str
     is_active: bool
     interval_days: int
@@ -72,6 +81,7 @@ class FixedCompanyRead(CamelModel):
 class FixedCompanyUpdate(CamelModel):
     name: str | None = Field(None, max_length=255)
     application_url: str | None = Field(None, max_length=1024)
+    email: str | None = Field(None, max_length=255)
     interval_days: int | None = Field(None, ge=7, le=90)
     notes: str | None = None
 

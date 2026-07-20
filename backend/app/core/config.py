@@ -17,6 +17,10 @@ class Settings(BaseSettings):
     smtp_user: str = ""
     smtp_password: str = ""
     notification_email: str = ""
+    imap_host: str = "imap.gmail.com"
+    imap_port: int = 993
+    imap_user: str = ""
+    imap_password: str = ""
 
     # Scraper API keys (opcionais)
     jooble_api_key: str = ""

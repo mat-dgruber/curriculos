@@ -47,6 +47,27 @@ def test_lightweight_predictor_text_to_tfidf():
     norm = np.linalg.norm(vector)
     assert pytest.approx(norm) == 1.0
 
+def test_lightweight_predictor_bigram_matching():
+    # Adiciona um bigram ao vocabulário do mock
+    mock_data = {
+        "model_type": "custom_numpy_mlp",
+        "input_dim": 4,
+        "hidden_dim": 2,
+        "vocabulary": {"python": 0, "developer": 1, "angular": 2, "são paulo": 3},
+        "idf": [1.0, 1.0, 1.0, 2.5],
+        "weights": {
+            "w1": [[0.1] * 2, [0.1] * 2, [0.1] * 2, [0.1] * 2],
+            "b1": [[0.01] * 2],
+            "w2": [[0.5], [0.5]],
+            "b2": [[0.02]]
+        }
+    }
+    predictor = LightweightPredictor(mock_data)
+    vector = predictor.text_to_tfidf("Python developer in São Paulo")
+
+    # O vetor de tf-idf para "são paulo" (índice 3) deve ter valor maior que 0!
+    assert vector[0, 3] > 0.0
+
 def test_lightweight_predictor_predict():
     predictor = LightweightPredictor(MOCK_MODEL_DATA)
     prob = predictor.predict("Python developer")

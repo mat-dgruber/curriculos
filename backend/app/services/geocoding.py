@@ -130,10 +130,10 @@ def get_city_coords(location: str) -> tuple[float, float] | None:
 
     # 2. Consultar API externa se não estiver no cache
     logger.info(f"Geocoding cache miss para '{city_name}'. Consultando Nominatim...")
+    _nominatim_queries_made += 1 # ponytail: incrementa antes de chamar para garantir o limite mesmo em falha de conexão/rate-limit
     init_geocoding_db() # Garante que a tabela existe
     coords = query_nominatim_geocoding(city_name)
     if coords:
-        _nominatim_queries_made += 1
         save_city_coords_to_cache(city_name, coords[0], coords[1])
         return coords
 

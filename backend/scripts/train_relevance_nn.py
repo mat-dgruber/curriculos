@@ -23,14 +23,21 @@ class SimpleMLP:
     Arquitetura:
     Input Layer (N termos TF-IDF) -> Hidden Layer (16 neurônios + ReLU) -> Output (1 neurônio + Sigmoid)
     """
-    def __init__(self, input_dim, hidden_dim=16, lr=0.01):
+    def __init__(self, input_dim, hidden_dim=16, lr=0.01, beta=0.9):
         self.lr = lr
+        self.beta = beta
         # ponytail: He initialization para camadas lineares seguido de ReLU
         self.w1 = np.random.randn(input_dim, hidden_dim) * np.sqrt(2.0 / input_dim)
         self.b1 = np.zeros((1, hidden_dim))
         # Xavier initialization para camada de saída com Sigmoid
         self.w2 = np.random.randn(hidden_dim, 1) * np.sqrt(1.0 / hidden_dim)
         self.b2 = np.zeros((1, 1))
+
+        # Inicializa velocidades de Momentum com zeros (mesmo formato que pesos e biases)
+        self.v_w1 = np.zeros_like(self.w1)
+        self.v_b1 = np.zeros_like(self.b1)
+        self.v_w2 = np.zeros_like(self.w2)
+        self.v_b2 = np.zeros_like(self.b2)
 
     def relu(self, x):
         return np.maximum(0, x)
@@ -81,11 +88,17 @@ class SimpleMLP:
         dw1 = np.dot(self.X.T, dz1) / m # formato: (input_dim, hidden)
         db1 = np.sum(dz1, axis=0, keepdims=True) / m # formato: (1, hidden)
 
-        # Atualização clássica via Stochastic Gradient Descent (SGD)
-        self.w1 -= self.lr * dw1
-        self.b1 -= self.lr * db1
-        self.w2 -= self.lr * dw2
-        self.b2 -= self.lr * db2
+        # Atualização via SGD com Momentum (beta = 0.9)
+        # ponytail: Momentum reduz oscilações e ajuda a rede a sair de mínimos locais em vales da perda
+        self.v_w1 = self.beta * self.v_w1 + self.lr * dw1
+        self.v_b1 = self.beta * self.v_b1 + self.lr * db1
+        self.v_w2 = self.beta * self.v_w2 + self.lr * dw2
+        self.v_b2 = self.beta * self.v_b2 + self.lr * db2
+
+        self.w1 -= self.v_w1
+        self.b1 -= self.v_b1
+        self.w2 -= self.v_w2
+        self.b2 -= self.v_b2
 
     def calculate_loss(self, y, predictions):
         """
@@ -232,8 +245,8 @@ def train():
     texts, proximity_scores, y = load_dataset()
 
     # 1. Vetorização de texto usando TF-IDF (Term Frequency - Inverse Document Frequency)
-    # Limita o vocabulário em 150 features para manter o modelo ultra-rápido na CPU e com RAM quase zero
-    vectorizer = TfidfVectorizer(max_features=150, stop_words="english")
+    # Limita o vocabulário em 300 features (com bigramas) para riqueza de contexto com RAM insignificante
+    vectorizer = TfidfVectorizer(max_features=300, ngram_range=(1, 2), stop_words="english")
     X = vectorizer.fit_transform(texts).toarray()
 
     # Adiciona o score de proximidade física como coluna extra (Feature Union)

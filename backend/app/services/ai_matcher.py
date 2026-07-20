@@ -35,15 +35,21 @@ class LightweightPredictor:
         tokens = self.tokenize(text)
         vector = np.zeros(len(self.vocabulary))
 
+        # ponytail: gera unigramas e bigramas dinamicamente para bater 100% com a vetorização do Scikit-Learn
+        ngrams = list(tokens)
+        for i in range(len(tokens) - 1):
+            bigram = f"{tokens[i]} {tokens[i+1]}"
+            ngrams.append(bigram)
+
         # Conta a frequência dos termos (TF)
         counts = {}
-        for token in tokens:
-            if token in self.vocabulary:
-                counts[token] = counts.get(token, 0) + 1
+        for ngram in ngrams:
+            if ngram in self.vocabulary:
+                counts[ngram] = counts.get(ngram, 0) + 1
 
         # Calcula TF-IDF: tf * idf
-        for token, count in counts.items():
-            idx = self.vocabulary[token]
+        for ngram, count in counts.items():
+            idx = self.vocabulary[ngram]
             vector[idx] = count * self.idf[idx]
 
         # Normalização L2 (essencial para que as entradas tenham a mesma escala)

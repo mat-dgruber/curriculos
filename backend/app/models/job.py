@@ -86,6 +86,9 @@ class JobRead(CamelModel):
     found_at: datetime
     created_at: datetime
     updated_at: datetime
+    seniority: str | None = None
+    area: str | None = None
+    diversity_category: str | None = None
 
 
 class JobUpdate(CamelModel):

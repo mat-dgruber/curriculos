@@ -82,9 +82,11 @@ def match_jobs(
     Score all scraped jobs against candidate profile.
     Returns list of (job, score) tuples sorted by score descending.
     """
+    from app.services.ai_matcher import get_ai_score
     scored = []
     for job in scraped_jobs:
-        s = calculate_score(job, target_roles, keywords, preferred_locations)
+        heuristic_s = calculate_score(job, target_roles, keywords, preferred_locations)
+        s = get_ai_score(job, heuristic_s, preferred_locations)
         scored.append((job, s))
     scored.sort(key=lambda x: x[1], reverse=True)
     return scored

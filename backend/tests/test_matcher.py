@@ -1,6 +1,12 @@
 """Tests for the job matcher scoring algorithm."""
+import pytest
 from app.services.scraper.base_scraper import ScrapedJob
 from app.services.matcher import calculate_score, match_jobs
+
+
+@pytest.fixture(autouse=True)
+def mock_get_ai_score(monkeypatch):
+    monkeypatch.setattr("app.services.ai_matcher.get_ai_score", lambda job, default_score, *args: default_score)
 
 
 def _make_job(**kwargs):

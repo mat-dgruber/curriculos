@@ -1,5 +1,6 @@
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sessionmaker
 from sqlalchemy.orm import DeclarativeBase
+from sqlalchemy import event
 
 from app.core.config import settings
 
@@ -7,6 +8,17 @@ engine = create_async_engine(
     settings.database_url,
     echo=(settings.environment == "development"),
 )
+
+# ponytail: Configura pragmas SQLite de alta performance para concorrência sem travas e redução de I/O em disco
+@event.listens_for(engine.sync_engine, "connect")
+def set_sqlite_pragma(dbapi_connection, connection_record):
+    try:
+        cursor = dbapi_connection.cursor()
+        cursor.execute("PRAGMA journal_mode=WAL")
+        cursor.execute("PRAGMA synchronous=NORMAL")
+        cursor.close()
+    except Exception:
+        pass
 
 async_session = async_sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
 

@@ -16,6 +16,7 @@ job_statuses = {
     "scan_jobs": {"last_run": None, "last_status": None, "is_running": False},
     "recurring_send": {"last_run": None, "last_status": None, "is_running": False},
     "auto_delete": {"last_run": None, "last_status": None, "is_running": False},
+    "weekly_report": {"last_run": None, "last_status": None, "is_running": False},
 }
 
 is_paused = False
@@ -44,6 +45,11 @@ async def _scan_job_wrapper():
         logger.info("Scheduler is paused. Skipping scan.")
         return
 
+    # ponytail: Trava anti-overlapping para evitar estouro de memória ou travamento de banco SQLite na VM
+    if job_statuses["scan_jobs"]["is_running"]:
+        logger.warning("Scan job is already running. Skipping execution to prevent overlapping.")
+        return
+
     job_statuses["scan_jobs"]["is_running"] = True
     job_statuses["scan_jobs"]["last_run"] = datetime.utcnow()
 
@@ -65,6 +71,11 @@ async def _recurring_send_wrapper():
         logger.info("Scheduler is paused. Skipping recurring send.")
         return
 
+    # ponytail: Trava anti-overlapping
+    if job_statuses["recurring_send"]["is_running"]:
+        logger.warning("Recurring send job is already running. Skipping execution.")
+        return
+
     job_statuses["recurring_send"]["is_running"] = True
     job_statuses["recurring_send"]["last_run"] = datetime.utcnow()
 
@@ -84,6 +95,11 @@ async def _auto_delete_wrapper():
     """Wrapper for auto-delete job that tracks status."""
     if is_paused and paused_until and datetime.utcnow() < paused_until:
         logger.info("Scheduler is paused. Skipping auto-delete.")
+        return
+
+    # ponytail: Trava anti-overlapping
+    if job_statuses["auto_delete"]["is_running"]:
+        logger.warning("Auto-delete job is already running. Skipping execution.")
         return
 
     job_statuses["auto_delete"]["is_running"] = True
@@ -108,6 +124,69 @@ async def _auto_delete_wrapper():
         logger.error(f"Auto-delete failed: {e}")
     finally:
         _release_job_lock("auto_delete")
+
+
+async def _weekly_report_wrapper():
+    """Wrapper for weekly digest report SMTP email."""
+    if is_paused and paused_until and datetime.utcnow() < paused_until:
+        logger.info("Scheduler is paused. Skipping weekly report.")
+        return
+
+    # ponytail: Trava anti-overlapping
+    if job_statuses["weekly_report"]["is_running"]:
+        logger.warning("Weekly report job is already running. Skipping execution.")
+        return
+
+    job_statuses["weekly_report"]["is_running"] = True
+    job_statuses["weekly_report"]["last_run"] = datetime.utcnow()
+
+    try:
+        from app.core.database import async_session
+        from sqlalchemy import select, func
+        from app.models.job import Job
+        from app.models.application import Application
+        from datetime import timedelta
+
+        seven_days_ago = datetime.utcnow() - timedelta(days=7)
+
+        async with async_session() as db:
+            # 1. Total jobs found in last 7 days
+            stmt_jobs = select(func.count()).select_from(Job).where(Job.found_at >= seven_days_ago)
+            total_jobs = (await db.execute(stmt_jobs)).scalar() or 0
+
+            # 2. Total applications in last 7 days
+            stmt_apps = select(func.count()).select_from(Application).where(Application.created_at >= seven_days_ago)
+            total_apps = (await db.execute(stmt_apps)).scalar() or 0
+
+            # 3. Highest scoring job in last 7 days
+            stmt_best = select(Job).where(Job.found_at >= seven_days_ago).order_by(Job.score.desc()).limit(1)
+            best_job = (await db.execute(stmt_best)).scalar_one_or_none()
+
+        # Send email
+        if total_jobs > 0 or total_apps > 0:
+            best_job_str = f"<li>🏆 <strong>Melhor Oportunidade:</strong> {best_job.title} na <strong>{best_job.company}</strong> (Score: {best_job.score}%)</li>" if best_job else ""
+            body = f"""
+            <h2>📊 Relatório Semanal de Atividades — JobHunter</h2>
+            <p>Olá! Aqui está o resumo das suas oportunidades encontradas na última semana:</p>
+            <ul>
+                <li>🔍 <strong>Novas Vagas Analisadas pela Rede Neural:</strong> {total_jobs}</li>
+                <li>✉️ <strong>Candidaturas Automáticas Realizadas:</strong> {total_apps}</li>
+                {best_job_str}
+            </ul>
+            <p>Acesse o painel do seu <strong>JobHunter</strong> para verificar as novas recomendações técnicas!</p>
+            """
+            from app.services.notification_service import send_email
+            await send_email("Relatório Semanal de Oportunidades", body)
+            job_statuses["weekly_report"]["last_status"] = "success"
+            logger.info("Weekly digest report sent successfully.")
+        else:
+            logger.info("No activities or jobs found in the past week. Skipping email.")
+            job_statuses["weekly_report"]["last_status"] = "success"
+    except Exception as e:
+        job_statuses["weekly_report"]["last_status"] = "error"
+        logger.error(f"Weekly report failed: {e}")
+    finally:
+        _release_job_lock("weekly_report")
 
 
 async def start_scheduler():
@@ -186,6 +265,15 @@ async def start_scheduler():
         trigger=CronTrigger(hour=3, minute=0),
         id="auto_delete",
         name="Exclusão automática de vagas antigas",
+        replace_existing=True,
+    )
+
+    # Weekly report - Sunday at 8pm (20:00)
+    scheduler.add_job(
+        _weekly_report_wrapper,
+        trigger=CronTrigger(day_of_week="sun", hour=20, minute=0),
+        id="weekly_report",
+        name="Relatório Semanal de Atividades SMTP",
         replace_existing=True,
     )
 

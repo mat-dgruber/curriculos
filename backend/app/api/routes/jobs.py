@@ -1,5 +1,6 @@
 import math
 from fastapi import APIRouter, Depends, Query, HTTPException, Request
+from pydantic import BaseModel
 from sqlalchemy import select, func, or_
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -14,6 +15,16 @@ from app.models.rejected_job import (
 )
 
 router = APIRouter()
+
+
+def _job_to_read(j: Job) -> JobRead:
+    from app.services.classifier import classify_job
+    read_obj = JobRead.model_validate(j)
+    classification = classify_job(j.title, j.description or "")
+    read_obj.seniority = classification["seniority"]
+    read_obj.area = classification["area"]
+    read_obj.diversity_category = classification["diversity_category"]
+    return read_obj
 
 
 @router.get("/jobs", response_model=JobListResponse)
@@ -63,7 +74,7 @@ async def list_jobs(
     jobs = result.scalars().all()
 
     return JobListResponse(
-        items=[JobRead.model_validate(j) for j in jobs],
+        items=[_job_to_read(j) for j in jobs],
         total=total,
         page=page,
         per_page=per_page,
@@ -270,6 +281,41 @@ async def auto_delete_run(db: AsyncSession = Depends(get_db)):
     return delete_result
 
 
+class AiMatchResponse(BaseModel):
+    match_score: int
+    matches: list[str]
+    gaps: list[str]
+    cold_mail: str
+    interview_advice: str
+
+
+@router.get("/jobs/{job_id}/ai-match", response_model=AiMatchResponse)
+async def get_job_ai_match(job_id: str, db: AsyncSession = Depends(get_db)):
+    result = await db.execute(select(Job).where(Job.id == job_id))
+    job = result.scalar_one_or_none()
+    if not job:
+        raise HTTPException(status_code=404, detail="Vaga não encontrada")
+
+    # Busca o perfil do candidato cadastrado
+    from app.models.profile import CandidateProfile
+    result_profile = await db.execute(select(CandidateProfile).limit(1))
+    profile = result_profile.scalar_one_or_none()
+    if not profile:
+        raise HTTPException(status_code=404, detail="Perfil de candidato não encontrado")
+
+    from app.services.match_analyser import analyse_match
+    analysis = await analyse_match(
+        job_title=job.title,
+        job_description=job.description or "",
+        company=job.company,
+        cv_text=profile.cv_extracted_text or "",
+        candidate_name=profile.name,
+        profile_keywords=profile.get_keywords_list()
+    )
+
+    return AiMatchResponse(**analysis)
+
+
 # --- Dynamic routes ({job_id}) ---
 
 
@@ -279,7 +325,7 @@ async def get_job(job_id: str, db: AsyncSession = Depends(get_db)):
     job = result.scalar_one_or_none()
     if not job:
         raise HTTPException(status_code=404, detail="Job não encontrado")
-    return JobRead.model_validate(job)
+    return _job_to_read(job)
 
 
 @router.patch("/jobs/{job_id}", response_model=JobRead)
@@ -297,7 +343,7 @@ async def update_job(
 
     await db.commit()
     await db.refresh(job)
-    return JobRead.model_validate(job)
+    return _job_to_read(job)
 
 
 @router.delete("/jobs/{job_id}")

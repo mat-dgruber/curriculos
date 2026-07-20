@@ -54,6 +54,7 @@ async def create_company(body: FixedCompanyCreate, db: AsyncSession = Depends(ge
         id=str(uuid4()),
         name=body.name,
         application_url=body.application_url,
+        email=body.email,
         interval_days=body.interval_days,
         notes=body.notes,
         next_send_at=datetime.utcnow() + timedelta(days=body.interval_days),
@@ -175,3 +176,13 @@ async def get_last_screenshot(company_id: str, db: AsyncSession = Depends(get_db
         "status": application.status,
         "sentAt": application.sent_at.isoformat() if application.sent_at else None,
     }
+
+
+@router.post("/companies/check-emails")
+async def check_emails():
+    from app.services.imap_service import check_company_responses
+    res = await check_company_responses()
+    if "error" in res:
+        raise HTTPException(status_code=500, detail=res["error"])
+    return res
+

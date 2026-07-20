@@ -17,6 +17,7 @@ job_statuses = {
     "recurring_send": {"last_run": None, "last_status": None, "is_running": False},
     "auto_delete": {"last_run": None, "last_status": None, "is_running": False},
     "weekly_report": {"last_run": None, "last_status": None, "is_running": False},
+    "imap_check": {"last_run": None, "last_status": None, "is_running": False},
 }
 
 is_paused = False
@@ -189,6 +190,31 @@ async def _weekly_report_wrapper():
         _release_job_lock("weekly_report")
 
 
+async def _imap_check_wrapper():
+    """Wrapper for IMAP response check job that tracks status."""
+    if is_paused and paused_until and datetime.utcnow() < paused_until:
+        logger.info("Scheduler is paused. Skipping IMAP check.")
+        return
+
+    if job_statuses["imap_check"]["is_running"]:
+        logger.warning("IMAP check job is already running. Skipping execution.")
+        return
+
+    job_statuses["imap_check"]["is_running"] = True
+    job_statuses["imap_check"]["last_run"] = datetime.utcnow()
+
+    try:
+        from app.services.imap_service import check_company_responses
+        result = await check_company_responses()
+        job_statuses["imap_check"]["last_status"] = "success"
+        logger.info(f"IMAP check completed: {result}")
+    except Exception as e:
+        job_statuses["imap_check"]["last_status"] = "error"
+        logger.error(f"IMAP check failed: {e}")
+    finally:
+        _release_job_lock("imap_check")
+
+
 async def start_scheduler():
     """Initialize and start the APScheduler."""
     global is_paused, paused_until
@@ -274,6 +300,15 @@ async def start_scheduler():
         trigger=CronTrigger(day_of_week="sun", hour=20, minute=0),
         id="weekly_report",
         name="Relatório Semanal de Atividades SMTP",
+        replace_existing=True,
+    )
+
+    # IMAP check - every 6 hours
+    scheduler.add_job(
+        _imap_check_wrapper,
+        trigger=IntervalTrigger(hours=6),
+        id="imap_check",
+        name="Monitoramento de respostas por e-mail",
         replace_existing=True,
     )
 

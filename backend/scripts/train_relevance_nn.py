@@ -33,7 +33,7 @@ class SimpleMLP:
         self.w2 = np.random.randn(hidden_dim, 1) * np.sqrt(1.0 / hidden_dim)
         self.b2 = np.zeros((1, 1))
 
-        # Inicializa velocidades de Momentum com zeros (mesmo formato que pesos e biases)
+        # Momentum velocities
         self.v_w1 = np.zeros_like(self.w1)
         self.v_b1 = np.zeros_like(self.b1)
         self.v_w2 = np.zeros_like(self.w2)
@@ -67,7 +67,7 @@ class SimpleMLP:
 
     def backward(self, y):
         """
-        Executa o cálculo de erros e retropropagação de gradientes (backpropagation).
+        Executa o cálculo de erros e retropropagação de gradientes (backpropagation) com Momentum.
         Ajusta os pesos proporcionalmente ao erro cometido na previsão.
         """
         m = y.shape[0]
@@ -88,17 +88,16 @@ class SimpleMLP:
         dw1 = np.dot(self.X.T, dz1) / m # formato: (input_dim, hidden)
         db1 = np.sum(dz1, axis=0, keepdims=True) / m # formato: (1, hidden)
 
-        # Atualização via SGD com Momentum (beta = 0.9)
-        # ponytail: Momentum reduz oscilações e ajuda a rede a sair de mínimos locais em vales da perda
-        self.v_w1 = self.beta * self.v_w1 + self.lr * dw1
-        self.v_b1 = self.beta * self.v_b1 + self.lr * db1
-        self.v_w2 = self.beta * self.v_w2 + self.lr * dw2
-        self.v_b2 = self.beta * self.v_b2 + self.lr * db2
+        # Atualização via SGD com Momentum
+        self.v_w1 = self.beta * self.v_w1 + (1.0 - self.beta) * dw1
+        self.v_b1 = self.beta * self.v_b1 + (1.0 - self.beta) * db1
+        self.v_w2 = self.beta * self.v_w2 + (1.0 - self.beta) * dw2
+        self.v_b2 = self.beta * self.v_b2 + (1.0 - self.beta) * db2
 
-        self.w1 -= self.v_w1
-        self.b1 -= self.v_b1
-        self.w2 -= self.v_w2
-        self.b2 -= self.v_b2
+        self.w1 -= self.lr * self.v_w1
+        self.b1 -= self.lr * self.v_b1
+        self.w2 -= self.lr * self.v_w2
+        self.b2 -= self.lr * self.v_b2
 
     def calculate_loss(self, y, predictions):
         """
@@ -245,8 +244,8 @@ def train():
     texts, proximity_scores, y = load_dataset()
 
     # 1. Vetorização de texto usando TF-IDF (Term Frequency - Inverse Document Frequency)
-    # Limita o vocabulário em 300 features (com bigramas) para riqueza de contexto com RAM insignificante
-    vectorizer = TfidfVectorizer(max_features=300, ngram_range=(1, 2), stop_words="english")
+    # Limita o vocabulário em 400 features (com bigramas) para riqueza de contexto com RAM insignificante
+    vectorizer = TfidfVectorizer(max_features=400, ngram_range=(1, 2), stop_words="english")
     X = vectorizer.fit_transform(texts).toarray()
 
     # Adiciona o score de proximidade física como coluna extra (Feature Union)
